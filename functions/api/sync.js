@@ -650,6 +650,56 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ success: true, entryId });
     }
 
+    // 17. RMS: Publish Dynamic Micro-Rates & Log to RMS Audit
+    if (action === 'publish_dynamic_rates') {
+      const rates = payload.rates;
+      if (rates) {
+        for (const tierId of Object.keys(rates)) {
+          const item = rates[tierId];
+          const tierName = item.tierName;
+          const rate = item.recommendedRate;
+          await db.prepare(`
+            UPDATE rooms SET tariff = ? WHERE tier = ?
+          `).bind(rate, tierName).run();
+        }
+      }
+
+      const logId = `RMS-${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO rms_audit_log (log_id, action_type, details, performed_by, created_at)
+        VALUES (?, 'RATE_PUBLISH', ?, 'Revenue Director', datetime('now'))
+      `).bind(logId, JSON.stringify(rates || {})).run();
+
+      return jsonResponse({ success: true, logId });
+    }
+
+    // 18. RMS: Record Corporate Group Displacement RFP Evaluation
+    if (action === 'save_group_rfp') {
+      const rfp = payload;
+      const rfpId = rfp.rfpId || `RFP-${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO rms_displacement_rfps (
+          rfp_id, corporate_name, rooms_requested, stay_nights, offered_rate,
+          calculated_mar, net_gain_loss, verdict, ancillary_spend, evaluated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        rfpId, rfp.companyName, rfp.rooms, rfp.nights, rfp.offeredRate,
+        rfp.mar, rfp.netGain, rfp.verdict, rfp.ancillarySpend || 0
+      ).run();
+
+      return jsonResponse({ success: true, rfpId });
+    }
+
+    // 19. RMS: Update Automation Mode
+    if (action === 'update_rms_mode') {
+      const mode = payload.mode || 'exception';
+      await db.prepare(`
+        UPDATE rms_rate_guardrails SET automation_mode = ?, updated_at = datetime('now')
+      `).bind(mode).run();
+
+      return jsonResponse({ success: true, mode });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error) {

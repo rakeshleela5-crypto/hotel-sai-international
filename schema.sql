@@ -714,3 +714,62 @@ INSERT OR IGNORE INTO menu_items (item_id, name, category, price, is_veg, is_jai
 ('MENU-05', 'Executive Breakfast Buffet (Complimentary in Room)', 'Breakfast', 350.00, 1, 0, 1, 'Idli, Vada, Puri Sabzi, Upma, Masala Chai, Fresh Fruits and Odia Sweets.'),
 ('MENU-06', 'Mushroom Besara', 'Main Course', 260.00, 1, 0, 0, 'Fresh buttons simmered in traditional Rayagada mustard and dry mango gravy.'),
 ('MENU-07', 'Filter Coffee / Spiced Masala Chai', 'Beverages', 60.00, 1, 1, 0, 'Freshly brewed decoction with cardamom and ginger.');
+
+-- ============================================================================
+-- IDEAS SAS G3 RMS ENGINE TABLES (TABLES 46 - 49)
+-- ============================================================================
+
+-- 46. RMS RATE GUARDRAILS & PEGS
+CREATE TABLE IF NOT EXISTS rms_rate_guardrails (
+  tier_id TEXT PRIMARY KEY,
+  tier_name TEXT NOT NULL,
+  floor_tariff REAL NOT NULL,
+  ceiling_tariff REAL NOT NULL,
+  comp_peg_percent REAL NOT NULL DEFAULT 8.0,
+  automation_mode TEXT NOT NULL DEFAULT 'exception',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Pre-seed Guardrails
+INSERT OR IGNORE INTO rms_rate_guardrails (tier_id, tier_name, floor_tariff, ceiling_tariff, comp_peg_percent, automation_mode) VALUES
+('standard-deluxe', 'Standard Deluxe', 1499.00, 3200.00, 8.0, 'exception'),
+('deluxe-room', 'Deluxe Room', 1899.00, 3900.00, 8.0, 'exception'),
+('executive-room', 'Executive Room', 2499.00, 5200.00, 8.0, 'exception'),
+('premium-suite', 'Premium Suite', 3499.00, 7999.00, 8.0, 'exception');
+
+-- 47. RMS HURDLE RATES & STAY PATTERN RESTRICTIONS (SHADOW BID PRICES)
+CREATE TABLE IF NOT EXISTS rms_hurdle_rates (
+  id TEXT PRIMARY KEY,
+  target_date TEXT NOT NULL,
+  tier_id TEXT NOT NULL,
+  hurdle_rate REAL NOT NULL,
+  min_los INTEGER NOT NULL DEFAULT 1,
+  max_los INTEGER NOT NULL DEFAULT 30,
+  cta INTEGER NOT NULL DEFAULT 0, -- Closed to Arrival
+  ctd INTEGER NOT NULL DEFAULT 0, -- Closed to Departure
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 48. RMS CORPORATE GROUP DISPLACEMENT RFPS
+CREATE TABLE IF NOT EXISTS rms_displacement_rfps (
+  rfp_id TEXT PRIMARY KEY,
+  corporate_name TEXT NOT NULL,
+  rooms_requested INTEGER NOT NULL,
+  stay_nights INTEGER NOT NULL,
+  offered_rate REAL NOT NULL,
+  calculated_mar REAL NOT NULL,
+  net_gain_loss REAL NOT NULL,
+  verdict TEXT NOT NULL,
+  ancillary_spend REAL NOT NULL DEFAULT 0,
+  evaluated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 49. RMS AUDIT LOG (UNALTERABLE REVENUE OVERRIDE REGISTER)
+CREATE TABLE IF NOT EXISTS rms_audit_log (
+  log_id TEXT PRIMARY KEY,
+  action_type TEXT NOT NULL, -- RATE_PUBLISH, GUARDRAIL_OVERRIDE, MODE_CHANGE, RFP_EVALUATED
+  details TEXT NOT NULL,
+  performed_by TEXT NOT NULL DEFAULT 'Revenue Director',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+

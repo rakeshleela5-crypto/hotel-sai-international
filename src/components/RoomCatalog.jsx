@@ -6,7 +6,7 @@ import {
 import { ROOM_TIERS } from '../data/hotelData';
 import { calculateRoomTax } from '../utils/taxUtils';
 
-export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = [] }) {
+export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = [], dynamicRates = null }) {
   const [selectedFloorFilter, setSelectedFloorFilter] = useState('all');
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const tabsContainerRef = useRef(null);
@@ -109,7 +109,9 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
           gap: '2rem'
         }}>
           {filteredTiers.map((tier, idx) => {
-            const tax = calculateRoomTax(tier.tariff);
+            const effectiveTariff = (dynamicRates && dynamicRates[tier.id]) ? dynamicRates[tier.id].recommendedRate : tier.tariff;
+            const isDynamic = dynamicRates && dynamicRates[tier.id] && dynamicRates[tier.id].recommendedRate !== tier.tariff;
+            const tax = calculateRoomTax(effectiveTariff);
             const stats = getTierStats(tier.name);
 
             return (
@@ -197,12 +199,22 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                     <h3 style={{ fontSize: '1.4rem' }}>{tier.name}</h3>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--gold-glow)' }}>
-                        ₹{tier.tariff.toLocaleString()}
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--gold-glow)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.45rem' }}>
+                        {isDynamic && (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                            ₹{tier.tariff.toLocaleString()}
+                          </span>
+                        )}
+                        ₹{effectiveTariff.toLocaleString()}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                         +5% GST (₹{tax.totalTax})
                       </div>
+                      {isDynamic && (
+                        <div style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700, marginTop: '0.15rem' }}>
+                          ⚡ IDeaS G3 Yield Rate
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -258,7 +270,7 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
                   {/* Bottom Action */}
                   <div style={{ marginTop: 'auto', display: 'flex', gap: '0.75rem' }}>
                     <button 
-                      onClick={() => onSelectTier(tier)}
+                      onClick={() => onSelectTier({ ...tier, tariff: effectiveTariff })}
                       className="btn-primary-gold"
                       style={{ flex: 1, justifyContent: 'center' }}
                     >

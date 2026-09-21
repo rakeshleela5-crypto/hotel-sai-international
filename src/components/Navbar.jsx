@@ -21,6 +21,7 @@ export default function Navbar({
   onOpenNightAudit,
   onOpenStoreInventory,
   onOpenDirectorPortal,
+  onOpenRevenueManagement,
   cartCount = 0,
   rooms = [],
   adminPinVerified,
@@ -264,6 +265,27 @@ export default function Navbar({
           >
             🥬 Mandi Store
           </button>
+
+          <button
+            onClick={onOpenRevenueManagement}
+            style={{
+              padding: '0.3rem 0.75rem',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(245, 158, 11, 0.22))',
+              border: '1px solid var(--gold-primary)',
+              color: 'var(--gold-glow)',
+              cursor: 'pointer',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              boxShadow: '0 0 12px rgba(212, 175, 55, 0.2)'
+            }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
+            ⚡ IDeaS G3 RMS Console
+          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
@@ -504,6 +526,9 @@ export default function Navbar({
             </button>
             <button onClick={() => { onOpenBotFleet(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-champagne)', padding: '0.4rem 0' }}>
               ⚙️ 20-Bot Autonomous Fleet
+            </button>
+            <button onClick={() => { onOpenRevenueManagement(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0', fontWeight: 800 }}>
+              ⚡ IDeaS G3 RMS Console
             </button>
           </div>
         )}

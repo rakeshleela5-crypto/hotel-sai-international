@@ -19,9 +19,11 @@ import AccountsLedgerModal from './components/AccountsLedgerModal';
 import NightAuditModal from './components/NightAuditModal';
 import StoreInventoryModal from './components/StoreInventoryModal';
 import DirectorPortal from './components/DirectorPortal';
+import RevenueManagementModal from './components/RevenueManagementModal';
 import Footer from './components/Footer';
 
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
+import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('guest'); // 'guest' or 'pms'
@@ -138,6 +140,8 @@ export default function App() {
   const [nightAuditModalOpen, setNightAuditModalOpen] = useState(false);
   const [storeInventoryModalOpen, setStoreInventoryModalOpen] = useState(false);
   const [directorPortalOpen, setDirectorPortalOpen] = useState(false);
+  const [revenueModalOpen, setRevenueModalOpen] = useState(false);
+  const [dynamicRates, setDynamicRates] = useState(() => calculateAllTierMicroRates({ occupancyRate: 68, daysToArrival: 3, pickupVelocity48h: 4 }));
 
   const [searchDates, setSearchDates] = useState({
     checkIn: new Date().toISOString().split('T')[0],
@@ -276,6 +280,7 @@ export default function App() {
         onOpenNightAudit={() => setNightAuditModalOpen(true)}
         onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
         onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
+        onOpenRevenueManagement={() => setRevenueModalOpen(true)}
         rooms={rooms}
         adminPinVerified={adminPinVerified}
         setAdminPinVerified={setAdminPinVerified}
@@ -297,6 +302,7 @@ export default function App() {
             <div id="inventory">
               <RoomCatalog 
                 rooms={rooms}
+                dynamicRates={dynamicRates}
                 onSelectTier={handleOpenBooking}
                 onOpen3DExplorer={() => setFloorExplorerOpen(true)}
               />
@@ -341,6 +347,7 @@ export default function App() {
         initialRoomNumber={selectedRoomNumForBooking}
         rooms={rooms}
         bookings={bookings}
+        dynamicRates={dynamicRates}
         onBookingSuccess={handleBookingSuccess}
       />
 
@@ -423,6 +430,31 @@ export default function App() {
         onClose={() => setDirectorPortalOpen(false)}
         rooms={rooms}
         bookings={bookings}
+        onOpenRevenueManagement={() => {
+          setDirectorPortalOpen(false);
+          setRevenueModalOpen(true);
+        }}
+      />
+
+      {/* IDeaS SAS G3 RMS Platform Revenue Director's Console */}
+      <RevenueManagementModal 
+        isOpen={revenueModalOpen}
+        onClose={() => setRevenueModalOpen(false)}
+        currentOccupancy={Math.round((rooms.filter(r => r.status === 'Occupied').length / (rooms.length || 40)) * 100)}
+        activeRates={dynamicRates}
+        onPublishRates={(newRates) => {
+          setDynamicRates(newRates);
+          setRooms(prev => prev.map(r => {
+            const tierId = r.tier === 'Standard Deluxe' ? 'standard-deluxe' :
+                           r.tier === 'Deluxe Room' ? 'deluxe-room' :
+                           r.tier === 'Executive Room' ? 'executive-room' : 'premium-suite';
+            if (newRates[tierId]) {
+              return { ...r, tariff: newRates[tierId].recommendedRate };
+            }
+            return r;
+          }));
+          alert("⚡ IDeaS G3 RMS: Continuous dynamic micro-rates published to live booking engine, room catalog, and front desk reception!");
+        }}
       />
 
       <Footer 

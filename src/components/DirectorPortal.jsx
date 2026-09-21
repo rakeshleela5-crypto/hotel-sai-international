@@ -10,7 +10,8 @@ export default function DirectorPortal({
   isOpen,
   onClose,
   rooms = [],
-  bookings = []
+  bookings = [],
+  onOpenRevenueManagement
 }) {
   if (!isOpen) return null;
 
@@ -159,6 +160,62 @@ export default function DirectorPortal({
 
         {/* Dashboard Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.75rem 2rem' }}>
+          {/* IDeaS G3 RMS Yield & Net RevPAR Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            border: '1px solid var(--gold-primary)',
+            borderRadius: '12px',
+            padding: '1.25rem 1.75rem',
+            marginBottom: '1.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{
+                  background: 'linear-gradient(135deg, #d4af37, #996515)',
+                  color: '#000',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px'
+                }}>
+                  IDeaS SAS G3 RMS
+                </span>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff', fontWeight: 800 }}>
+                  Autonomous Continuous Dynamic Yielding & Net RevPAR Engine
+                </h3>
+              </div>
+              <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                Active Mode: <strong style={{ color: 'var(--gold-glow)' }}>Exception-Based</strong> • Direct Web Net Margin: <strong style={{ color: '#34d399' }}>97.5%</strong> • Unconstrained Demand: <strong style={{ color: '#38bdf8' }}>48 Rooms</strong> • Safe Overbooking: <strong style={{ color: '#fbbf24' }}>+1 Room</strong>
+              </p>
+            </div>
+
+            <button
+              onClick={onOpenRevenueManagement}
+              style={{
+                background: 'linear-gradient(135deg, #d4af37, #b8860b)',
+                color: '#000',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.65rem 1.25rem',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 4px 15px rgba(212, 175, 55, 0.35)'
+              }}
+            >
+              ⚡ Open IDeaS G3 RMS Console
+            </button>
+          </div>
+
           {/* Top KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
             {/* Occupancy Card */}

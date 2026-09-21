@@ -16,6 +16,7 @@ export default function BookingModal({
   initialRoomNumber = null,
   rooms = [],
   bookings = [],
+  dynamicRates = null,
   onBookingSuccess
 }) {
   const [selectedTier, setSelectedTier] = useState(initialTier || ROOM_TIERS[0]);
@@ -76,10 +77,12 @@ export default function BookingModal({
   // Calculate nights
   const nights = Math.max(1, Math.round((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)) || 1);
 
-  // Apply corporate discount if selected
+  // Apply corporate discount or G3 dynamic yield rate
+  const tierDynamic = dynamicRates && dynamicRates[selectedTier.id];
+  const activeTariff = (tierDynamic && !isB2b) ? tierDynamic.recommendedRate : selectedTier.tariff;
   const corp = isB2b ? CORPORATE_PARTNERS.find(c => c.id === selectedCorporate) : null;
   const discountMultiplier = corp ? (1 - corp.contractDiscount / 100) : 1;
-  const baseRatePerNight = Math.round(selectedTier.tariff * discountMultiplier);
+  const baseRatePerNight = Math.round(activeTariff * discountMultiplier);
   const totalBase = baseRatePerNight * nights;
   const tax = calculateRoomTax(totalBase);
 
@@ -305,7 +308,12 @@ export default function BookingModal({
                       <div style={{ fontWeight: 600, fontSize: '0.85rem', color: selectedTier.id === t.id ? 'var(--gold-glow)' : '#fff' }}>
                         {t.name}
                       </div>
-                      <div style={{ fontSize: '0.75rem' }}>Fl {t.floor} • ₹{t.tariff}/nt</div>
+                      <div style={{ fontSize: '0.75rem' }}>
+                        Fl {t.floor} • ₹{(dynamicRates && dynamicRates[t.id]) ? dynamicRates[t.id].recommendedRate.toLocaleString() : t.tariff.toLocaleString()}/nt
+                        {dynamicRates && dynamicRates[t.id] && dynamicRates[t.id].recommendedRate !== t.tariff && (
+                          <span style={{ color: '#10b981', marginLeft: '0.3rem' }}>⚡</span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
