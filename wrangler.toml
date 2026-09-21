@@ -2,7 +2,8 @@ name = "hotel-sai-international"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-09-01"
 
-[[d1_databases]]
-binding = "DB"
-database_name = "hotel_sai_international_db"
-database_id = "local-d1-sai-international"
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "hotel_sai_international_db"
+# database_id = "local-d1-sai-international"
+
