@@ -4,7 +4,7 @@ import {
   Search, Hash, DollarSign, Smartphone, Bed, ShieldCheck, X, 
   Send, Sparkles, Clock, AlertCircle
 } from 'lucide-react';
-import { RESTAURANT_MENU, HOTEL_CONFIG } from '../data/hotelData';
+import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
 
 export default function CannonKitchenPOS({
   isOpen,
@@ -14,14 +14,17 @@ export default function CannonKitchenPOS({
 }) {
   if (!isOpen) return null;
 
+  // View Mode: 'tableGrid' (Authentic MySoft Screenshot 20 layout) | 'menu'
+  const [posViewMode, setPosViewMode] = useState('tableGrid');
+
   // Outlet selection: 'Cannon Kitchen (Dine-In)', 'Bar Outlet', 'Room Service', 'Swiggy / Zomato'
   const [selectedOutlet, setSelectedOutlet] = useState('Cannon Kitchen');
   
   // Table or Room selector
   const [orderType, setOrderType] = useState('room'); // 'room', 'table', 'delivery'
   const [targetRoom, setTargetRoom] = useState('402');
-  const [tableNumber, setTableNumber] = useState('T-04');
-  const [captainName, setCaptainName] = useState('Captain Ramesh');
+  const [tableNumber, setTableNumber] = useState('6');
+  const [captainName, setCaptainName] = useState('KOTI');
 
   // Fast numeric code input state
   const [codeQuery, setCodeQuery] = useState('');
@@ -235,9 +238,64 @@ export default function CannonKitchenPOS({
           </button>
         </div>
 
+        {/* Mode Switcher Bar (Screenshot 20: Table Grid vs Code Entry) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.45rem 1.75rem',
+          background: 'rgba(0,0,0,0.5)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          flexWrap: 'wrap',
+          gap: '0.75rem'
+        }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setPosViewMode('tableGrid')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                background: posViewMode === 'tableGrid' ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
+                color: posViewMode === 'tableGrid' ? '#34d399' : 'var(--text-muted)',
+                border: posViewMode === 'tableGrid' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '2px', background: '#10b981' }}></span>
+              🔲 MyPOS Table Grid (Screenshot 20)
+            </button>
+            <button
+              onClick={() => setPosViewMode('menu')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                background: posViewMode === 'menu' ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
+                color: posViewMode === 'menu' ? '#fbbf24' : 'var(--text-muted)',
+                border: posViewMode === 'menu' ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer'
+              }}
+            >
+              📋 Fast Code & Dish Catalog
+            </button>
+          </div>
+
+          <div style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+            <span>Duty Steward: <strong style={{ color: 'var(--gold-glow)' }}>{captainName}</strong></span>
+            <span>Active Table: <strong style={{ color: '#38bdf8' }}>{tableNumber}</strong></span>
+            <span>Target Room: <strong style={{ color: '#34d399' }}>Room {targetRoom}</strong></span>
+          </div>
+        </div>
+
         {/* Main Content Layout */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {/* Left Column: Menu Items & Short Code Numpad Entry */}
+          {/* Left Column: Menu Items & Short Code Numpad Entry OR Table Grid */}
           <div style={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
             {/* Quick Fast Numpad Input Bar */}
             <div style={{
@@ -320,16 +378,203 @@ export default function CannonKitchenPOS({
               <span><strong style={{ color: '#fff' }}>401:</strong> Masala Chai</span>
             </div>
 
-            {/* Menu Cards Grid */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '1.25rem 1.5rem',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-              gap: '0.85rem',
-              alignContent: 'flex-start'
-            }}>
+            {/* Conditional Content: Authentic MySoft Table Grid OR Fast Dish Catalog */}
+            {posViewMode === 'tableGrid' ? (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Active KOTs Alert Banner */}
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                  fontSize: '0.78rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24' }}></span>
+                    <strong style={{ color: '#fbbf24' }}>Active Kitchen Orders Running:</strong>
+                    <span style={{ color: '#cbd5e1' }}>Table 6 (KOT #F2627-7514 • KOTI • ₹1,190) | Table B (KOT #F2627-7515 • SADANANDA)</span>
+                  </div>
+                  <span style={{ color: '#94a3b8' }}>Tap any table or room button to select and add dishes</span>
+                </div>
+
+                {/* Section 1: Main Dining Tables (1 - 13) */}
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold-glow)', marginBottom: '0.5rem' }}>
+                    🍽️ Ground Floor Main Dining (Tables 1 – 13)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.65rem' }}>
+                    {MYPOS_CANNON_KITCHEN_LAYOUT.tables.filter(t => t.section === 'Main Dining').map(table => {
+                      const activeKot = MYPOS_CANNON_KITCHEN_LAYOUT.activeKotOrders.find(k => k.tableId === table.id);
+                      const isSelected = tableNumber === table.id;
+
+                      return (
+                        <div
+                          key={table.id}
+                          onClick={() => {
+                            setTableNumber(table.id);
+                            setOrderType('table');
+                            if (activeKot) setCaptainName(activeKot.steward);
+                          }}
+                          style={{
+                            background: activeKot 
+                              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(180, 83, 9, 0.35))'
+                              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 78, 59, 0.25))',
+                            border: isSelected 
+                              ? '2px solid var(--gold-glow)' 
+                              : activeKot ? '1px solid #f59e0b' : '1px solid rgba(16, 185, 129, 0.4)',
+                            borderRadius: '8px',
+                            padding: '0.6rem 0.4rem',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.95rem', color: activeKot ? '#fbbf24' : '#34d399' }}>
+                            {table.label}
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '0.15rem' }}>
+                            {activeKot ? `₹${activeKot.amount} (${activeKot.steward})` : 'VACANT'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 2: Terrace & Bar Lounge (1A - 13A & 1B - 5B) */}
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8', marginBottom: '0.5rem' }}>
+                    🍸 Terrace & Bar Lounge (Tables 1A–13A & 1B–5B)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.65rem' }}>
+                    {[
+                      ...MYPOS_CANNON_KITCHEN_LAYOUT.tables.filter(t => t.section === 'Terrace Dining'),
+                      ...MYPOS_CANNON_KITCHEN_LAYOUT.tables.filter(t => t.section === 'Bar Lounge')
+                    ].map(table => {
+                      const activeKot = MYPOS_CANNON_KITCHEN_LAYOUT.activeKotOrders.find(k => k.tableId === table.id);
+                      const isSelected = tableNumber === table.id;
+
+                      return (
+                        <div
+                          key={table.id}
+                          onClick={() => {
+                            setTableNumber(table.id);
+                            setOrderType('table');
+                            setSelectedOutlet(table.section === 'Bar Lounge' ? 'Bar Outlet' : 'Cannon Kitchen');
+                          }}
+                          style={{
+                            background: activeKot 
+                              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(180, 83, 9, 0.35))'
+                              : 'rgba(56, 189, 248, 0.12)',
+                            border: isSelected 
+                              ? '2px solid var(--gold-glow)' 
+                              : activeKot ? '1px solid #f59e0b' : '1px solid rgba(56, 189, 248, 0.3)',
+                            borderRadius: '8px',
+                            padding: '0.6rem 0.4rem',
+                            textAlign: 'center',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.95rem', color: activeKot ? '#fbbf24' : '#38bdf8' }}>
+                            {table.label}
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                            {activeKot ? activeKot.status : 'VACANT'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 3: Banquets, Halls & PDRs */}
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c084fc', marginBottom: '0.5rem' }}>
+                    🏛️ Private Dining Rooms & Banquets (PDR, PAR3–16, A/C Conference)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.65rem' }}>
+                    {MYPOS_CANNON_KITCHEN_LAYOUT.tables.filter(t => t.section === 'PDR' || t.section === 'Banquet' || t.section === 'Admin').map(table => {
+                      const isSelected = tableNumber === table.id;
+
+                      return (
+                        <div
+                          key={table.id}
+                          onClick={() => {
+                            setTableNumber(table.id);
+                            setOrderType('table');
+                          }}
+                          style={{
+                            background: 'rgba(168, 85, 247, 0.12)',
+                            border: isSelected ? '2px solid var(--gold-glow)' : '1px solid rgba(168, 85, 247, 0.3)',
+                            borderRadius: '8px',
+                            padding: '0.65rem 0.5rem',
+                            textAlign: 'center',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#c084fc' }}>
+                            {table.id}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                            {table.label} ({table.pax} Pax)
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 4: Direct Room Service Transfer Buttons */}
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fbbf24', marginBottom: '0.5rem' }}>
+                    🛎️ Direct Room Service Transfer Keys (Bill to Folio)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.65rem' }}>
+                    {['201', '202', '206', '207', '208', '301', '304', '305', '308', '402', '408', '409', '410', '411', '412', '413', '415', '416'].map(rNum => {
+                      const isSelected = targetRoom === rNum && orderType === 'room';
+                      return (
+                        <button
+                          key={rNum}
+                          onClick={() => {
+                            setTargetRoom(rNum);
+                            setOrderType('room');
+                            setSelectedOutlet('Room Service');
+                          }}
+                          style={{
+                            background: isSelected ? 'rgba(212, 175, 55, 0.3)' : 'rgba(255, 255, 255, 0.04)',
+                            border: isSelected ? '2px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.15)',
+                            borderRadius: '8px',
+                            padding: '0.55rem',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            color: isSelected ? 'var(--gold-glow)' : '#f8fafc',
+                            fontWeight: 800,
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          R-{rNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Fast Dish Catalog View */
+              <div style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '1.25rem 1.5rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: '0.85rem',
+                alignContent: 'flex-start'
+              }}>
               {filteredMenu.map(dish => {
                 const activePrice = getItemPrice(dish);
                 return (
@@ -396,6 +641,7 @@ export default function CannonKitchenPOS({
                 );
               })}
             </div>
+            )}
           </div>
 
           {/* Right Column: Order Cart & Bill-to-Room Action */}

@@ -3,15 +3,17 @@
 // Switchboard: +91 6856 225555 | Landline: 06856 225 555
 
 export const HOTEL_CONFIG = {
-  name: "Hotel Sai International",
-  tagline: "Premier 40-Room International Executive & Pilgrim Hotel",
-  address: "Sai Priya Nagar, Rayagada, Odisha - 765001",
+  name: "Hotel Sai International Pvt Ltd",
+  tagline: "Premier 39-Room International Executive & Pilgrim Hotel",
+  address: "J.K. Road, Rayagada, Rayagada - 765001, India",
   landline: "06856 225 555",
-  phone: "+91 6856 225555",
-  email: "reservations@hotelsaiinternational.com",
+  phone: "+91 8895225555",
+  altPhone: "+91 8249258377",
+  email: "hotelsaiinternational2010@gmail.com",
   adminEmail: "admin@hotelsaiinternational.com",
   travelDeskEmail: "traveldesk@hotelsaiinternational.com",
-  gstin: "21AABCH9821K1Z2",
+  website: "hotelsaiinternationalrayagada.com",
+  gstin: "21AABCH7663L1ZG",
   sacCode: "996311",
   checkInTime: "12:00 PM",
   checkOutTime: "12:00 PM",
@@ -87,87 +89,51 @@ export const ROOM_TIERS = [
   }
 ];
 
-// 40 Authentic Rooms Inventory Array
+// 39 Authentic Physical Inventory Keys (MySoft Live Property Layout)
 export const INITIAL_ROOMS_INVENTORY = [
-  // 1st Floor: Standard Deluxe (101 - 110)
-  ...Array.from({ length: 10 }, (_, i) => {
-    const num = 101 + i;
-    const statuses = ['Available', 'Available', 'Occupied', 'Available', 'Cleaning', 'Available', 'Available', 'Available', 'Occupied', 'Available'];
-    return {
-      roomNumber: `${num}`,
-      tier: 'Standard Deluxe',
-      floor: 1,
-      tariff: 1699,
-      capacityAdults: 2,
-      capacityChildren: 1,
-      bedType: 'King Bed',
-      status: statuses[i],
-      amenities: ["Air Conditioning", "High-speed Wi-Fi", "King Bed", "Free Breakfast Buffet", "Smart TV"],
-      currentGuestName: statuses[i] === 'Occupied' ? (i === 2 ? 'Rajendra Mohanty' : 'Santosh Patra') : null,
-      doorFacing: i % 2 === 0 ? 'East' : 'West',
-      coordinates3D: { x: (i % 5) * 3 - 6, y: 1.5, z: Math.floor(i / 5) * 4 - 2 }
-    };
-  }),
+  // Floor 2 (7 Rooms: 201 - 208)
+  { roomNumber: '201', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'LAVAKANTA', balanceDue: 4410.00, pax: '1 Pax', coordinates3D: { x: -6, y: 4.5, z: -2 } },
+  { roomNumber: '202', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'SATYARANJAN', balanceDue: 39060.00, pax: '2 Pax', coordinates3D: { x: -3, y: 4.5, z: -2 } },
+  { roomNumber: '203', tier: 'Premium Suite', roomType: 'PRSUITE', floor: 2, tariff: 3999, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Suite', coordinates3D: { x: 0, y: 4.5, z: -2 } },
+  { roomNumber: '205', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 3, y: 4.5, z: -2 } },
+  { roomNumber: '206', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'S S HAMEED', balanceDue: 7560.00, pax: '1 Pax', coordinates3D: { x: 6, y: 4.5, z: -2 } },
+  { roomNumber: '207', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'SAHANAWAZ', balanceDue: 35910.00, pax: '1 Pax', coordinates3D: { x: -6, y: 4.5, z: 2 } },
+  { roomNumber: '208', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'S SURESH', balanceDue: 35910.00, pax: '1 Pax', coordinates3D: { x: -3, y: 4.5, z: 2 } },
 
-  // 2nd Floor: Deluxe Room (201 - 210)
-  ...Array.from({ length: 10 }, (_, i) => {
-    const num = 201 + i;
-    const statuses = ['Available', 'Occupied', 'Available', 'Cleaning', 'Available', 'Available', 'Occupied', 'Available', 'Available', 'Available'];
-    return {
-      roomNumber: `${num}`,
-      tier: 'Deluxe Room',
-      floor: 2,
-      tariff: 2199,
-      capacityAdults: 2,
-      capacityChildren: 1,
-      bedType: 'Queen Orthopedic',
-      status: statuses[i],
-      amenities: ["Premium AC", "City View Balcony", "Work Desk", "Free Breakfast", "In-Room Satvik Dining"],
-      currentGuestName: statuses[i] === 'Occupied' ? (i === 1 ? 'Prakash Tripathy' : 'Dr. B. K. Sahoo') : null,
-      doorFacing: i % 2 === 0 ? 'East' : 'West',
-      coordinates3D: { x: (i % 5) * 3 - 6, y: 4.5, z: Math.floor(i / 5) * 4 - 2 }
-    };
-  }),
+  // Floor 3 (15 Rooms: 301 - 316)
+  { roomNumber: '301', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Occupied', currentGuestName: 'UTKARSH SR', balanceDue: 5670.00, pax: '1 Pax', coordinates3D: { x: -6, y: 7.5, z: -2 } },
+  { roomNumber: '302', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -3, y: 7.5, z: -2 } },
+  { roomNumber: '303', tier: 'Premium Suite', roomType: 'SUITE', floor: 3, tariff: 3999, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Suite', coordinates3D: { x: 0, y: 7.5, z: -2 } },
+  { roomNumber: '304', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Occupied', currentGuestName: 'SUPHAL CHA', balanceDue: 4410.00, pax: '2 Pax', coordinates3D: { x: 3, y: 7.5, z: -2 } },
+  { roomNumber: '305', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Occupied', currentGuestName: 'K RAJESH K', balanceDue: 5670.00, pax: '1 Pax', coordinates3D: { x: 6, y: 7.5, z: -2 } },
+  { roomNumber: '306', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -6, y: 7.5, z: 0 } },
+  { roomNumber: '307', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -3, y: 7.5, z: 0 } },
+  { roomNumber: '308', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Occupied', currentGuestName: 'JAGANNAT', balanceDue: 5670.00, pax: '1 Pax', coordinates3D: { x: 0, y: 7.5, z: 0 } },
+  { roomNumber: '309', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Maintenance', currentGuestName: 'AC PRBLM', balanceDue: 0, pax: 'OOO', coordinates3D: { x: 3, y: 7.5, z: 0 } },
+  { roomNumber: '310', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 6, y: 7.5, z: 0 } },
+  { roomNumber: '311', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -6, y: 7.5, z: 2 } },
+  { roomNumber: '312', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -3, y: 7.5, z: 2 } },
+  { roomNumber: '314', tier: 'Premium Suite', roomType: 'SUITE', floor: 3, tariff: 3999, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Suite', coordinates3D: { x: 0, y: 7.5, z: 2 } },
+  { roomNumber: '315', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 3, y: 7.5, z: 2 } },
+  { roomNumber: '316', tier: 'Executive Room', roomType: 'EXEDEL', floor: 3, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 6, y: 7.5, z: 2 } },
 
-  // 3rd Floor: Executive Room (301 - 310)
-  ...Array.from({ length: 10 }, (_, i) => {
-    const num = 301 + i;
-    const statuses = ['Occupied', 'Available', 'Available', 'Available', 'Maintenance', 'Available', 'Available', 'VIP Hold', 'Available', 'Available'];
-    return {
-      roomNumber: `${num}`,
-      tier: 'Executive Room',
-      floor: 3,
-      tariff: 2899,
-      capacityAdults: 3,
-      capacityChildren: 1,
-      bedType: 'King Enterprise',
-      status: statuses[i],
-      amenities: ["Ergonomic Workstation", "High-Speed Enterprise Wi-Fi", "Mini Bar", "Free Laundry credit", "Station Transit"],
-      currentGuestName: statuses[i] === 'Occupied' ? 'Vikram Singhania (JK Paper)' : (statuses[i] === 'VIP Hold' ? 'VIP ECoR General Manager' : null),
-      doorFacing: i % 2 === 0 ? 'East' : 'West',
-      coordinates3D: { x: (i % 5) * 3 - 6, y: 7.5, z: Math.floor(i / 5) * 4 - 2 }
-    };
-  }),
-
-  // 4th Floor: Premium Suite (401 - 410)
-  ...Array.from({ length: 10 }, (_, i) => {
-    const num = 401 + i;
-    const statuses = ['Available', 'Occupied', 'Available', 'Available', 'Available', 'Cleaning', 'Available', 'Available', 'Available', 'VIP Hold'];
-    return {
-      roomNumber: `${num}`,
-      tier: 'Premium Suite',
-      floor: 4,
-      tariff: 3999,
-      capacityAdults: 4,
-      capacityChildren: 2,
-      bedType: 'Imperial King + Luxury Sofa Bed',
-      status: statuses[i],
-      amenities: ["Living Area", "Master Bedroom", "Complimentary Fruit Basket", "Priority Room Service", "Free Local Shuttle"],
-      currentGuestName: statuses[i] === 'Occupied' ? 'Anil Sharma & Family' : (statuses[i] === 'VIP Hold' ? 'Govt Dignitary Delegation' : null),
-      doorFacing: i % 2 === 0 ? 'East' : 'West',
-      coordinates3D: { x: (i % 5) * 3 - 6, y: 10.5, z: Math.floor(i / 5) * 4 - 2 }
-    };
-  })
+  // Floor 4 (16 Rooms: 401 - 416)
+  { roomNumber: '401', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -6, y: 10.5, z: -2 } },
+  { roomNumber: '402', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'PASHOK', balanceDue: 10084.38, pax: '1 Pax', coordinates3D: { x: -3, y: 10.5, z: -2 } },
+  { roomNumber: '403', tier: 'Premium Suite', roomType: 'SUITE', floor: 4, tariff: 3999, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Suite', coordinates3D: { x: 0, y: 10.5, z: -2 } },
+  { roomNumber: '404', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 3, y: 10.5, z: -2 } },
+  { roomNumber: '405', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 6, y: 10.5, z: -2 } },
+  { roomNumber: '406', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -6, y: 10.5, z: 0 } },
+  { roomNumber: '407', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: -3, y: 10.5, z: 0 } },
+  { roomNumber: '408', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'SARATH CHA', balanceDue: 5670.00, pax: '1 Pax', coordinates3D: { x: 0, y: 10.5, z: 0 } },
+  { roomNumber: '409', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'SAILENDRA', balanceDue: 35910.00, pax: '1 Pax', coordinates3D: { x: 3, y: 10.5, z: 0 } },
+  { roomNumber: '410', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'BIJAY PASWAN (PRADAN)', balanceDue: 5544.00, pax: '1 Pax', coordinates3D: { x: 6, y: 10.5, z: 0 } },
+  { roomNumber: '411', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'AVINAV', balanceDue: 41895.00, pax: '2 Pax', coordinates3D: { x: -6, y: 10.5, z: 2 } },
+  { roomNumber: '412', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'RAVI VERMA', balanceDue: 23310.00, pax: '2 Pax', coordinates3D: { x: -3, y: 10.5, z: 2 } },
+  { roomNumber: '413', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'RITWIK BHA (PRADAN)', balanceDue: 4890.00, pax: '1 Pax', coordinates3D: { x: 0, y: 10.5, z: 2 } },
+  { roomNumber: '414', tier: 'Premium Suite', roomType: 'SUITE', floor: 4, tariff: 3999, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Suite', coordinates3D: { x: 3, y: 10.5, z: 2 } },
+  { roomNumber: '415', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'VAMSHI KRL', balanceDue: 7899.00, pax: '2 Pax', coordinates3D: { x: 6, y: 10.5, z: 2 } },
+  { roomNumber: '416', tier: 'Executive Room', roomType: 'EXEDEL', floor: 4, tariff: 2899, status: 'Occupied', currentGuestName: 'SUMER KUMA', balanceDue: 41895.00, pax: '2 Pax', coordinates3D: { x: 0, y: 10.5, z: 3 } }
 ];
 
 // Rayagada Corporate Partners (Anchor Accounts)
@@ -269,8 +235,93 @@ export const CORPORATE_PARTNERS = [
     creditDays: 30,
     creditLimit: 450000,
     openingBalance: 65400
+  },
+  {
+    id: "CORP-08",
+    name: "PRADAN (Professional Assistance for Dev Action)",
+    location: "J K Pur, Rayagada",
+    gstin: "21AAATP0912K1Z3",
+    contactPerson: "Bijay Paswan / Sameer Tendulkar",
+    contactPhone: "+91 7209347755",
+    contactEmail: "rayagada@pradan.net",
+    contractDiscount: 15,
+    preferredTier: "Executive Room",
+    creditDays: 30,
+    creditLimit: 350000,
+    openingBalance: 48900
+  },
+  {
+    id: "CORP-09",
+    name: "Ashok Leyland Limited",
+    location: "Commercial Vehicle Service Division, Rayagada",
+    gstin: "33AAACA0779M1ZT",
+    contactPerson: "Malay Panda / Nirupam Roy",
+    contactPhone: "+91 6856 226688",
+    contactEmail: "service.odisha@ashokleyland.com",
+    contractDiscount: 18,
+    preferredTier: "Executive Room",
+    creditDays: 45,
+    creditLimit: 500000,
+    openingBalance: 214487 // Exact figure from Screenshot 15!
+  },
+  {
+    id: "CORP-10",
+    name: "Easy Note Stationary Pvt Ltd",
+    location: "Rayagada Industrial Area",
+    gstin: "21AABCE9876R1Z2",
+    contactPerson: "Mriganka Dasgupta",
+    contactPhone: "+91 94370 55441",
+    contactEmail: "accounts@easynote.in",
+    contractDiscount: 10,
+    preferredTier: "Executive Room",
+    creditDays: 30,
+    creditLimit: 200000,
+    openingBalance: 28400
+  },
+  {
+    id: "CORP-11",
+    name: "Incredible Dreams Hotels & Resorts",
+    location: "Regional Hospitality Partner",
+    gstin: "21AACCI7788P1Z5",
+    contactPerson: "Prabhu Prasad Padhy",
+    contactPhone: "+91 98610 33221",
+    contactEmail: "travel@incredibledreams.co.in",
+    contractDiscount: 15,
+    preferredTier: "Executive Room",
+    creditDays: 30,
+    creditLimit: 250000,
+    openingBalance: 36200
   }
 ];
+
+// Authentic MySoft Table Layout for Cannon Kitchen & Banquets (Screenshot 20)
+export const MYPOS_CANNON_KITCHEN_LAYOUT = {
+  tables: [
+    // Main Restaurant Dining
+    ...Array.from({ length: 13 }, (_, i) => ({ id: `${i + 1}`, label: `Table ${i + 1}`, section: 'Main Dining', pax: 4 })),
+    // Upper / Window Terrace Section
+    ...Array.from({ length: 13 }, (_, i) => ({ id: `${i + 1}A`, label: `Table ${i + 1}A`, section: 'Terrace Dining', pax: 4 })),
+    // Bar & Lounge Section
+    ...Array.from({ length: 5 }, (_, i) => ({ id: `${i + 1}B`, label: `Bar ${i + 1}B`, section: 'Bar Lounge', pax: 2 })),
+    // Private Dining Rooms (PDR)
+    { id: 'PDR1', label: 'Private Dining 1', section: 'PDR', pax: 8 },
+    { id: 'PDR', label: 'Private Dining Executive', section: 'PDR', pax: 12 },
+    // Conference & Party Halls
+    { id: 'A/C CONFERE', label: 'A/C Conference Hall', section: 'Banquet', pax: 50 },
+    { id: 'PAR3', label: 'Party Hall 3', section: 'Banquet', pax: 25 },
+    { id: 'PAR5', label: 'Party Hall 5', section: 'Banquet', pax: 25 },
+    { id: 'PAR6', label: 'Party Hall 6', section: 'Banquet', pax: 30 },
+    { id: 'PAR15', label: 'Party Hall 15', section: 'Banquet', pax: 40 },
+    { id: 'PAR16', label: 'Party Hall 16', section: 'Banquet', pax: 40 },
+    { id: 'G.M. OFFICE', label: 'GM Executive Suite', section: 'Admin', pax: 4 }
+  ],
+  stewards: ['SADANANDA', 'KOTI', 'DEEPAK', 'BIJAY', 'RAMESH', 'SANTOSH'],
+  activeKotOrders: [
+    { tableId: 'B', orderId: 'F2627-7515', steward: 'SADANANDA', amount: 850, status: 'Preparing' },
+    { tableId: '6', orderId: 'F2627-7514', steward: 'KOTI', amount: 1190, status: 'Billed' },
+    { tableId: 'LOBBY', orderId: '90614', steward: 'DEEPAK', amount: 460, status: 'Delivered' }
+  ]
+};
 
 // Multi-Outlet F&B Menu with Fast Item Codes (Cannon Kitchen, Bar, Room Service, Swiggy)
 export const RESTAURANT_MENU = [

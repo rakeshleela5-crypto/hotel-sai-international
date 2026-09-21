@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { 
   X, Printer, CheckCircle2, Download, ShieldCheck, Hotel, 
-  Calendar, User, FileText, Receipt, Sparkles, Building2 
+  Calendar, User, FileText, Receipt, Sparkles, Building2,
+  CreditCard
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 
 export default function BookingReceiptModal({ isOpen, onClose, booking }) {
-  const [invoiceType, setInvoiceType] = useState('a4'); // 'a4' (Corporate GST Tax Invoice) or 'pos' (80mm Thermal Slip)
+  const [invoiceType, setInvoiceType] = useState('a4'); // 'a4' (Screenshot 17 Tax Invoice) or 'pos' (80mm Thermal Slip)
 
   if (!isOpen || !booking) return null;
 
@@ -19,10 +20,15 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
     const cgst = Number(booking.cgst || (base * 0.025));
     const sgst = Number(booking.sgst || (base * 0.025));
     const total = Number(booking.totalAmount || (base + cgst + sgst));
-    return { base, cgst, sgst, total };
+    const advance = Number(booking.advancePaid || 0);
+    const balanceDue = total - advance;
+    return { base, cgst, sgst, total, advance, balanceDue };
   };
 
-  const { base, cgst, sgst, total } = calculateTaxes();
+  const { base, cgst, sgst, total, advance, balanceDue } = calculateTaxes();
+
+  const billNo = booking.billNo || `FMBIL2627-${String(booking.roomNumber || '1497').padStart(5, '0')}`;
+  const planCode = booking.mealPlan || booking.plan || 'CP';
 
   return (
     <div className="official-invoice-overlay">
@@ -31,7 +37,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
         <div className="invoice-action-bar no-print">
           <div className="action-bar-title">
             <FileText size={18} color="var(--gold-glow)" />
-            <span>Rule 46 GST Invoicing &amp; Guest Billing Folio</span>
+            <span>Statutory Tax Invoice &amp; Guest Folio (Screenshot 17 Mirror)</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -54,7 +60,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
                   color: invoiceType === 'a4' ? '#060e1a' : '#94a3b8'
                 }}
               >
-                A4 Official Tax Invoice
+                A4 Official Tax Invoice (Screenshot 17)
               </button>
               <button
                 onClick={() => setInvoiceType('pos')}
@@ -81,26 +87,30 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
           </div>
         </div>
 
-        {/* View 1: Official Corporate A4 GST Tax Invoice */}
+        {/* View 1: Official Corporate A4 GST Tax Invoice (Screenshot 17 Format) */}
         {invoiceType === 'a4' && (
           <div className="tax-invoice-sheet">
             {/* Sheet Header */}
             <div className="sheet-header">
               <div className="header-left">
                 <span className="page-mark">ORIGINAL FOR RECIPIENT / GUEST COPY</span>
-                <h1 className="tax-invoice-title">TAX INVOICE</h1>
+                <h1 className="tax-invoice-title" style={{ letterSpacing: '1px' }}>TAX INVOICE / GUEST FOLIO</h1>
                 <div className="copy-type">Rule 46 of CGST / OGST Rules, 2017</div>
               </div>
               <div className="header-right">
                 <div className="hotel-brand-block">
-                  <div className="hotel-trade-name">{HOTEL_CONFIG.name.toUpperCase()}</div>
-                  <div className="proprietor-line">Proprietor: Paidisetty Manmadha Rao</div>
-                  <div className="address-line">Sai Priya Nagar, Rayagada, Odisha - 765001</div>
+                  <div className="hotel-trade-name" style={{ fontSize: '1.25rem', fontWeight: 900 }}>
+                    {HOTEL_CONFIG.legalName.toUpperCase()}
+                  </div>
+                  <div className="address-line">{HOTEL_CONFIG.address}</div>
                   <div className="contact-line">
-                    GSTIN: <span className="text-bold-gstin">{HOTEL_CONFIG.gstin}</span> | State Code: 21 (Odisha)
+                    GSTIN: <span className="text-bold-gstin">{HOTEL_CONFIG.gstin}</span> | State Code: {HOTEL_CONFIG.stateCode} ({HOTEL_CONFIG.state})
                   </div>
                   <div className="contact-line">
-                    Phone: {HOTEL_CONFIG.phone} | Landline: {HOTEL_CONFIG.landline}
+                    Ph: {HOTEL_CONFIG.phones.join(', ')} | Tel: {HOTEL_CONFIG.landline}
+                  </div>
+                  <div className="contact-line" style={{ fontSize: '9px', color: '#64748b' }}>
+                    Web: {HOTEL_CONFIG.website} | Email: {HOTEL_CONFIG.email}
                   </div>
                 </div>
               </div>
@@ -110,24 +120,29 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
             <div className="particulars-grid">
               <div className="particulars-col">
                 <div className="field-row">
-                  <span className="field-label">Invoice / Folio No.</span>
+                  <span className="field-label">Bill / Invoice No.</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong>{booking.bookingId || 'HSI-2026-INV'}</strong></span>
+                  <span className="field-value"><strong style={{ color: '#0f172a' }}>{billNo}</strong></span>
                 </div>
                 <div className="field-row">
-                  <span className="field-label">Invoice Date</span>
+                  <span className="field-label">Bill Date &amp; Time</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{new Date().toLocaleDateString('en-IN')}</span>
+                  <span className="field-value">{new Date().toLocaleDateString('en-IN')} 11:30 AM</span>
                 </div>
                 <div className="field-row">
-                  <span className="field-label">SAC Code</span>
+                  <span className="field-label">GRC Number</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong>996311</strong> (Hotel Accommodation Services)</span>
+                  <span className="field-value"><strong>{booking.grcNo || `GRC-${booking.roomNumber || '8412'}`}</strong></span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Room Number</span>
                   <span className="field-colon">:</span>
                   <span className="field-value"><strong>Room {booking.roomNumber}</strong> ({booking.tier})</span>
+                </div>
+                <div className="field-row">
+                  <span className="field-label">Meal Plan</span>
+                  <span className="field-colon">:</span>
+                  <span className="field-value"><strong>{planCode} (Continental Plan)</strong></span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Place of Supply</span>
@@ -140,22 +155,17 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
                 <div className="field-row">
                   <span className="field-label">Guest / Billed To</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong>{booking.guestName}</strong></span>
+                  <span className="field-value"><strong style={{ textTransform: 'uppercase' }}>{booking.guestName}</strong></span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Contact Mobile</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{booking.guestPhone}</span>
+                  <span className="field-value">{booking.guestPhone || '+91 94371 00000'}</span>
                 </div>
                 <div className="field-row">
-                  <span className="field-label">ID Proof (DPDP)</span>
+                  <span className="field-label">Company / Account</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{booking.idProofType} ({booking.idProofMasked || 'XXXX-XXXX-XXXX'})</span>
-                </div>
-                <div className="field-row">
-                  <span className="field-label">State of Origin</span>
-                  <span className="field-colon">:</span>
-                  <span className="field-value">{booking.stateOfOrigin || 'Odisha'}</span>
+                  <span className="field-value">{booking.company || 'Direct / Walk-In'}</span>
                 </div>
                 {booking.corporateGstin && (
                   <div className="field-row">
@@ -165,9 +175,14 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
                   </div>
                 )}
                 <div className="field-row">
-                  <span className="field-label">Check-In / Out</span>
+                  <span className="field-label">Check-In Date</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{booking.checkInDate} (12:00 PM) to {booking.checkOutDate} (11:00 AM)</span>
+                  <span className="field-value">{booking.checkInDate || '20/09/2026'} (12:00 PM)</span>
+                </div>
+                <div className="field-row">
+                  <span className="field-label">Check-Out Date</span>
+                  <span className="field-colon">:</span>
+                  <span className="field-value">{booking.checkOutDate || '22/09/2026'} (11:00 AM)</span>
                 </div>
               </div>
             </div>
@@ -176,65 +191,93 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
             <table className="ledger-table">
               <thead>
                 <tr>
-                  <th style={{ width: '40px' }}>Sr.</th>
-                  <th>Service Description</th>
-                  <th style={{ width: '80px', textAlign: 'center' }}>SAC</th>
-                  <th style={{ width: '60px', textAlign: 'center' }}>Qty/Nts</th>
-                  <th className="th-amount" style={{ width: '100px' }}>Rate (₹)</th>
-                  <th className="th-amount" style={{ width: '110px' }}>Taxable Amt (₹)</th>
+                  <th style={{ width: '35px' }}>#</th>
+                  <th>Date &amp; Service Particulars</th>
+                  <th style={{ width: '75px', textAlign: 'center' }}>SAC</th>
+                  <th style={{ width: '55px', textAlign: 'center' }}>Qty</th>
+                  <th className="th-amount" style={{ width: '95px' }}>Rate (₹)</th>
+                  <th className="th-amount" style={{ width: '85px' }}>Disc (₹)</th>
+                  <th className="th-amount" style={{ width: '105px' }}>Taxable Val (₹)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>1</td>
                   <td>
-                    <strong>Accommodation Stay - {booking.tier}</strong>
+                    <strong>Room Rent - {booking.tier} (Room {booking.roomNumber})</strong>
                     <div style={{ fontSize: '9px', color: '#444' }}>
-                      Room {booking.roomNumber} • High-speed Wi-Fi, 24/7 Power Backup, Pilgrim Care
+                      Plan: {planCode} • High-speed Wi-Fi, 24/7 Power Backup, Pilgrim Care
                     </div>
                   </td>
                   <td style={{ textAlign: 'center' }}>996311</td>
                   <td style={{ textAlign: 'center' }}>{booking.nights || 1}</td>
                   <td className="text-right">₹{(booking.tariffPerNight || base / (booking.nights || 1)).toFixed(2)}</td>
+                  <td className="text-right">₹0.00</td>
                   <td className="text-right">₹{base.toFixed(2)}</td>
                 </tr>
+                {booking.restaurantCharges && booking.restaurantCharges > 0 && (
+                  <tr>
+                    <td>2</td>
+                    <td>
+                      <strong>Cannon Kitchen - In-Room Dining</strong>
+                      <div style={{ fontSize: '9px', color: '#444' }}>
+                        KOT #{booking.kotNo || 'KOT-7514'} • Pure Satvik Culinary Dining
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>996331</td>
+                    <td style={{ textAlign: 'center' }}>1</td>
+                    <td className="text-right">₹{Number(booking.restaurantCharges).toFixed(2)}</td>
+                    <td className="text-right">₹0.00</td>
+                    <td className="text-right">₹{Number(booking.restaurantCharges).toFixed(2)}</td>
+                  </tr>
+                )}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'right', fontWeight: 'bold' }}>Subtotal (Taxable Value):</td>
+                  <td colSpan="6" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Taxable Value:</td>
                   <td className="text-right" style={{ fontWeight: 'bold' }}>₹{base.toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'right' }}>Central GST (CGST @ 2.5%):</td>
+                  <td colSpan="6" style={{ textAlign: 'right' }}>Central GST (CGST @ 2.5%):</td>
                   <td className="text-right">₹{cgst.toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'right' }}>Odisha State GST (SGST @ 2.5%):</td>
+                  <td colSpan="6" style={{ textAlign: 'right' }}>Odisha State GST (SGST @ 2.5%):</td>
                   <td className="text-right">₹{sgst.toFixed(2)}</td>
                 </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td colSpan="6" style={{ textAlign: 'right', fontWeight: 700 }}>Gross Total Invoiced:</td>
+                  <td className="text-right" style={{ fontWeight: 700 }}>₹{total.toFixed(2)}</td>
+                </tr>
+                {advance > 0 && (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'right', color: '#16a34a' }}>Less: Advance Payment Received:</td>
+                    <td className="text-right" style={{ color: '#16a34a', fontWeight: 600 }}>(-) ₹{advance.toFixed(2)}</td>
+                  </tr>
+                )}
                 <tr className="tfoot-round">
-                  <td colSpan="5" style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>GRAND TOTAL (INR):</td>
-                  <td className="text-right text-net-amount">₹{total.toFixed(2)}</td>
+                  <td colSpan="6" style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>NET BALANCE PAYABLE (INR):</td>
+                  <td className="text-right text-net-amount">₹{balanceDue.toFixed(2)}</td>
                 </tr>
               </tfoot>
             </table>
 
             {/* In Words Row */}
             <div className="in-words-row">
-              <span className="in-words-label">Invoice Amount in Words:</span>
+              <span className="in-words-label">Amount in Words:</span>
               <span className="in-words-value">
-                Indian Rupees {Math.round(total).toLocaleString('en-IN')} Only
+                Indian Rupees {Math.round(balanceDue).toLocaleString('en-IN')} Only
               </span>
             </div>
 
             {/* Tax Summary Block */}
             <div className="tax-summary-block">
-              <div className="tax-summary-title">GST Tax Calculation Summary</div>
+              <div className="tax-summary-title">GST Tax Calculation Schedule (SAC 996311 / 996331)</div>
               <table className="tax-summary-table">
                 <thead>
                   <tr>
-                    <th>SAC</th>
-                    <th style={{ textAlign: 'right' }}>Taxable (₹)</th>
+                    <th>SAC Code</th>
+                    <th style={{ textAlign: 'right' }}>Taxable Value (₹)</th>
                     <th style={{ textAlign: 'center' }}>CGST %</th>
                     <th style={{ textAlign: 'right' }}>CGST (₹)</th>
                     <th style={{ textAlign: 'center' }}>SGST %</th>
@@ -256,12 +299,36 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
               </table>
             </div>
 
+            {/* Bank Remittance Details (from Screenshot 17) */}
+            <div style={{
+              marginTop: '10px',
+              padding: '8px 12px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '4px',
+              fontSize: '10px',
+              color: '#334155',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <strong>NEFT / RTGS / Corporate Direct Remittance:</strong><br />
+                A/c Name: <strong>Hotel Sai International Pvt Ltd</strong> | Bank: <strong>State Bank of India, Rayagada</strong><br />
+                A/c No: <strong>31089234891</strong> | Current A/c | IFSC: <strong>SBIN0000169</strong>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                UPI Merchant VPA: <strong>hotelsaiinternational@sbi</strong><br />
+                Settlement Mode: <strong>{booking.paymentMode || 'UPI / Cash'}</strong>
+              </div>
+            </div>
+
             {/* Terms and Conditions */}
             <div className="invoice-terms-box">
               <div className="invoice-terms-header">Statutory Terms &amp; Conditions:</div>
               <ol className="invoice-terms-list">
                 <li>Check-In time is 12:00 PM and Check-Out time is 11:00 AM sharp. Late checkout subject to half-day tariff.</li>
-                <li>Hotel Sai International is 100% compliant with the Sarai Act of 1867 and Digital Personal Data Protection Act 2023.</li>
+                <li>Hotel Sai International Pvt Ltd is 100% compliant with the Sarai Act of 1867 and DPDP Act 2023.</li>
                 <li>Disputes are subject to Rayagada, Odisha jurisdiction only. E. &amp; O.E.</li>
                 <li>Pure Satvik and vegetarian culinary principles strictly upheld on hotel premises.</li>
               </ol>
@@ -272,18 +339,18 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
               <div className="sig-col">
                 <div className="sig-line"></div>
                 <span className="sig-title">Guest Signature</span>
-                <span className="sig-disclaimer">Verified room condition &amp; amenities received</span>
+                <span className="sig-disclaimer">Verified room condition &amp; charges accepted</span>
               </div>
               <div className="sig-col">
                 <div className="sig-line"></div>
-                <span className="sig-title">For Hotel Sai International</span>
-                <span className="sig-disclaimer">Authorized Signatory (PMS Automated Seal)</span>
+                <span className="sig-title">For Hotel Sai International Pvt Ltd</span>
+                <span className="sig-disclaimer">Authorized Signatory (System Generated Folio)</span>
               </div>
             </div>
 
             {/* Sheet Footer Strip */}
             <div className="sheet-footer-strip">
-              Hotel Sai International • Sai Priya Nagar, Rayagada, Odisha - 765001 • Corporate GSTIN: 21AEKPP8689J1ZS • Thank You For Staying!
+              Hotel Sai International Pvt Ltd • J.K. Road, Rayagada - 765001 • GSTIN: 21AABCH7663L1ZG • Thank You For Staying!
             </div>
           </div>
         )}
@@ -302,7 +369,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
           }}>
             <div style={{ textAlign: 'center', borderBottom: '2px dashed #94a3b8', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
               <h2 style={{ color: '#0c182b', fontSize: '1.25rem', margin: 0, fontWeight: 900 }}>
-                {HOTEL_CONFIG.name.toUpperCase()}
+                {HOTEL_CONFIG.legalName.toUpperCase()}
               </h2>
               <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.2rem' }}>
                 {HOTEL_CONFIG.address}
@@ -316,11 +383,12 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
             </div>
 
             <div style={{ fontSize: '0.78rem', lineHeight: 1.5, borderBottom: '1px solid #cbd5e1', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
-              <div><strong>INVOICE:</strong> {booking.bookingId}</div>
+              <div><strong>BILL NO:</strong> {billNo}</div>
               <div><strong>DATE:</strong> {new Date().toLocaleDateString('en-IN')}</div>
               <div><strong>GUEST:</strong> {booking.guestName}</div>
               <div><strong>PHONE:</strong> {booking.guestPhone}</div>
               <div><strong>ROOM:</strong> {booking.roomNumber} ({booking.tier})</div>
+              <div><strong>PLAN:</strong> {planCode}</div>
               <div><strong>CHECK-IN:</strong> {booking.checkInDate} (12 PM)</div>
               <div><strong>CHECK-OUT:</strong> {booking.checkOutDate} (11 AM)</div>
             </div>
