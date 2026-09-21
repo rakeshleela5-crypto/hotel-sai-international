@@ -57,8 +57,8 @@ export default function CannonKitchenPOS({
   // Determine price based on active outlet
   const getItemPrice = (item) => {
     if (selectedOutlet === 'Room Service') return item.roomServicePrice || item.price * 1.1;
-    if (selectedOutlet === 'Swiggy / Zomato') return item.swiggyPrice || item.price * 1.45;
-    if (selectedOutlet === 'Bar Outlet') return item.barPrice || item.price * 1.05;
+    if (selectedOutlet === 'Swiggy' || selectedOutlet === 'Zomato') return item.swiggyPrice || item.price * 1.45;
+    if (selectedOutlet === 'Drop In Bar') return item.barPrice || item.price * 1.05;
     return item.dineInPrice || item.price;
   };
 
@@ -188,24 +188,26 @@ export default function CannonKitchenPOS({
             </p>
           </div>
 
-          {/* Outlet Selector Tabs */}
-          <div style={{ display: 'flex', gap: '0.4rem', background: 'rgba(0,0,0,0.4)', padding: '0.3rem', borderRadius: '10px' }}>
+          {/* Outlet Selector Tabs (Official Outlets from hotel_documents.pdf Screenshot 10) */}
+          <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '0.3rem', borderRadius: '10px', overflowX: 'auto' }}>
             {[
-              { id: 'Cannon Kitchen', label: 'Cannon Kitchen (Dine-in)', markup: 'Standard Base' },
-              { id: 'Bar Outlet', label: 'Bar Outlet', markup: '+5% Bar' },
-              { id: 'Room Service', label: 'Room Service', markup: '+10% Tray' },
-              { id: 'Swiggy / Zomato', label: 'Swiggy / Zomato', markup: '+45% Aggregator' }
+              { id: 'Fenugreek Restaurant', label: 'Fenugreek Restaurant', markup: 'Dine-In (Code F)' },
+              { id: 'Drop In Bar', label: 'Drop In Bar', markup: 'Lounge (Code D)' },
+              { id: 'Room Service', label: 'Room Service', markup: '24x7 In-Room (Code H)' },
+              { id: 'Swiggy', label: 'Swiggy Delivery', markup: 'Online (Code S)' },
+              { id: 'Zomato', label: 'Zomato Delivery', markup: 'Online (Code Z)' }
             ].map(outlet => (
               <button
                 key={outlet.id}
                 onClick={() => setSelectedOutlet(outlet.id)}
                 style={{
-                  padding: '0.45rem 0.85rem',
+                  padding: '0.45rem 0.75rem',
                   borderRadius: '7px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                   border: 'none',
+                  whiteSpace: 'nowrap',
                   background: selectedOutlet === outlet.id ? 'var(--gold-primary)' : 'transparent',
                   color: selectedOutlet === outlet.id ? '#000' : 'var(--text-muted)',
                   display: 'flex',
@@ -214,7 +216,7 @@ export default function CannonKitchenPOS({
                 }}
               >
                 <span>{outlet.label}</span>
-                <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>{outlet.markup}</span>
+                <span style={{ fontSize: '0.62rem', opacity: 0.85 }}>{outlet.markup}</span>
               </button>
             ))}
           </div>
@@ -701,10 +703,27 @@ export default function CannonKitchenPOS({
                         fontWeight: 600
                       }}
                     >
-                      <option value="402">Room 402 - Anil Sharma (GAIL)</option>
-                      <option value="301">Room 301 - Vikram Singhania (JK Paper)</option>
-                      <option value="104">Room 104 - Santosh Patra (Pilgrim)</option>
-                      <option value="202">Room 202 - Prakash Tripathy</option>
+                      {rooms.filter(r => r.status === 'Occupied').length > 0 ? (
+                        rooms.filter(r => r.status === 'Occupied').map(r => (
+                          <option key={r.roomNumber} value={r.roomNumber}>
+                            Room {r.roomNumber} - {r.currentGuestName || 'Guest'} (₹{(r.balanceDue || 0).toLocaleString()})
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="402">Room 402 - P ASHOK (Linde India Ltd)</option>
+                          <option value="201">Room 201 - LAVAKANTA OJHA (Akchem)</option>
+                          <option value="202">Room 202 - SATYARANJAN SAHOO</option>
+                          <option value="410">Room 410 - BIJAY PASWAN (PRADAN)</option>
+                          <option value="206">Room 206 - S S HAMEED</option>
+                          <option value="207">Room 207 - SAHANAWAZ HUSSAIN</option>
+                          <option value="301">Room 301 - UTKARSH SRIVASTAVA</option>
+                          <option value="304">Room 304 - SUPHAL CHANDRA MAHATO</option>
+                          <option value="305">Room 305 - K RAJESH KUMAR</option>
+                          <option value="408">Room 408 - SARATH CHANDRA MADIREDDY</option>
+                          <option value="416">Room 416 - SUMER KUMA</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <div style={{ width: 130 }}>

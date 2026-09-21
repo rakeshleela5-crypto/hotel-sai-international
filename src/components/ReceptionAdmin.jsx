@@ -8,6 +8,8 @@ import {
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
 import { calculateRoomTax } from '../utils/taxUtils';
+import FolioActionsModal from './FolioActionsModal';
+import BookingReceiptModal from './BookingReceiptModal';
 
 export default function ReceptionAdmin({
   rooms = [],
@@ -21,6 +23,11 @@ export default function ReceptionAdmin({
   const [tapeChartViewMode, setTapeChartViewMode] = useState('mysoft'); // 'mysoft' (Screenshot 2 Legacy Tape Chart) or 'modern'
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Folio Actions & GRC Modals State (hotel_documents.pdf Pages 1 & 5)
+  const [selectedFolioRoom, setSelectedFolioRoom] = useState(null);
+  const [selectedReceiptBooking, setSelectedReceiptBooking] = useState(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   // Walk-in Modal State (Enhanced with Screenshot 4 & 5 fields)
   const [walkInOpen, setWalkInOpen] = useState(false);
@@ -473,34 +480,91 @@ export default function ReceptionAdmin({
                               </div>
                             </div>
 
-                            {/* Quick Action Strip */}
+                            {/* Quick Action Strip (Enhanced with Folio Actions from hotel_documents.pdf Page 5) */}
                             <div style={{
                               display: 'flex',
-                              gap: '0.25rem',
+                              gap: '0.2rem',
                               marginTop: '0.5rem',
                               borderTop: '1px solid rgba(255,255,255,0.06)',
                               paddingTop: '0.35rem'
                             }}>
                               {isOccupied && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onUpdateRoomStatus(room.roomNumber, 'Cleaning', null, null);
-                                  }}
-                                  style={{
-                                    flex: 1,
-                                    padding: '2px 4px',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    background: 'rgba(234, 179, 8, 0.2)',
-                                    color: '#facc15',
-                                    border: '1px solid rgba(234, 179, 8, 0.4)',
-                                    borderRadius: '3px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Check-Out
-                                </button>
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedFolioRoom(room);
+                                    }}
+                                    title="Open 12 Folio Edit Options (hotel_documents.pdf Page 5)"
+                                    style={{
+                                      flex: 1,
+                                      padding: '2px 4px',
+                                      fontSize: '0.65rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(56, 189, 248, 0.2)',
+                                      color: '#38bdf8',
+                                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    ⚙️ Folio
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
+                                        bookingId: `FMBIL2627-${room.roomNumber}`,
+                                        billNo: `FMBIL2627-${room.roomNumber}`,
+                                        roomNumber: room.roomNumber,
+                                        guestName: room.currentGuestName || 'MR. P ASHOK',
+                                        guestPhone: '+91 6305202068',
+                                        company: 'LINDE INDIA LTD',
+                                        corporateGstin: '21AAACB2528H1ZA',
+                                        tier: room.tier,
+                                        totalAmount: room.balanceDue || room.tariff || 13538,
+                                        nights: 4,
+                                        grcNo: '684'
+                                      };
+                                      setSelectedReceiptBooking(matchedBooking);
+                                      setIsReceiptModalOpen(true);
+                                    }}
+                                    title="Print GRC (Page 1) or Split Bill (Pages 2 & 3)"
+                                    style={{
+                                      flex: 1,
+                                      padding: '2px 4px',
+                                      fontSize: '0.65rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(212, 175, 55, 0.2)',
+                                      color: 'var(--gold-glow)',
+                                      border: '1px solid rgba(212, 175, 55, 0.4)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    📄 GRC
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onUpdateRoomStatus(room.roomNumber, 'Cleaning', null, null);
+                                    }}
+                                    style={{
+                                      padding: '2px 4px',
+                                      fontSize: '0.65rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(234, 179, 8, 0.2)',
+                                      color: '#facc15',
+                                      border: '1px solid rgba(234, 179, 8, 0.4)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Out
+                                  </button>
+                                </>
                               )}
                               {isVacant && (
                                 <button
@@ -1243,6 +1307,51 @@ export default function ReceptionAdmin({
             </form>
           </div>
         </div>
+      )}
+
+      {/* FOLIO ACTIONS MODAL (hotel_documents.pdf Page 5 - 12 Edit Options) */}
+      {selectedFolioRoom && (
+        <FolioActionsModal
+          isOpen={!!selectedFolioRoom}
+          onClose={() => setSelectedFolioRoom(null)}
+          room={selectedFolioRoom}
+          rooms={rooms}
+          onUpdateFolio={(roomNumber, updateData) => {
+            console.log(`Updated Folio for Room ${roomNumber}:`, updateData);
+          }}
+          onShiftRoom={(fromRoom, toRoom, reason) => {
+            onUpdateRoomStatus(fromRoom, 'Available', null, null);
+            onUpdateRoomStatus(toRoom, 'Occupied', selectedFolioRoom.currentGuestName, null);
+            setSelectedFolioRoom(null);
+          }}
+          onOpenSplitInvoice={(type) => {
+            const matchedBooking = bookings.find(b => b.roomNumber === selectedFolioRoom.roomNumber) || {
+              bookingId: `FMBIL2627-${selectedFolioRoom.roomNumber}`,
+              billNo: `FMBIL2627-${selectedFolioRoom.roomNumber}`,
+              roomNumber: selectedFolioRoom.roomNumber,
+              guestName: selectedFolioRoom.currentGuestName || 'MR. P ASHOK',
+              guestPhone: '+91 6305202068',
+              company: 'LINDE INDIA LTD',
+              corporateGstin: '21AAACB2528H1ZA',
+              tier: selectedFolioRoom.tier,
+              totalAmount: selectedFolioRoom.balanceDue || 13538,
+              nights: 4,
+              grcNo: '684'
+            };
+            setSelectedReceiptBooking(matchedBooking);
+            setIsReceiptModalOpen(true);
+            setSelectedFolioRoom(null);
+          }}
+        />
+      )}
+
+      {/* STATUTORY TAX INVOICE, GRC & SPLIT BILL MODAL (hotel_documents.pdf Pages 1, 2, 3) */}
+      {isReceiptModalOpen && selectedReceiptBooking && (
+        <BookingReceiptModal
+          isOpen={isReceiptModalOpen}
+          onClose={() => setIsReceiptModalOpen(false)}
+          booking={selectedReceiptBooking}
+        />
       )}
     </section>
   );

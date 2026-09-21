@@ -291,8 +291,104 @@ export const CORPORATE_PARTNERS = [
     creditDays: 30,
     creditLimit: 250000,
     openingBalance: 36200
+  },
+  {
+    id: "CORP-12",
+    name: "Linde India Ltd",
+    location: "J.K. Paper Mill Plant Site, Jaykaypur, Rayagada",
+    gstin: "21AAACB2528H1ZA",
+    contactPerson: "P. Ashok (Mech Engineer)",
+    contactPhone: "+91 6305202068",
+    contactEmail: "ashok.p@linde.com",
+    contractDiscount: 15,
+    preferredTier: "Executive Room",
+    creditDays: 30,
+    creditLimit: 400000,
+    openingBalance: 13558 // Room 402 stay from hotel_documents.pdf
+  },
+  {
+    id: "CORP-13",
+    name: "Akchem Chemicals Pvt Ltd",
+    location: "Rayagada Chemicals Processing Zone",
+    gstin: "21AABCA8841F1ZB",
+    contactPerson: "Lavkanta Ojha / Bijay",
+    contactPhone: "+91 94371 88440",
+    contactEmail: "procurement@akchem.co.in",
+    contractDiscount: 12,
+    preferredTier: "Executive Room",
+    creditDays: 30,
+    creditLimit: 300000,
+    openingBalance: 6615 // Room 201 stay from hotel_documents.pdf
   }
 ];
+
+// Official F&B Outlets of Hotel Sai International (Screenshot 10 of hotel_documents.pdf)
+export const HOTEL_OUTLETS = [
+  { 
+    id: 'fenugreek', 
+    code: 'F', 
+    name: 'Fenugreek Restaurant', 
+    type: 'Signature Vegetarian & Multi-Cuisine Dining', 
+    timings: '07:00 AM - 11:00 PM', 
+    sacCode: '996331', 
+    gstRate: 5,
+    description: 'Fine dining family restaurant serving authentic Odia, North Indian, and Satvik delicacies.'
+  },
+  { 
+    id: 'dropinbar', 
+    code: 'D', 
+    name: 'Drop In Bar', 
+    type: 'Licensed Bar & Executive Lounge', 
+    timings: '11:00 AM - 11:30 PM', 
+    sacCode: '996331', 
+    gstRate: 5,
+    description: 'Relaxing beverage and cocktail lounge for industrial delegates and hotel residents.'
+  },
+  { 
+    id: 'roomservice', 
+    code: 'H', 
+    name: 'Room Service', 
+    type: '24x7 In-Room Guest Dining', 
+    timings: '24 Hours', 
+    sacCode: '996331', 
+    gstRate: 5,
+    description: 'Direct in-room service serving fresh meals from Fenugreek Restaurant to all 39 rooms.'
+  },
+  { 
+    id: 'swiggy', 
+    code: 'S', 
+    name: 'Swiggy Cloud Delivery', 
+    type: 'Online Food Delivery Channel', 
+    timings: '08:00 AM - 10:30 PM', 
+    sacCode: '996331', 
+    gstRate: 5,
+    description: 'Integrated digital delivery for Rayagada town orders.'
+  },
+  { 
+    id: 'zomato', 
+    code: 'Z', 
+    name: 'Zomato Cloud Delivery', 
+    type: 'Online Food Delivery Channel', 
+    timings: '08:00 AM - 10:30 PM', 
+    sacCode: '996331', 
+    gstRate: 5,
+    description: 'Digital ordering partner for Rayagada station transit customers.'
+  }
+];
+
+// Standard MySoft Post Charge Categories (Page 4 of hotel_documents.pdf)
+export const POST_CHARGE_CATEGORIES = [
+  { id: 'TARIFF', name: 'Tariff (Late Stay / Day Use)', sac: '996311', taxRate: 5 },
+  { id: 'EXTRA_PERSON', name: 'Extra Person / Bedding', sac: '996311', taxRate: 5 },
+  { id: 'ROOM_SERVICE', name: 'In-Room Dining (Room Service)', sac: '996331', taxRate: 5 },
+  { id: 'FENUGREEK_RESTAURANT', name: 'Fenugreek Restaurant KOT', sac: '996331', taxRate: 5 },
+  { id: 'DROP_IN_BAR', name: 'Drop In Bar & Beverages', sac: '996331', taxRate: 5 },
+  { id: 'LAUNDRY', name: 'Laundry & Express Pressing', sac: '999799', taxRate: 18 },
+  { id: 'PAID_OUT', name: 'Paid Out (Taxi / Medicine on guest behalf)', sac: '000000', taxRate: 0 },
+  { id: 'ALLOWANCE', name: 'Rate Allowance / Courtesy Adjustment', sac: '996311', taxRate: 5 },
+  { id: 'MISCELLANEOUS', name: 'Miscellaneous / Conference Hall', sac: '996311', taxRate: 5 }
+];
+
 
 // Authentic MySoft Table Layout for Cannon Kitchen & Banquets (Screenshot 20)
 export const MYPOS_CANNON_KITCHEN_LAYOUT = {
