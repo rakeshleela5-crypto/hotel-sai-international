@@ -506,6 +506,117 @@ CREATE TABLE IF NOT EXISTS qr_standee_telemetry (
   last_scan_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 40. FOLIO TRANSACTIONS (IDS NEXT IMMUTABLE DOUBLE-ENTRY MASTER LEDGER)
+CREATE TABLE IF NOT EXISTS folio_transactions (
+  transaction_id TEXT PRIMARY KEY,
+  folio_id TEXT NOT NULL,
+  booking_id TEXT,
+  room_number TEXT NOT NULL,
+  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('Room Charge', 'Food & Beverage', 'Bar', 'Room Service', 'Laundry', 'Minibar', 'Extra Bed', 'Payment', 'Discount', 'Allowance')),
+  outlet TEXT NOT NULL DEFAULT 'Front Desk', -- Front Desk, Cannon Kitchen, Bar Outlet, Room Service, Laundry Dept
+  item_code TEXT,
+  description TEXT NOT NULL,
+  debit_amount REAL NOT NULL DEFAULT 0,  -- Charges to guest account
+  credit_amount REAL NOT NULL DEFAULT 0, -- Payments / deposits / allowances
+  taxable_base REAL NOT NULL DEFAULT 0,
+  gst_rate REAL NOT NULL DEFAULT 0, -- 0, 5, 12, 18
+  cgst REAL NOT NULL DEFAULT 0,
+  sgst REAL NOT NULL DEFAULT 0,
+  sac_code TEXT NOT NULL DEFAULT '996311', -- 996311 (Accommodation 12%), 996331 (Restaurant F&B 5%)
+  invoice_id TEXT, -- Target split invoice: e.g. INV-ROOM-402 or INV-FOOD-402
+  is_locked INTEGER NOT NULL DEFAULT 0, -- 1 = Frozen by 12:00 AM Night Audit
+  created_by TEXT NOT NULL DEFAULT 'Reception Cashier',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (room_number) REFERENCES rooms(room_number)
+);
+
+-- 41. SPLIT PAYMENTS (MULTI-TENDER SINGLE INVOICE SETTLEMENT)
+CREATE TABLE IF NOT EXISTS split_payments (
+  payment_id TEXT PRIMARY KEY,
+  folio_id TEXT NOT NULL,
+  invoice_id TEXT NOT NULL,
+  payment_mode TEXT NOT NULL CHECK (payment_mode IN ('Cash', 'UPI', 'Card', 'Corporate Credit', 'Cheque', 'Bank Transfer NEFT')),
+  amount REAL NOT NULL,
+  reference_utr TEXT, -- UTR/Cheque/POS Approval Code
+  cashier_name TEXT NOT NULL,
+  shift_type TEXT NOT NULL DEFAULT 'Morning',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 42. CORPORATE LEDGER (STATEMENT OF ACCOUNT WITH TDS SECTION 194C / 194I)
+CREATE TABLE IF NOT EXISTS corporate_ledger (
+  entry_id TEXT PRIMARY KEY,
+  corporate_id TEXT NOT NULL,
+  entry_date TEXT NOT NULL DEFAULT (date('now')),
+  entry_type TEXT NOT NULL CHECK (entry_type IN ('Invoice Debit', 'Bank NEFT Credit', 'Cheque Credit', 'TDS Deduction Credit', 'Credit Note')),
+  invoice_id TEXT,
+  description TEXT NOT NULL,
+  debit_amount REAL NOT NULL DEFAULT 0,   -- Bill to Company transfers
+  credit_amount REAL NOT NULL DEFAULT 0,  -- Payments received / TDS
+  tds_section TEXT, -- 194C (Contractor 1-2%), 194I (Rent/Hotel 2-10%)
+  tds_amount REAL NOT NULL DEFAULT 0,
+  running_balance REAL NOT NULL,
+  bank_ref TEXT,
+  cleared_status TEXT NOT NULL DEFAULT 'Cleared',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (corporate_id) REFERENCES corporate_partners(corporate_id)
+);
+
+-- 43. NIGHT AUDIT LOG (12:00 AM HARD-LOCK & BUSINESS DATE ROLLOVER)
+CREATE TABLE IF NOT EXISTS night_audit_log (
+  audit_id TEXT PRIMARY KEY,
+  business_date TEXT NOT NULL UNIQUE,
+  closed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  total_rooms INTEGER NOT NULL DEFAULT 40,
+  occupied_rooms INTEGER NOT NULL,
+  occupancy_pct REAL NOT NULL,
+  adr REAL NOT NULL,
+  revpar REAL NOT NULL,
+  room_revenue REAL NOT NULL,
+  fnb_revenue REAL NOT NULL,
+  other_revenue REAL NOT NULL,
+  gross_revenue REAL NOT NULL,
+  cash_collected REAL NOT NULL,
+  upi_collected REAL NOT NULL,
+  card_collected REAL NOT NULL,
+  company_billed REAL NOT NULL,
+  cash_opening_float REAL NOT NULL,
+  cash_expected REAL NOT NULL,
+  cash_physical_drawer REAL NOT NULL,
+  cash_variance REAL NOT NULL DEFAULT 0,
+  is_locked INTEGER NOT NULL DEFAULT 1,
+  auditor_name TEXT NOT NULL,
+  notes TEXT
+);
+
+-- 44. STORE PURCHASES (MANDI RAW MATERIALS INWARD & VENDOR CREDIT)
+CREATE TABLE IF NOT EXISTS store_purchases (
+  purchase_id TEXT PRIMARY KEY,
+  vendor_name TEXT NOT NULL, -- Rayagada Mandi Traders, Maa Majhighariani Dairy, Utkal Poultry
+  invoice_no TEXT,
+  purchase_date TEXT NOT NULL DEFAULT (date('now')),
+  category TEXT NOT NULL CHECK (category IN ('Vegetables', 'Poultry & Meat', 'Dairy & Paneer', 'Groceries & Rice', 'Spices & Oils', 'Packaging & Disposables')),
+  items_summary TEXT NOT NULL,
+  total_amount REAL NOT NULL,
+  payment_status TEXT NOT NULL CHECK (payment_status IN ('Cash Paid', 'UPI Paid', 'Credit Payable')),
+  received_by TEXT NOT NULL DEFAULT 'Kitchen Store Incharge',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 45. KITCHEN REQUISITIONS (STORE TO CANNON KITCHEN ISSUE VOUCHER)
+CREATE TABLE IF NOT EXISTS kitchen_requisitions (
+  requisition_id TEXT PRIMARY KEY,
+  issue_date TEXT NOT NULL DEFAULT (date('now')),
+  target_outlet TEXT NOT NULL DEFAULT 'Cannon Kitchen',
+  item_name TEXT NOT NULL,
+  quantity_issued REAL NOT NULL,
+  unit TEXT NOT NULL, -- kg, liters, packets, crates
+  approx_cost REAL NOT NULL,
+  issued_to TEXT NOT NULL, -- Head Chef
+  issued_by TEXT NOT NULL DEFAULT 'Store Manager',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ============================================================================
 -- INITIAL SEED DATA
 -- ============================================================================

@@ -17,6 +17,7 @@
   --gold-muted: #997e26;
   --gold-subtle: rgba(212, 175, 55, 0.12);
   --gold-border: rgba(212, 175, 55, 0.35);
+  --gold-gradient: linear-gradient(135deg, #fceec5 0%, #d4af37 50%, #aa831b 100%);
 
   --sapphire-light: #38bdf8;
   --sapphire-primary: #1d4ed8;
@@ -37,7 +38,7 @@
 
   /* Typography */
   --font-serif: 'Cinzel', serif, Georgia;
-  --font-sans: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Outfit', 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Elevation & Glassmorphism */
   --glass-blur: blur(16px);
@@ -50,11 +51,16 @@
   --text-muted: #64748b;
   --text-gold: #f3c64c;
 
+  --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-xl: 22px;
+  --radius-full: 9999px;
 }
 
 /* Global Reset */
@@ -62,6 +68,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
@@ -72,6 +83,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  position: relative;
 }
 
 /* Background Atmosphere */
@@ -85,9 +97,22 @@ body::before {
   background: 
     radial-gradient(circle at 15% 15%, rgba(29, 78, 216, 0.18) 0%, transparent 40%),
     radial-gradient(circle at 85% 25%, rgba(212, 175, 55, 0.12) 0%, transparent 45%),
-    radial-gradient(circle at 50% 80%, rgba(6, 14, 26, 0.9) 0%, #060e1a 100%);
+    radial-gradient(circle at 50% 80%, rgba(6, 14, 26, 0.95) 0%, #060e1a 100%);
   pointer-events: none;
   z-index: -1;
+}
+
+/* Top Scroll Progress Line */
+.scroll-progress-line {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f3c64c, #d4af37, #38bdf8);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.7);
+  z-index: 9999;
+  transition: width 0.1s linear;
+  pointer-events: none;
 }
 
 /* Typography Headings */
@@ -103,13 +128,25 @@ a {
   text-decoration: none;
 }
 
-button {
+/* Universal Button Tactile Micro-Interactions */
+button, .btn, [role="button"] {
   font-family: var(--font-sans);
   cursor: pointer;
   border: none;
   background: none;
   outline: none;
-  transition: var(--transition-smooth);
+  transition: transform 0.18s var(--ease-spring), box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  will-change: transform;
+}
+
+button:active:not(:disabled), .btn:active:not(:disabled), [role="button"]:active:not([aria-disabled="true"]) {
+  transform: scale(0.965) translateY(1.5px) !important;
+  transition-duration: 0.07s !important;
+}
+
+button:focus-visible, .btn:focus-visible {
+  outline: 2px solid var(--gold-glow);
+  outline-offset: 2px;
 }
 
 /* Luxury Scrollbar */
@@ -145,10 +182,15 @@ button {
   border-radius: var(--radius-md);
 }
 
+/* Liquid Flowing Gold Heading Gradient */
 .gold-gradient-text {
-  background: linear-gradient(135deg, #fef08a 0%, #d4af37 50%, #f3c64c 100%);
+  background: linear-gradient(115deg, #c49b2c 0%, #fef08a 25%, #d4af37 50%, #f59e0b 75%, #c49b2c 100%);
+  background-size: 250% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  display: inline-block;
+  animation: shimmerGoldText 7s linear infinite;
+  text-shadow: 0 0 25px rgba(212, 175, 55, 0.25);
 }
 
 .sapphire-gradient-text {
@@ -157,11 +199,12 @@ button {
   -webkit-text-fill-color: transparent;
 }
 
-/* Buttons */
-.btn-primary-gold {
+/* Luxury Buttons with 45° Light-Beam Shimmer */
+.btn-primary-gold, .btn-gold {
+  position: relative;
   background: linear-gradient(135deg, #f3c64c 0%, #d4af37 100%);
   color: #060e1a;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.95rem;
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius-md);
@@ -169,11 +212,28 @@ button {
   align-items: center;
   gap: 0.5rem;
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.35);
+  overflow: hidden;
+  isolation: isolate;
   transition: var(--transition-smooth);
 }
-.btn-primary-gold:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(243, 198, 76, 0.5);
+
+.btn-primary-gold::before, .btn-gold::before, .btn-shimmer::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -160%;
+  width: 100%;
+  height: 200%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 70%, transparent 100%);
+  transform: rotate(25deg);
+  animation: shimmerBeam 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.btn-primary-gold:hover, .btn-gold:hover {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 8px 30px rgba(243, 198, 76, 0.55), 0 0 15px rgba(254, 240, 138, 0.4);
   background: linear-gradient(135deg, #fef08a 0%, #f3c64c 100%);
 }
 
@@ -211,6 +271,8 @@ button {
 .btn-outline-gold:hover {
   background: var(--gold-subtle);
   border-color: var(--gold-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.3);
 }
 
 /* Badges */
@@ -251,49 +313,49 @@ button {
 }
 
 /* Modals & Backdrop */
-.modal-backdrop {
+.modal-backdrop, .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(6, 14, 26, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(6, 14, 26, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
   overflow-y: auto;
+  animation: modalBackdropFade 0.25s var(--ease-luxury) forwards;
 }
 
 .modal-content {
   background: var(--bg-surface);
   border: var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 35px rgba(212, 175, 55, 0.18);
   width: 100%;
   max-width: 850px;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modalSpringIn 0.32s var(--ease-luxury) forwards;
 }
 
 .modal-content-large {
   max-width: 1180px;
 }
 
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+@keyframes modalBackdropFade {
+  0% { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+}
+
+@keyframes modalSpringIn {
+  0% { opacity: 0; transform: scale(0.95) translateY(14px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .modal-header {
@@ -301,7 +363,7 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.75rem;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.18);
   background: rgba(12, 24, 43, 0.6);
 }
 
@@ -321,6 +383,177 @@ button {
 
 .modal-body {
   padding: 1.75rem;
+}
+
+/* Sliding Pill Tab System */
+.category-tabs-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  position: relative;
+  width: 100%;
+}
+
+.category-tabs-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(10, 20, 38, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 5px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--gold-border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.sliding-gold-pill {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #f3c64c 0%, #d4af37 100%);
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.45);
+  transition: transform 0.35s var(--ease-luxury), width 0.3s var(--ease-luxury);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tab-btn-pill {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary);
+  padding: 8px 22px;
+  border-radius: var(--radius-full);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.tab-btn-pill.active {
+  color: #060e1a !important;
+  font-weight: 800;
+}
+
+/* Staggered Waterfall Cascade Animations */
+@keyframes waterfallSlideUp {
+  0% { opacity: 0; transform: translateY(18px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.waterfall-item {
+  animation: waterfallSlideUp 0.42s var(--ease-luxury) both;
+}
+
+.waterfall-delay-1 { animation-delay: 0.04s; }
+.waterfall-delay-2 { animation-delay: 0.08s; }
+.waterfall-delay-3 { animation-delay: 0.12s; }
+.waterfall-delay-4 { animation-delay: 0.16s; }
+.waterfall-delay-5 { animation-delay: 0.20s; }
+.waterfall-delay-6 { animation-delay: 0.24s; }
+.waterfall-delay-7 { animation-delay: 0.28s; }
+
+/* Dynamic Keyframe Animation Suite */
+@keyframes shimmerBeam {
+  0% { left: -160%; }
+  25%, 100% { left: 200%; }
+}
+
+@keyframes shimmerGoldText {
+  0% { background-position: 0% center; }
+  100% { background-position: 250% center; }
+}
+
+@keyframes sacredBreathingAura {
+  0%, 100% { opacity: 0.45; transform: scale(1); filter: drop-shadow(0 0 25px rgba(212, 175, 55, 0.25)); }
+  50% { opacity: 0.85; transform: scale(1.06); filter: drop-shadow(0 0 50px rgba(212, 175, 55, 0.5)); }
+}
+.aura-breathing {
+  animation: sacredBreathingAura 8s ease-in-out infinite;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes ripplePulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { opacity: 0.4; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.ripple-pulse {
+  position: relative;
+}
+.ripple-pulse::after {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border-radius: inherit;
+  background: inherit;
+  animation: ripplePulse 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes kenBurnsSubtle {
+  0% { transform: scale(1) translate(0); }
+  50% { transform: scale(1.05) translate(-0.8%, -0.5%); }
+  100% { transform: scale(1) translate(0); }
+}
+.ken-burns {
+  animation: kenBurnsSubtle 24s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes soundwaveDance {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}
+.soundwave-container {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+}
+.soundwave-bar {
+  display: inline-block;
+  width: 3px;
+  height: 100%;
+  background: var(--gold-glow);
+  border-radius: 2px;
+  animation: soundwaveDance 1.2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+.soundwave-bar:nth-child(2) { animation-delay: 0.2s; }
+.soundwave-bar:nth-child(3) { animation-delay: 0.4s; }
+.soundwave-bar:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes springPop {
+  0% { transform: scale(0.8) translateY(3px); opacity: 0.6; }
+  60% { transform: scale(1.18) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.spring-pop {
+  animation: springPop 0.35s var(--ease-spring);
+  display: inline-block;
+  will-change: transform;
+}
+
+/* Modern CSS Grid Accordion */
+.accordion-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.38s var(--ease-luxury), opacity 0.3s ease;
+  opacity: 0;
+}
+.accordion-grid.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.accordion-inner {
+  overflow: hidden;
 }
 
 /* Forms & Inputs */
@@ -391,14 +624,372 @@ button {
   background: rgba(29, 78, 216, 0.08);
 }
 
-/* Thermal Receipt Print Styles */
+/* ==========================================================================
+   OFFICIAL GOVERNMENT-COMPLIANT A4 GST TAX INVOICE SYSTEM
+   Standardized format for corporate reimbursements & Odisha Tax Audits
+   ========================================================================== */
+.official-invoice-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 30px 15px;
+  overflow-y: auto;
+  background: rgba(3, 7, 18, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.official-invoice-modal-content {
+  width: 100%;
+  max-width: 880px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.invoice-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(10, 20, 38, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.invoice-action-bar .action-bar-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--gold-glow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tax-invoice-sheet {
+  background: #ffffff;
+  color: #000000;
+  padding: 24px 28px;
+  border-radius: 4px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  font-family: 'Courier New', Courier, monospace, system-ui;
+  font-size: 11px;
+  line-height: 1.35;
+  border: 1px solid #d1d5db;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #000000;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.header-left .page-mark {
+  font-size: 10px;
+  color: #555555;
+  display: block;
+}
+
+.header-left .tax-invoice-title {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin: 2px 0;
+  color: #000000;
+}
+
+.header-left .copy-type {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #333333;
+  letter-spacing: 0.5px;
+}
+
+.header-right {
+  text-align: right;
+  max-width: 500px;
+}
+
+.hotel-brand-block .hotel-trade-name {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: #000000;
+  margin: 0 0 2px;
+  letter-spacing: 0.5px;
+}
+
+.hotel-brand-block .proprietor-line {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #222222;
+}
+
+.hotel-brand-block .address-line,
+.hotel-brand-block .contact-line,
+.hotel-brand-block .website-line {
+  font-size: 10px;
+  color: #333333;
+}
+
+.particulars-grid {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1.5px solid #000000;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  gap: 20px;
+}
+
+.particulars-col {
+  flex: 1;
+}
+
+.field-row {
+  display: flex;
+  margin-bottom: 3px;
+  font-size: 10.5px;
+}
+
+.field-label {
+  width: 120px;
+  font-weight: 700;
+  color: #222222;
+  flex-shrink: 0;
+}
+
+.field-colon {
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.field-value {
+  flex: 1;
+  word-break: break-word;
+  color: #000000;
+}
+
+.text-bold-gstin {
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  font-size: 10.5px;
+}
+
+.ledger-table th {
+  border-top: 1.5px solid #000000;
+  border-bottom: 1.5px solid #000000;
+  padding: 4px 6px;
+  text-align: left;
+  font-weight: 800;
+  font-size: 10px;
+}
+
+.ledger-table th.th-amount,
+.ledger-table td.text-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-table td {
+  padding: 4px 6px;
+  border-bottom: 0.5px dashed #cccccc;
+  color: #000000;
+}
+
+.ledger-table tfoot td {
+  border-top: 1px solid #000000;
+  border-bottom: 1px solid #000000;
+  padding: 4px 6px;
+}
+
+.ledger-table tfoot .tfoot-round td {
+  border-bottom: 2px solid #000000;
+}
+
+.text-net-amount {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.in-words-row {
+  border-bottom: 1.5px solid #000000;
+  padding: 5px 0;
+  font-size: 10.5px;
+  margin-bottom: 8px;
+}
+
+.in-words-label {
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.in-words-value {
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.tax-summary-block {
+  border: 1px solid #000000;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  max-width: 480px;
+}
+
+.tax-summary-title {
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: underline;
+  margin-bottom: 4px;
+}
+
+.tax-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.tax-summary-table th,
+.tax-summary-table td {
+  padding: 2px 4px;
+}
+
+.tax-summary-table thead th {
+  border-bottom: 1px solid #000000;
+}
+
+.tax-summary-total-row td {
+  border-top: 1px solid #000000;
+  font-weight: 800;
+}
+
+.invoice-terms-box {
+  border: 1px solid #777777;
+  border-radius: 3px;
+  padding: 6px 10px;
+  margin-bottom: 16px;
+  background-color: #fafafa;
+}
+
+.invoice-terms-header {
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+  color: #111111;
+  border-bottom: 1px solid #dddddd;
+  padding-bottom: 2px;
+}
+
+.invoice-terms-list {
+  margin: 0;
+  padding-left: 14px;
+  font-size: 8px;
+  line-height: 1.35;
+  color: #222222;
+}
+
+.signature-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  margin-top: 25px;
+  margin-bottom: 12px;
+}
+
+.sig-col {
+  flex: 1;
+  text-align: center;
+}
+
+.sig-line {
+  border-top: 1.5px solid #000000;
+  margin-bottom: 4px;
+}
+
+.sig-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  display: block;
+}
+
+.sig-disclaimer {
+  font-size: 8px;
+  color: #444444;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+.sheet-footer-strip {
+  background: #060e1a;
+  color: #ffffff;
+  text-align: center;
+  font-size: 8.5px;
+  padding: 4px 8px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-top: 10px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ==========================================================================
+   PRINT MEDIA QUERIES (80mm Thermal Slip & A4 Official Tax Invoice)
+   ========================================================================== */
 @media print {
   body * {
     visibility: hidden;
   }
+  
+  .official-invoice-overlay {
+    position: static !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  .official-invoice-overlay *,
+  .tax-invoice-sheet,
+  .tax-invoice-sheet * {
+    visibility: visible;
+  }
+  
+  .tax-invoice-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm; /* A4 */
+    margin: 0;
+    padding: 12mm 15mm;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
   .printable-receipt, .printable-receipt * {
     visibility: visible;
   }
+  
   .printable-receipt {
     position: absolute;
     left: 0;
@@ -406,24 +997,15 @@ button {
     width: 80mm;
     margin: 0;
     padding: 5mm;
-    background: #fff !important;
-    color: #000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     font-family: monospace;
     font-size: 11px;
     box-shadow: none !important;
     border: none !important;
   }
-  .printable-invoice, .printable-invoice * {
-    visibility: visible;
-  }
-  .printable-invoice {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 210mm; /* A4 */
-    background: #fff !important;
-    color: #000 !important;
-    font-family: var(--font-sans);
-    padding: 15mm;
+
+  .invoice-action-bar, .no-print, .modal-close-btn {
+    display: none !important;
   }
 }

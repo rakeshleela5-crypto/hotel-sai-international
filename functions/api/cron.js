@@ -66,6 +66,16 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
+    // BOT 21: 12:00 AM Midnight Night Audit Day-Lock Bot (Hard Closes Day)
+    if (botId === 'bot_midnight_day_lock' || botId === 'fleet_maintenance') {
+      const lockResult = await db.prepare("UPDATE folio_transactions SET is_locked = 1 WHERE is_locked = 0").run().catch(() => ({ meta: { changes: 0 } }));
+      executionResults.push({
+        bot: '12:00 AM Midnight Hard-Lock Bot',
+        status: 'SUCCESS',
+        summary: `Anti-theft protocol executed: sealed all active day folio transactions against backdating. Locked rows: ${lockResult?.meta?.changes || 0}`
+      });
+    }
+
     // BOT 4: 11:00 AM Checkout Housekeeping Dispatch Bot
     if (botId === 'bot_housekeeping_dispatch') {
       const dirtyRooms = await db.prepare("SELECT COUNT(*) as count FROM rooms WHERE status = 'Cleaning'").first();

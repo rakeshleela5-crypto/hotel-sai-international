@@ -126,7 +126,13 @@ export async function onRequestGet({ env }) {
       db.prepare("SELECT * FROM room_service_requests ORDER BY requested_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
       db.prepare("SELECT * FROM corporate_partners ORDER BY corporate_id ASC").all().catch(() => ({ results: [] })),
       db.prepare("SELECT * FROM menu_items ORDER BY category ASC").all().catch(() => ({ results: [] })),
-      db.prepare("SELECT * FROM cashier_shift_handovers ORDER BY created_at DESC LIMIT 30").all().catch(() => ({ results: [] }))
+      db.prepare("SELECT * FROM cashier_shift_handovers ORDER BY created_at DESC LIMIT 30").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM folio_transactions ORDER BY created_at DESC LIMIT 200").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM split_payments ORDER BY created_at DESC LIMIT 100").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM corporate_ledger ORDER BY entry_date DESC, created_at DESC LIMIT 100").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM night_audit_log ORDER BY business_date DESC LIMIT 30").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM store_purchases ORDER BY purchase_date DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM kitchen_requisitions ORDER BY issue_date DESC LIMIT 50").all().catch(() => ({ results: [] }))
     ]);
 
     // Parse food order items JSON
@@ -180,7 +186,13 @@ export async function onRequestGet({ env }) {
         roomServiceRequests: roomServicesRes.results || [],
         corporatePartners: corporatesRes.results || [],
         menuItems: menuRes.results || [],
-        cashierHandovers: handoversRes.results || []
+        cashierHandovers: handoversRes.results || [],
+        folioTransactions: folioTxnsRes?.results || [],
+        splitPayments: splitPaymentsRes?.results || [],
+        corporateLedger: corporateLedgerRes?.results || [],
+        nightAuditLog: nightAuditLogRes?.results || [],
+        storePurchases: storePurchasesRes?.results || [],
+        kitchenRequisitions: requisitionsRes?.results || []
       }
     });
   } catch (error) {
@@ -467,6 +479,175 @@ export async function onRequestPost({ request, env }) {
       ).run();
 
       return jsonResponse({ success: true, dispatchId });
+    }
+
+    // 11. ERP ADMIN: Post Folio Transaction (Master Double-Entry Ledger)
+    if (action === 'post_folio_transaction') {
+      const t = payload;
+      const txnId = t.transactionId || `TXN-${t.roomNumber}-${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO folio_transactions (
+          transaction_id, folio_id, booking_id, room_number, transaction_type,
+          outlet, item_code, description, debit_amount, credit_amount,
+          taxable_base, gst_rate, cgst, sgst, sac_code, invoice_id, is_locked, created_by, created_at
+        ) VALUES (
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, 0, ?, datetime('now')
+        )
+      `).bind(
+        txnId, t.folioId || `FOLIO-${t.roomNumber}`, t.bookingId || null, t.roomNumber, t.transactionType || 'Room Charge',
+        t.outlet || 'Front Desk', t.itemCode || null, t.description, t.debitAmount || 0, t.creditAmount || 0,
+        t.taxableBase || 0, t.gstRate || 0, t.cgst || 0, t.sgst || 0, t.sacCode || '996311',
+        t.invoiceId || null, t.createdBy || 'Duty Receptionist'
+      ).run();
+
+      return jsonResponse({ success: true, transactionId: txnId });
+    }
+
+    // 12. ERP F&B: Bill KOT to Room (Binds food charges permanently to Room Folio)
+    if (action === 'bill_kot_to_room') {
+      const { kotId, roomNumber, outlet, items, subtotal, gst, totalAmount, description, captainName } = payload;
+      const txnId = `TXN-${roomNumber}-${Date.now()}`;
+
+      // 1. Post debit to folio_transactions
+      await db.prepare(`
+        INSERT INTO folio_transactions (
+          transaction_id, folio_id, room_number, transaction_type, outlet,
+          item_code, description, debit_amount, credit_amount, taxable_base,
+          gst_rate, cgst, sgst, sac_code, is_locked, created_by, created_at
+        ) VALUES (
+          ?, ?, ?, 'Food & Beverage', ?,
+          ?, ?, ?, 0, ?,
+          5, ?, ?, '996331', 0, ?, datetime('now')
+        )
+      `).bind(
+        txnId, `FOLIO-${roomNumber}`, roomNumber, outlet || 'Cannon Kitchen',
+        kotId, description, totalAmount, subtotal,
+        gst / 2, gst / 2, captainName || 'F&B Captain'
+      ).run();
+
+      // 2. Also log to food_orders table for kitchen display
+      await db.prepare(`
+        INSERT INTO food_orders (
+          order_id, room_number, guest_name, items_json, subtotal,
+          gst, total_amount, status, payment_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Billed to Room', 'Charged to Master Folio', datetime('now'))
+      `).bind(
+        kotId, roomNumber, `Room ${roomNumber} Guest`, JSON.stringify(items || []),
+        subtotal, gst, totalAmount
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, transactionId: txnId, kotId, billedToRoom: roomNumber });
+    }
+
+    // 13. ERP ADMIN: Settle Split Payment (Multi-Tender Single Invoice)
+    if (action === 'settle_split_payment') {
+      const { folioId, roomNumber, invoiceId, tenderRows } = payload;
+      
+      for (const row of (tenderRows || [])) {
+        const paymentId = `PAY-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+        await db.prepare(`
+          INSERT INTO split_payments (
+            payment_id, folio_id, invoice_id, payment_mode, amount,
+            reference_utr, cashier_name, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(
+          paymentId, folioId || `FOLIO-${roomNumber}`, invoiceId || `INV-${roomNumber}`,
+          row.mode, parseFloat(row.amount) || 0, row.ref || '', 'Front Desk Cashier'
+        ).run();
+
+        // Also record credit in folio_transactions
+        await db.prepare(`
+          INSERT INTO folio_transactions (
+            transaction_id, folio_id, room_number, transaction_type, outlet,
+            item_code, description, debit_amount, credit_amount, is_locked, created_at
+          ) VALUES (?, ?, ?, 'Payment', 'Front Desk', 'PAYMENT', ?, 0, ?, 0, datetime('now'))
+        `).bind(
+          `TXN-${paymentId}`, folioId || `FOLIO-${roomNumber}`, roomNumber,
+          `Settlement via ${row.mode} (Ref: ${row.ref || 'Direct'})`, parseFloat(row.amount) || 0
+        ).run();
+      }
+
+      // Update room to cleaning
+      await db.prepare(`
+        UPDATE rooms SET status = 'Cleaning', current_guest_name = NULL, current_booking_id = NULL
+        WHERE room_number = ?
+      `).bind(roomNumber).run();
+
+      return jsonResponse({ success: true, settledRoom: roomNumber, tendersCount: (tenderRows || []).length });
+    }
+
+    // 14. ERP ADMIN: Execute 12:00 AM Night Audit (Hard Lock & Day Rollover)
+    if (action === 'execute_night_audit') {
+      const audit = payload;
+      const auditId = audit.auditId || `NA-${audit.businessDate || Date.now()}`;
+
+      // 1. Insert official audit log
+      await db.prepare(`
+        INSERT INTO night_audit_log (
+          audit_id, business_date, closed_at, total_rooms, occupied_rooms,
+          occupancy_pct, adr, revpar, room_revenue, fnb_revenue,
+          other_revenue, gross_revenue, cash_collected, upi_collected,
+          card_collected, company_billed, cash_opening_float, cash_expected,
+          cash_physical_drawer, cash_variance, is_locked, auditor_name, notes
+        ) VALUES (
+          ?, ?, datetime('now'), 40, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, 1, ?, ?
+        )
+      `).bind(
+        auditId, audit.businessDate, audit.occupiedRooms || 0,
+        audit.occupancyPct || 0, audit.adr || 0, audit.revpar || 0, audit.roomRevenue || 0, audit.fnbRevenue || 0,
+        audit.otherRevenue || 0, audit.grossRevenue || 0, audit.cashCollected || 0, audit.upiCollected || 0,
+        audit.cardCollected || 0, audit.companyBilled || 0, audit.cashOpeningFloat || 5000, audit.cashExpected || 0,
+        audit.cashPhysicalDrawer || 0, audit.cashVariance || 0, audit.auditorName || 'Duty Lead', audit.notes || ''
+      ).run();
+
+      // 2. HARD LOCK all transactions for this date against backdating
+      await db.prepare(`
+        UPDATE folio_transactions SET is_locked = 1 WHERE is_locked = 0
+      `).run();
+
+      return jsonResponse({ success: true, auditId, locked: true });
+    }
+
+    // 15. ERP STORE: Record Mandi Raw Material Purchase
+    if (action === 'record_store_purchase') {
+      const p = payload;
+      const purchaseId = `PUR-${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO store_purchases (
+          purchase_id, vendor_name, invoice_no, purchase_date, category,
+          items_summary, total_amount, payment_status, received_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        purchaseId, p.vendorName, p.invoiceNo || null, p.date || date('now'), p.category || 'Vegetables',
+        p.itemsSummary, p.totalAmount || 0, p.paymentStatus || 'Cash Paid', p.receivedBy || 'Store Incharge'
+      ).run();
+
+      return jsonResponse({ success: true, purchaseId });
+    }
+
+    // 16. ERP ACCOUNTS: Record Corporate Ledger Entry (Statement of Account with TDS)
+    if (action === 'record_corporate_ledger_entry') {
+      const c = payload;
+      const entryId = `LED-${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO corporate_ledger (
+          entry_id, corporate_id, entry_date, entry_type, invoice_id,
+          description, debit_amount, credit_amount, tds_section, tds_amount,
+          running_balance, bank_ref, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        entryId, c.corporateId, c.date || date('now'), c.entryType, c.invoiceId || null,
+        c.description, c.debitAmount || 0, c.creditAmount || 0, c.tdsSection || null, c.tdsAmount || 0,
+        c.runningBalance || 0, c.bankRef || null
+      ).run();
+
+      return jsonResponse({ success: true, entryId });
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);

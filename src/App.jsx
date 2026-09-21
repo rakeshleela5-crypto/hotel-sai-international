@@ -13,13 +13,20 @@ import FoodOrderModal from './components/FoodOrderModal';
 import DarshanAdvisorModal from './components/DarshanAdvisorModal';
 import AiConciergeModal from './components/AiConciergeModal';
 import CorporatePortalModal from './components/CorporatePortalModal';
+import MasterFolioModal from './components/MasterFolioModal';
+import CannonKitchenPOS from './components/CannonKitchenPOS';
+import AccountsLedgerModal from './components/AccountsLedgerModal';
+import NightAuditModal from './components/NightAuditModal';
+import StoreInventoryModal from './components/StoreInventoryModal';
+import DirectorPortal from './components/DirectorPortal';
 import Footer from './components/Footer';
 
-import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS } from './data/hotelData';
+import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('guest'); // 'guest' or 'pms'
   const [rooms, setRooms] = useState(INITIAL_ROOMS_INVENTORY);
+  const [transactions, setTransactions] = useState(INITIAL_FOLIO_TRANSACTIONS);
   const [bookings, setBookings] = useState([
     {
       bookingId: 'HSI-202609-0001',
@@ -75,12 +82,40 @@ export default function App() {
       bookingStatus: 'Checked In',
       isB2b: true,
       corporateGstin: '21AAACJ1288P1ZZ'
+    },
+    {
+      bookingId: 'HSI-202609-0004',
+      roomNumber: '402',
+      tier: 'Premium Suite',
+      guestName: 'Anil Sharma (GAIL Regional Project Team)',
+      guestPhone: '+91 98210 44556',
+      idProofType: 'Aadhaar',
+      idProofMasked: 'XXXX-XXXX-4491',
+      stateOfOrigin: 'Delhi',
+      isInterstate: true,
+      checkInDate: '2026-09-20',
+      checkOutDate: '2026-09-22',
+      nights: 2,
+      adults: 2,
+      children: 0,
+      tariffPerNight: 3999,
+      baseTotal: 7998,
+      cgst: 479.88,
+      sgst: 479.88,
+      totalAmount: 13588.00, // Exact demonstration total (Room + F&B + Laundry)
+      advanceDeposit: 5000.00,
+      balanceDue: 8588.00,
+      paymentMode: 'Split Tender (UPI + Cash)',
+      paymentStatus: 'Pending Final Settlement',
+      bookingStatus: 'Checked In',
+      isB2b: true,
+      corporateGstin: '07AAACG1509J1ZQ'
     }
   ]);
 
   const [adminPinVerified, setAdminPinVerified] = useState(false);
 
-  // Modals state
+  // Core Modals state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedTierForBooking, setSelectedTierForBooking] = useState(null);
   const [selectedRoomNumForBooking, setSelectedRoomNumForBooking] = useState(null);
@@ -95,6 +130,14 @@ export default function App() {
   const [aiConciergeOpen, setAiConciergeOpen] = useState(false);
   const [botFleetOpen, setBotFleetOpen] = useState(false);
   const [corporateModalOpen, setCorporateModalOpen] = useState(false);
+
+  // IDS Next Operational Modules State
+  const [folioModalOpen, setFolioModalOpen] = useState(false);
+  const [posModalOpen, setPosModalOpen] = useState(false);
+  const [accountsModalOpen, setAccountsModalOpen] = useState(false);
+  const [nightAuditModalOpen, setNightAuditModalOpen] = useState(false);
+  const [storeInventoryModalOpen, setStoreInventoryModalOpen] = useState(false);
+  const [directorPortalOpen, setDirectorPortalOpen] = useState(false);
 
   const [searchDates, setSearchDates] = useState({
     checkIn: new Date().toISOString().split('T')[0],
@@ -172,9 +215,47 @@ export default function App() {
   };
 
   const handleRunNightAudit = () => {
-    const occupiedCount = rooms.filter(r => r.status === 'Occupied').length;
-    const totalRev = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-    alert(`✓ Night Audit executed! Current Occupancy: ${occupiedCount}/40 rooms (${((occupiedCount/40)*100).toFixed(1)}%). Total ledger revenue: ₹${totalRev.toLocaleString()}`);
+    setNightAuditModalOpen(true);
+  };
+
+  const handleAddTransaction = (newTxn) => {
+    setTransactions(prev => [newTxn, ...prev]);
+  };
+
+  const handleBillToRoomFromPOS = (payload) => {
+    const newTxn = {
+      transactionId: `TXN-${payload.roomNumber}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${payload.roomNumber}`,
+      bookingId: `BOOK-${payload.roomNumber}`,
+      roomNumber: payload.roomNumber,
+      transactionType: 'Food & Beverage',
+      outlet: payload.outlet,
+      itemCode: payload.kotId,
+      description: payload.description,
+      debitAmount: payload.totalAmount,
+      creditAmount: 0,
+      taxableBase: payload.subtotal,
+      gstRate: 5,
+      cgst: payload.gst / 2,
+      sgst: payload.gst / 2,
+      sacCode: '996331',
+      invoiceCategory: 'Food',
+      isLocked: 0,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+    setTransactions(prev => [newTxn, ...prev]);
+    alert(`✓ KOT #${payload.kotId} (${payload.outlet}) of ₹${payload.totalAmount.toFixed(2)} debited directly to Room ${payload.roomNumber} Master Folio!`);
+  };
+
+  const handleSettleFolio = (roomNumber, tenderRows) => {
+    handleUpdateRoomStatus(roomNumber, 'Cleaning');
+    setTransactions(prev => prev.map(t => t.roomNumber === roomNumber ? { ...t, isLocked: 1 } : t));
+    alert(`✓ Room ${roomNumber} folio settled via ${tenderRows.length} tenders! Room status changed to 'Cleaning'.`);
+  };
+
+  const handleExecuteNightAudit = (auditPayload) => {
+    setTransactions(prev => prev.map(t => ({ ...t, isLocked: 1 })));
+    alert(`✓ Night Audit for ${auditPayload.businessDate} executed! All transactions locked (is_locked = 1). Business date rolled.`);
   };
 
   return (
@@ -189,6 +270,12 @@ export default function App() {
         onOpenAiConcierge={() => setAiConciergeOpen(true)}
         onOpenBotFleet={() => setBotFleetOpen(true)}
         onOpenCorporate={() => setCorporateModalOpen(true)}
+        onOpenMasterFolio={() => setFolioModalOpen(true)}
+        onOpenCannonKitchenPOS={() => setPosModalOpen(true)}
+        onOpenAccountsLedger={() => setAccountsModalOpen(true)}
+        onOpenNightAudit={() => setNightAuditModalOpen(true)}
+        onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
+        onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
         rooms={rooms}
         adminPinVerified={adminPinVerified}
         setAdminPinVerified={setAdminPinVerified}
@@ -291,6 +378,51 @@ export default function App() {
       <CorporatePortalModal 
         isOpen={corporateModalOpen}
         onClose={() => setCorporateModalOpen(false)}
+      />
+
+      {/* IDS Next Enterprise Operational Modals */}
+      <MasterFolioModal 
+        isOpen={folioModalOpen}
+        onClose={() => setFolioModalOpen(false)}
+        rooms={rooms}
+        bookings={bookings}
+        transactions={transactions}
+        onAddTransaction={handleAddTransaction}
+        onSettleFolio={handleSettleFolio}
+      />
+
+      <CannonKitchenPOS 
+        isOpen={posModalOpen}
+        onClose={() => setPosModalOpen(false)}
+        rooms={rooms}
+        onBillToRoom={handleBillToRoomFromPOS}
+      />
+
+      <AccountsLedgerModal 
+        isOpen={accountsModalOpen}
+        onClose={() => setAccountsModalOpen(false)}
+        bookings={bookings}
+      />
+
+      <NightAuditModal 
+        isOpen={nightAuditModalOpen}
+        onClose={() => setNightAuditModalOpen(false)}
+        rooms={rooms}
+        bookings={bookings}
+        transactions={transactions}
+        onExecuteNightAudit={handleExecuteNightAudit}
+      />
+
+      <StoreInventoryModal 
+        isOpen={storeInventoryModalOpen}
+        onClose={() => setStoreInventoryModalOpen(false)}
+      />
+
+      <DirectorPortal 
+        isOpen={directorPortalOpen}
+        onClose={() => setDirectorPortalOpen(false)}
+        rooms={rooms}
+        bookings={bookings}
       />
 
       <Footer 

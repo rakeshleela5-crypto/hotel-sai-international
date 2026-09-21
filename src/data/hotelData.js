@@ -170,7 +170,7 @@ export const INITIAL_ROOMS_INVENTORY = [
   })
 ];
 
-// Rayagada Corporate Partners
+// Rayagada Corporate Partners (Anchor Accounts)
 export const CORPORATE_PARTNERS = [
   {
     id: "CORP-01",
@@ -182,10 +182,54 @@ export const CORPORATE_PARTNERS = [
     contactEmail: "admin.jk@jkpaper.com",
     contractDiscount: 15,
     preferredTier: "Executive Room",
-    creditDays: 30
+    creditDays: 30,
+    creditLimit: 500000,
+    openingBalance: 142500
   },
   {
     id: "CORP-02",
+    name: "GAIL (India) Limited",
+    location: "Pipeline Regional Office, Rayagada",
+    gstin: "07AAACG1509J1ZQ",
+    contactPerson: "Rajeshwar Rao (Project Incharge)",
+    contactPhone: "+91 6856 228811",
+    contactEmail: "travel.gail@gail.co.in",
+    contractDiscount: 15,
+    preferredTier: "Executive Room",
+    creditDays: 30,
+    creditLimit: 400000,
+    openingBalance: 86400
+  },
+  {
+    id: "CORP-03",
+    name: "Mahindra & Mahindra Ltd.",
+    location: "Automotive Logistics, Rayagada",
+    gstin: "27AAACM1545A1Z4",
+    contactPerson: "Sunil K. Verma (Area Manager)",
+    contactPhone: "+91 6856 229944",
+    contactEmail: "verma.sunil@mahindra.com",
+    contractDiscount: 12,
+    preferredTier: "Deluxe Room",
+    creditDays: 30,
+    creditLimit: 300000,
+    openingBalance: 48200
+  },
+  {
+    id: "CORP-04",
+    name: "Hindustan Coca-Cola Beverages",
+    location: "South Odisha Distribution Hub",
+    gstin: "21AAACH1123P1Z9",
+    contactPerson: "Amitabh Sen (Logistics Head)",
+    contactPhone: "+91 6856 231122",
+    contactEmail: "traveldesk@hccb.co.in",
+    contractDiscount: 10,
+    preferredTier: "Executive Room",
+    creditDays: 30,
+    creditLimit: 250000,
+    openingBalance: 32000
+  },
+  {
+    id: "CORP-05",
     name: "IMFA (Indian Metals & Ferro Alloys)",
     location: "Therubali, Rayagada (18 km)",
     gstin: "21AAACI0981M1Z5",
@@ -194,10 +238,12 @@ export const CORPORATE_PARTNERS = [
     contactEmail: "traveldesk@imfa.in",
     contractDiscount: 15,
     preferredTier: "Executive Room",
-    creditDays: 30
+    creditDays: 30,
+    creditLimit: 600000,
+    openingBalance: 118000
   },
   {
-    id: "CORP-03",
+    id: "CORP-06",
     name: "Utkal Alumina International Ltd.",
     location: "Doraguda, Rayagada (70 km)",
     gstin: "21AABCU5544N1ZV",
@@ -206,10 +252,12 @@ export const CORPORATE_PARTNERS = [
     contactEmail: "logistics@utkalalumina.adityabirla.com",
     contractDiscount: 20,
     preferredTier: "Premium Suite",
-    creditDays: 45
+    creditDays: 45,
+    creditLimit: 800000,
+    openingBalance: 215000
   },
   {
-    id: "CORP-04",
+    id: "CORP-07",
     name: "East Coast Railway (ECoR) Rayagada Div.",
     location: "Station Road, Rayagada (1.5 km)",
     gstin: "21AAAGR0022E1Z8",
@@ -218,17 +266,24 @@ export const CORPORATE_PARTNERS = [
     contactEmail: "travel.rgda@ecor.railnet.gov.in",
     contractDiscount: 12,
     preferredTier: "Executive Room",
-    creditDays: 30
+    creditDays: 30,
+    creditLimit: 450000,
+    openingBalance: 65400
   }
 ];
 
-// Authentic Odia Delicacies & Satvik In-Room Dining Menu
+// Multi-Outlet F&B Menu with Fast Item Codes (Cannon Kitchen, Bar, Room Service, Swiggy)
 export const RESTAURANT_MENU = [
   {
     id: "m1",
+    itemCode: "101",
     name: "Chhena Poda Supreme",
     category: "Odia Delicacies",
     price: 180,
+    dineInPrice: 180,
+    roomServicePrice: 200,
+    swiggyPrice: 240,
+    barPrice: 190,
     isVeg: true,
     isJain: true,
     isSpecial: true,
@@ -236,9 +291,14 @@ export const RESTAURANT_MENU = [
   },
   {
     id: "m2",
+    itemCode: "102",
     name: "Pakhala Thali Deluxe",
     category: "Odia Delicacies",
     price: 220,
+    dineInPrice: 220,
+    roomServicePrice: 245,
+    swiggyPrice: 299,
+    barPrice: 230,
     isVeg: true,
     isJain: false,
     isSpecial: true,
@@ -246,9 +306,14 @@ export const RESTAURANT_MENU = [
   },
   {
     id: "m3",
+    itemCode: "103",
     name: "Dalma with Steamed Jeera Rice",
     category: "Odia Delicacies",
     price: 240,
+    dineInPrice: 240,
+    roomServicePrice: 265,
+    swiggyPrice: 320,
+    barPrice: 250,
     isVeg: true,
     isJain: true,
     isSpecial: true,
@@ -256,9 +321,14 @@ export const RESTAURANT_MENU = [
   },
   {
     id: "m4",
-    name: "Satvik Shahi Paneer (No Onion/Garlic)",
+    itemCode: "201",
+    name: "Satvik Shahi Paneer",
     category: "Satvik & Jain",
     price: 290,
+    dineInPrice: 290,
+    roomServicePrice: 320,
+    swiggyPrice: 390,
+    barPrice: 310,
     isVeg: true,
     isJain: true,
     isSpecial: false,
@@ -266,33 +336,123 @@ export const RESTAURANT_MENU = [
   },
   {
     id: "m5",
-    name: "Executive Breakfast Buffet Spread",
-    category: "Breakfast",
-    price: 350,
+    itemCode: "214",
+    name: "Mushroom Masala / Besara",
+    category: "Main Course",
+    price: 260,
+    dineInPrice: 260,
+    roomServicePrice: 285,
+    swiggyPrice: 350,
+    barPrice: 275,
     isVeg: true,
     isJain: false,
     isSpecial: true,
-    description: "Complimentary for in-house guests. Fluffy Idlis, Crispy Medu Vada, Puri Bhaji, Upma, Seasonal Fruits, and Filter Coffee."
+    description: "Local Rayagada buttons simmered in traditional ground yellow mustard and dried mango ambula gravy."
   },
   {
     id: "m6",
-    name: "Mushroom Besara",
+    itemCode: "215",
+    name: "Paneer Butter Masala",
     category: "Main Course",
-    price: 260,
+    price: 280,
+    dineInPrice: 280,
+    roomServicePrice: 310,
+    swiggyPrice: 375,
+    barPrice: 295,
     isVeg: true,
     isJain: false,
     isSpecial: false,
-    description: "Local Rayagada mushrooms cooked in stone-ground yellow mustard paste, garlic, and dried mango ambula."
+    description: "Fresh cottage cheese in mildly spiced butter cream tomato reduction."
   },
   {
     id: "m7",
+    itemCode: "216",
+    name: "Cannon Desi Chicken Curry",
+    category: "Main Course",
+    price: 340,
+    dineInPrice: 340,
+    roomServicePrice: 375,
+    swiggyPrice: 440,
+    barPrice: 360,
+    isVeg: false,
+    isJain: false,
+    isSpecial: true,
+    description: "Tender country chicken simmered in traditional South Odisha slow-cooked onion-ginger-garlic masala."
+  },
+  {
+    id: "m8",
+    itemCode: "307",
+    name: "Plain Steamed Basmati Rice",
+    category: "Main Course",
+    price: 120,
+    dineInPrice: 120,
+    roomServicePrice: 135,
+    swiggyPrice: 160,
+    barPrice: 130,
+    isVeg: true,
+    isJain: true,
+    isSpecial: false,
+    description: "Long grain aromatic basmati steamed to perfection."
+  },
+  {
+    id: "m9",
+    itemCode: "308",
+    name: "Butter Tandoori Naan / Roti (2 Pcs)",
+    category: "Main Course",
+    price: 80,
+    dineInPrice: 80,
+    roomServicePrice: 90,
+    swiggyPrice: 110,
+    barPrice: 85,
+    isVeg: true,
+    isJain: false,
+    isSpecial: false,
+    description: "Clay oven charred bread glazed with Amul butter."
+  },
+  {
+    id: "m10",
+    itemCode: "401",
     name: "Rayagada Spiced Masala Chai",
     category: "Beverages",
     price: 60,
+    dineInPrice: 60,
+    roomServicePrice: 70,
+    swiggyPrice: 85,
+    barPrice: 65,
     isVeg: true,
     isJain: true,
     isSpecial: false,
     description: "Aromatic Assam leaf brewed with fresh crushed ginger, green cardamom, and fresh whole milk."
+  },
+  {
+    id: "m11",
+    itemCode: "402",
+    name: "Crispy Chilli Chicken (Bar Special)",
+    category: "Starters",
+    price: 310,
+    dineInPrice: 310,
+    roomServicePrice: 340,
+    swiggyPrice: 399,
+    barPrice: 320,
+    isVeg: false,
+    isJain: false,
+    isSpecial: true,
+    description: "Wok-tossed boneless chicken cubes with bell peppers, green chillies, and dark soy."
+  },
+  {
+    id: "m12",
+    itemCode: "403",
+    name: "Crispy Corn Pepper Salt",
+    category: "Starters",
+    price: 220,
+    dineInPrice: 220,
+    roomServicePrice: 245,
+    swiggyPrice: 290,
+    barPrice: 230,
+    isVeg: true,
+    isJain: false,
+    isSpecial: false,
+    description: "Golden fried sweet corn kernels tossed with freshly crushed black pepper and scallions."
   }
 ];
 
@@ -570,3 +730,514 @@ export const AUTONOMOUS_BOT_FLEET = [
     defaultParams: { validateGstinChecksum: true, sacCode: "996311" }
   }
 ];
+
+// ============================================================================
+// IDS NEXT-GRADE IMMUTABLE MASTER FOLIO TRANSACTIONS (PRE-SEEDED REAL SCENARIOS)
+// ============================================================================
+
+export const INITIAL_FOLIO_TRANSACTIONS = [
+  // -------------------------------------------------------------
+  // ROOM 402: THE EXACT ₹13,588 CORPORATE STAY (GAIL / CORPORATE GUEST)
+  // -------------------------------------------------------------
+  {
+    transactionId: "TXN-402-001",
+    folioId: "FOLIO-402",
+    bookingId: "HSI-202609-0004",
+    roomNumber: "402",
+    transactionType: "Room Charge",
+    outlet: "Front Desk",
+    itemCode: "ROOM-T4",
+    description: "Premium Suite Tariff - Night 1 (2026-09-20)",
+    debitAmount: 3999.00,
+    creditAmount: 0,
+    taxableBase: 3999.00,
+    gstRate: 12,
+    cgst: 239.94,
+    sgst: 239.94,
+    sacCode: "996311",
+    invoiceCategory: "Room",
+    isLocked: 1,
+    createdAt: "2026-09-20 23:59:00"
+  },
+  {
+    transactionId: "TXN-402-002",
+    folioId: "FOLIO-402",
+    bookingId: "HSI-202609-0004",
+    roomNumber: "402",
+    transactionType: "Room Charge",
+    outlet: "Front Desk",
+    itemCode: "ROOM-T4",
+    description: "Premium Suite Tariff - Night 2 (2026-09-21)",
+    debitAmount: 3999.00,
+    creditAmount: 0,
+    taxableBase: 3999.00,
+    gstRate: 12,
+    cgst: 239.94,
+    sgst: 239.94,
+    sacCode: "996311",
+    invoiceCategory: "Room",
+    isLocked: 0,
+    createdAt: "2026-09-21 23:59:00"
+  },
+  {
+    transactionId: "TXN-402-003",
+    folioId: "FOLIO-402",
+    bookingId: "HSI-202609-0004",
+    roomNumber: "402",
+    transactionType: "Food & Beverage",
+    outlet: "Cannon Kitchen",
+    itemCode: "CK-KOT-1048",
+    description: "Cannon Kitchen Dinner (Desi Chicken, Dalma, Naan, Rice)",
+    debitAmount: 2450.00,
+    creditAmount: 0,
+    taxableBase: 2333.33,
+    gstRate: 5,
+    cgst: 58.33,
+    sgst: 58.33,
+    sacCode: "996331",
+    invoiceCategory: "Food",
+    isLocked: 0,
+    createdAt: "2026-09-21 21:15:00"
+  },
+  {
+    transactionId: "TXN-402-004",
+    folioId: "FOLIO-402",
+    bookingId: "HSI-202609-0004",
+    roomNumber: "402",
+    transactionType: "Room Service",
+    outlet: "Room Service",
+    itemCode: "RS-KOT-2011",
+    description: "In-Room Breakfast Buffet & High-Grade Spiced Masala Chai",
+    debitAmount: 1550.00,
+    creditAmount: 0,
+    taxableBase: 1476.19,
+    gstRate: 5,
+    cgst: 36.90,
+    sgst: 36.90,
+    sacCode: "996331",
+    invoiceCategory: "Food",
+    isLocked: 0,
+    createdAt: "2026-09-22 08:30:00"
+  },
+  {
+    transactionId: "TXN-402-005",
+    folioId: "FOLIO-402",
+    bookingId: "HSI-202609-0004",
+    roomNumber: "402",
+    transactionType: "Laundry",
+    outlet: "Laundry Dept",
+    itemCode: "LAUND-01",
+    description: "Executive Express Laundry & Ironing (4 Suits)",
+    debitAmount: 800.00,
+    creditAmount: 0,
+    taxableBase: 677.97,
+    gstRate: 18,
+    cgst: 61.02,
+    sgst: 61.02,
+    sacCode: "999799",
+    invoiceCategory: "Room",
+    isLocked: 0,
+    createdAt: "2026-09-21 16:45:00"
+  },
+  {
+    transactionId: "TXN-402-006",
+    folioId: "FOLIO-402",
+    bookingId: "HSI-202609-0004",
+    roomNumber: "402",
+    transactionType: "Payment",
+    outlet: "Front Desk",
+    itemCode: "ADV-DEP",
+    description: "Advance Check-In Deposit via SBI UPI QR (Ref: 4291840192)",
+    debitAmount: 0,
+    creditAmount: 5000.00,
+    taxableBase: 0,
+    gstRate: 0,
+    cgst: 0,
+    sgst: 0,
+    sacCode: "000000",
+    invoiceCategory: "Payment",
+    isLocked: 1,
+    createdAt: "2026-09-20 14:10:00"
+  },
+
+  // -------------------------------------------------------------
+  // ROOM 301: JK PAPER MILLS CORPORATE GUEST (VIKRAM SINGHANIA)
+  // -------------------------------------------------------------
+  {
+    transactionId: "TXN-301-001",
+    folioId: "FOLIO-301",
+    bookingId: "HSI-202609-0002",
+    roomNumber: "301",
+    transactionType: "Room Charge",
+    outlet: "Front Desk",
+    itemCode: "ROOM-T3",
+    description: "Executive Room Tariff (15% JK Paper Corporate Discount) - Night 1",
+    debitAmount: 2464.00,
+    creditAmount: 0,
+    taxableBase: 2464.00,
+    gstRate: 12,
+    cgst: 147.84,
+    sgst: 147.84,
+    sacCode: "996311",
+    invoiceCategory: "Room",
+    isLocked: 1,
+    createdAt: "2026-09-21 23:59:00"
+  },
+  {
+    transactionId: "TXN-301-002",
+    folioId: "FOLIO-301",
+    bookingId: "HSI-202609-0002",
+    roomNumber: "301",
+    transactionType: "Food & Beverage",
+    outlet: "Cannon Kitchen",
+    itemCode: "CK-KOT-1049",
+    description: "Cannon Kitchen Corporate Executive Dinner",
+    debitAmount: 890.00,
+    creditAmount: 0,
+    taxableBase: 847.62,
+    gstRate: 5,
+    cgst: 21.19,
+    sgst: 21.19,
+    sacCode: "996331",
+    invoiceCategory: "Food",
+    isLocked: 0,
+    createdAt: "2026-09-21 20:30:00"
+  },
+
+  // -------------------------------------------------------------
+  // ROOM 104: SANTOSH PATRA (PILGRIMAGE GUEST - MAA MAJHIGHARIANI)
+  // -------------------------------------------------------------
+  {
+    transactionId: "TXN-104-001",
+    folioId: "FOLIO-104",
+    bookingId: "HSI-202609-0001",
+    roomNumber: "104",
+    transactionType: "Room Charge",
+    outlet: "Front Desk",
+    itemCode: "ROOM-T1",
+    description: "Standard Deluxe Room Tariff - Night 1",
+    debitAmount: 1699.00,
+    creditAmount: 0,
+    taxableBase: 1699.00,
+    gstRate: 12,
+    cgst: 101.94,
+    sgst: 101.94,
+    sacCode: "996311",
+    invoiceCategory: "Room",
+    isLocked: 1,
+    createdAt: "2026-09-20 23:59:00"
+  },
+  {
+    transactionId: "TXN-104-002",
+    folioId: "FOLIO-104",
+    bookingId: "HSI-202609-0001",
+    roomNumber: "104",
+    transactionType: "Food & Beverage",
+    outlet: "Cannon Kitchen",
+    itemCode: "CK-KOT-1035",
+    description: "Cannon Kitchen Satvik Lunch (Dalma, Pakhala Thali, Chhena Poda)",
+    debitAmount: 640.00,
+    creditAmount: 0,
+    taxableBase: 609.52,
+    gstRate: 5,
+    cgst: 15.24,
+    sgst: 15.24,
+    sacCode: "996331",
+    invoiceCategory: "Food",
+    isLocked: 1,
+    createdAt: "2026-09-21 13:20:00"
+  },
+  {
+    transactionId: "TXN-104-003",
+    folioId: "FOLIO-104",
+    bookingId: "HSI-202609-0001",
+    roomNumber: "104",
+    transactionType: "Payment",
+    outlet: "Front Desk",
+    itemCode: "PAY-UPI",
+    description: "Direct Booking Full UPI Settlement (GPay/SBI)",
+    debitAmount: 0,
+    creditAmount: 2339.00,
+    taxableBase: 0,
+    gstRate: 0,
+    cgst: 0,
+    sgst: 0,
+    sacCode: "000000",
+    invoiceCategory: "Payment",
+    isLocked: 1,
+    createdAt: "2026-09-20 12:45:00"
+  }
+];
+
+// ============================================================================
+// CORPORATE LEDGER (STATEMENT OF ACCOUNTS WITH TDS SEC 194C / 194I)
+// ============================================================================
+
+export const INITIAL_CORPORATE_LEDGER = [
+  // JK PAPER MILLS
+  {
+    entryId: "LED-JKP-001",
+    corporateId: "CORP-01",
+    date: "2026-09-01",
+    type: "Opening Balance",
+    invoiceNo: "-",
+    description: "Opening Balance B/F for September 2026",
+    debit: 142500,
+    credit: 0,
+    tdsSection: null,
+    tdsAmount: 0,
+    balance: 142500,
+    bankRef: "-"
+  },
+  {
+    entryId: "LED-JKP-002",
+    corporateId: "CORP-01",
+    date: "2026-09-08",
+    type: "Bank NEFT Receipt",
+    invoiceNo: "INV-B2B-202608-11",
+    description: "NEFT Payment from JK Paper Mills Finance Desk",
+    debit: 0,
+    credit: 100000,
+    tdsSection: "194C (2%)",
+    tdsAmount: 2040,
+    balance: 40460,
+    bankRef: "AXISR20260908771234"
+  },
+  {
+    entryId: "LED-JKP-003",
+    corporateId: "CORP-01",
+    date: "2026-09-15",
+    type: "Stay Invoice Debit",
+    invoiceNo: "INV-B2B-202609-01",
+    description: "Auditors Accommodation (5 Exec Rooms, 3 Nights)",
+    debit: 41395,
+    credit: 0,
+    tdsSection: null,
+    tdsAmount: 0,
+    balance: 81855,
+    bankRef: "-"
+  },
+
+  // GAIL (INDIA) LIMITED
+  {
+    entryId: "LED-GAIL-001",
+    corporateId: "CORP-02",
+    date: "2026-09-01",
+    type: "Opening Balance",
+    invoiceNo: "-",
+    description: "Opening Balance B/F for September 2026",
+    debit: 86400,
+    credit: 0,
+    tdsSection: null,
+    tdsAmount: 0,
+    balance: 86400,
+    bankRef: "-"
+  },
+  {
+    entryId: "LED-GAIL-002",
+    corporateId: "CORP-02",
+    date: "2026-09-12",
+    type: "Bank RTGS Receipt",
+    invoiceNo: "INV-GAIL-202608-04",
+    description: "Corporate RTGS Settlement for August Pipeline Surveyors",
+    debit: 0,
+    credit: 84672,
+    tdsSection: "194I (2%)",
+    tdsAmount: 1728,
+    balance: 0,
+    bankRef: "SBINR520260912998811"
+  },
+  {
+    entryId: "LED-GAIL-003",
+    corporateId: "CORP-02",
+    date: "2026-09-20",
+    type: "Stay Invoice Debit",
+    invoiceNo: "INV-GAIL-202609-08",
+    description: "Technical Delegation Stay (Room 402 + 2 Deluxe)",
+    debit: 28450,
+    credit: 0,
+    tdsSection: null,
+    tdsAmount: 0,
+    balance: 28450,
+    bankRef: "-"
+  },
+
+  // MAHINDRA & MAHINDRA
+  {
+    entryId: "LED-MAH-001",
+    corporateId: "CORP-03",
+    date: "2026-09-01",
+    type: "Opening Balance",
+    invoiceNo: "-",
+    description: "Opening Balance B/F for September 2026",
+    debit: 48200,
+    credit: 0,
+    tdsSection: null,
+    tdsAmount: 0,
+    balance: 48200,
+    bankRef: "-"
+  },
+  {
+    entryId: "LED-MAH-002",
+    corporateId: "CORP-03",
+    date: "2026-09-18",
+    type: "Stay Invoice Debit",
+    invoiceNo: "INV-MAH-202609-02",
+    description: "Regional Dealer Conference & Suite Bookings",
+    debit: 34100,
+    credit: 0,
+    tdsSection: null,
+    tdsAmount: 0,
+    balance: 82300,
+    bankRef: "-"
+  }
+];
+
+// ============================================================================
+// STORE PURCHASES (LOCAL RAYAGADA MANDI RAW MATERIALS & VENDOR CREDIT)
+// ============================================================================
+
+export const INITIAL_STORE_PURCHASES = [
+  {
+    purchaseId: "PUR-202609-001",
+    vendorName: "Rayagada Daily Sabzi Mandi Traders",
+    invoiceNo: "MND-781",
+    date: "2026-09-21",
+    category: "Vegetables",
+    itemsSummary: "Potatoes (50kg), Onions (40kg), Tomatoes (30kg), Ginger & Garlic (10kg)",
+    totalAmount: 4850.00,
+    paymentStatus: "Cash Paid",
+    receivedBy: "Chef Jagabandhu Sahu"
+  },
+  {
+    purchaseId: "PUR-202609-002",
+    vendorName: "Maa Majhighariani Dairy Cooperative",
+    invoiceNo: "MMD-1092",
+    date: "2026-09-21",
+    category: "Dairy & Paneer",
+    itemsSummary: "Fresh Cow Milk (60 Ltrs), Fresh Malai Paneer (15 kg), Desi Curd (20 kg)",
+    totalAmount: 6420.00,
+    paymentStatus: "Credit Payable",
+    receivedBy: "Store Incharge Niranjan"
+  },
+  {
+    purchaseId: "PUR-202609-003",
+    vendorName: "Utkal Poultry & Country Chicken Hub",
+    invoiceNo: "UPC-445",
+    date: "2026-09-21",
+    category: "Poultry & Meat",
+    itemsSummary: "Country Chicken dressed (25 kg), Broiler Chicken (20 kg)",
+    totalAmount: 9800.00,
+    paymentStatus: "UPI Paid",
+    receivedBy: "Chef Jagabandhu Sahu"
+  },
+  {
+    purchaseId: "PUR-202609-004",
+    vendorName: "Jaykaypur Wholesale Grocery Mart",
+    invoiceNo: "JKP-902",
+    date: "2026-09-20",
+    category: "Groceries & Rice",
+    itemsSummary: "Premium Basmati Rice (100 kg), Mustard Oil (30 Ltrs), Toor Dal (50 kg)",
+    totalAmount: 18400.00,
+    paymentStatus: "Credit Payable",
+    receivedBy: "Store Incharge Niranjan"
+  }
+];
+
+// ============================================================================
+// KITCHEN REQUISITIONS (STORE TO CANNON KITCHEN ISSUE VOUCHER)
+// ============================================================================
+
+export const INITIAL_KITCHEN_REQUISITIONS = [
+  {
+    requisitionId: "REQ-202609-01",
+    date: "2026-09-21",
+    targetOutlet: "Cannon Kitchen",
+    itemName: "Fresh Malai Paneer",
+    quantity: 8,
+    unit: "kg",
+    approxCost: 2560,
+    issuedTo: "Chef Jagabandhu Sahu",
+    issuedBy: "Store Manager"
+  },
+  {
+    requisitionId: "REQ-202609-02",
+    date: "2026-09-21",
+    targetOutlet: "Cannon Kitchen",
+    itemName: "Country Chicken dressed",
+    quantity: 12,
+    unit: "kg",
+    approxCost: 3360,
+    issuedTo: "Chef Jagabandhu Sahu",
+    issuedBy: "Store Manager"
+  },
+  {
+    requisitionId: "REQ-202609-03",
+    date: "2026-09-21",
+    targetOutlet: "Cannon Kitchen",
+    itemName: "Premium Basmati Rice",
+    quantity: 25,
+    unit: "kg",
+    approxCost: 2250,
+    issuedTo: "Asst Chef Kailash",
+    issuedBy: "Store Manager"
+  }
+];
+
+// ============================================================================
+// NIGHT AUDIT LOGS (TAMPER-PROOF 12:00 AM CLOSINGS)
+// ============================================================================
+
+export const INITIAL_NIGHT_AUDITS = [
+  {
+    auditId: "NA-2026-09-20",
+    businessDate: "2026-09-20",
+    closedAt: "2026-09-21 00:05:12",
+    totalRooms: 40,
+    occupiedRooms: 31,
+    occupancyPct: 77.5,
+    adr: 2420.00,
+    revpar: 1875.50,
+    roomRevenue: 75020.00,
+    fnbRevenue: 24800.00,
+    otherRevenue: 3400.00,
+    grossRevenue: 103220.00,
+    cashCollected: 28500.00,
+    upiCollected: 49200.00,
+    cardCollected: 11400.00,
+    companyBilled: 14120.00,
+    cashOpeningFloat: 5000.00,
+    cashExpected: 33500.00,
+    cashPhysicalDrawer: 33500.00,
+    cashVariance: 0.00,
+    isLocked: 1,
+    auditorName: "Sudhakar Reddy (Front Office Lead)",
+    notes: "Day successfully balanced. Zero cash discrepancy. All 31 occupied room charges and GST posted."
+  },
+  {
+    auditId: "NA-2026-09-19",
+    businessDate: "2026-09-19",
+    closedAt: "2026-09-20 00:03:45",
+    totalRooms: 40,
+    occupiedRooms: 28,
+    occupancyPct: 70.0,
+    adr: 2350.00,
+    revpar: 1645.00,
+    roomRevenue: 65800.00,
+    fnbRevenue: 21400.00,
+    otherRevenue: 2800.00,
+    grossRevenue: 90000.00,
+    cashCollected: 24000.00,
+    upiCollected: 44000.00,
+    cardCollected: 12000.00,
+    companyBilled: 10000.00,
+    cashOpeningFloat: 5000.00,
+    cashExpected: 29000.00,
+    cashPhysicalDrawer: 29000.00,
+    cashVariance: 0.00,
+    isLocked: 1,
+    auditorName: "Sudhakar Reddy (Front Office Lead)",
+    notes: "Maa Majhighariani Wednesday pilgrimage rush handled smoothly."
+  }
+];
+

@@ -15,6 +15,12 @@ export default function Navbar({
   onOpenAiConcierge,
   onOpenBotFleet,
   onOpenCorporate,
+  onOpenMasterFolio,
+  onOpenCannonKitchenPOS,
+  onOpenAccountsLedger,
+  onOpenNightAudit,
+  onOpenStoreInventory,
+  onOpenDirectorPortal,
   cartCount = 0,
   rooms = [],
   adminPinVerified,
@@ -25,6 +31,18 @@ export default function Navbar({
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState('');
+  const [scrollPercent, setScrollPercent] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        setScrollPercent((window.scrollY / totalHeight) * 100);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -46,8 +64,6 @@ export default function Navbar({
 
   const verifyPin = (e) => {
     e.preventDefault();
-    // Verify PIN against stored config or default setup pin
-    // Note: No backdoor. Stored in state/config; default seed is '7650'
     const validPin = localStorage.getItem('hsi_admin_pin') || '7650';
     if (enteredPin === validPin) {
       setAdminPinVerified(true);
@@ -64,6 +80,9 @@ export default function Navbar({
 
   return (
     <>
+      {/* Top Viewport Scroll Progress Line */}
+      <div className="scroll-progress-line" style={{ width: `${scrollPercent}%` }} />
+
       {/* Top Statutory & Proximity Announcement Bar */}
       <div style={{
         background: 'linear-gradient(90deg, #0c182b 0%, #13223d 50%, #0c182b 100%)',
@@ -83,13 +102,16 @@ export default function Navbar({
           </span>
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Clock size={13} color="#38bdf8" /> 24-Hr Reception Desk: {HOTEL_CONFIG.landline}
+            <Clock size={13} color="#38bdf8" /> 24-Hr Desk: {HOTEL_CONFIG.landline}
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <span style={{ color: 'var(--gold-champagne)', fontWeight: 500 }}>
-            IST: {timeString}
+          <span style={{ color: 'var(--gold-primary)', fontWeight: 600, fontFamily: 'monospace' }}>
+            GSTIN: {HOTEL_CONFIG.gstin}
+          </span>
+          <span style={{ color: '#38bdf8', fontWeight: 600 }}>
+            ● IST: {timeString}
           </span>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
             <span className="badge-status badge-available">
@@ -101,6 +123,151 @@ export default function Navbar({
               {occupiedCount} Occupied
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* IDS Next Enterprise Operational Quick Bar (For Owner & Consultant Audit) */}
+      <div style={{
+        background: 'linear-gradient(90deg, rgba(8,12,24,0.98), rgba(18,24,44,0.98))',
+        borderBottom: '1px solid rgba(212, 175, 55, 0.3)',
+        padding: '0.4rem 1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.5rem',
+        fontSize: '0.8rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: '0.7rem',
+            background: 'rgba(212, 175, 55, 0.25)',
+            color: 'var(--gold-glow)',
+            padding: '0.15rem 0.5rem',
+            borderRadius: '4px',
+            fontWeight: 800,
+            border: '1px solid var(--gold-primary)'
+          }}>
+            IDS NEXT ERP
+          </span>
+
+          <button
+            onClick={onOpenMasterFolio}
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              background: 'rgba(96, 165, 250, 0.18)',
+              border: '1px solid rgba(96, 165, 250, 0.4)',
+              color: '#60a5fa',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+          >
+            📑 Master Folio (Split Bill ₹13,588)
+          </button>
+
+          <button
+            onClick={onOpenCannonKitchenPOS}
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              background: 'rgba(245, 158, 11, 0.18)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              color: '#fbbf24',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+          >
+            🍳 Cannon Kitchen POS (Code 214)
+          </button>
+
+          <button
+            onClick={onOpenAccountsLedger}
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              background: 'rgba(52, 211, 153, 0.18)',
+              border: '1px solid rgba(52, 211, 153, 0.4)',
+              color: '#34d399',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+          >
+            📊 Accounts Day Book & B2B GST
+          </button>
+
+          <button
+            onClick={onOpenNightAudit}
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              background: 'rgba(192, 132, 252, 0.18)',
+              border: '1px solid rgba(192, 132, 252, 0.4)',
+              color: '#c084fc',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+          >
+            🌙 12 AM Night Audit Lock
+          </button>
+
+          <button
+            onClick={onOpenDirectorPortal}
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              background: 'rgba(212, 175, 55, 0.18)',
+              border: '1px solid rgba(212, 175, 55, 0.4)',
+              color: 'var(--gold-glow)',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+          >
+            📱 Remote Director Portal
+          </button>
+
+          <button
+            onClick={onOpenStoreInventory}
+            style={{
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              color: '#6ee7b7',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+          >
+            🥬 Mandi Store
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>● Consultant & Eswara Audit Mode</span>
         </div>
       </div>
 

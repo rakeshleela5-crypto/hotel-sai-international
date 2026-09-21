@@ -163,17 +163,18 @@ export default function BookingModal({
       specialRequests
     };
 
-    try {
-      // Send to Edge /api/sync WITHOUT X-Admin-Key (Public visitor action)
-      const res = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'save_booking', payload: bookingPayload })
-      });
+    const submitBookingDirect = async (finalPayload) => {
+      try {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_booking', payload: finalPayload })
+        });
+        await res.json().catch(() => ({ success: true }));
+      } catch (err) {
+        console.warn("Edge sync warning, falling back to local state:", err);
+      }
 
-      const json = await res.json().catch(() => ({ success: true }));
-
-      // Trigger Celebration Confetti
       try {
         confetti({
           particleCount: 80,
@@ -182,15 +183,50 @@ export default function BookingModal({
         });
       } catch (cErr) {}
 
-      onBookingSuccess(bookingPayload);
+      onBookingSuccess(finalPayload);
       onClose();
-    } catch (err) {
-      console.warn("Edge sync warning, falling back to local state:", err);
-      onBookingSuccess(bookingPayload);
-      onClose();
-    } finally {
       setSubmitting(false);
+    };
+
+    if (paymentMode === 'Razorpay' && typeof window !== 'undefined' && window.Razorpay) {
+      const rzpOptions = {
+        key: 'rzp_test_54a1e1d5_hotel',
+        amount: Math.round(tax.total * 100),
+        currency: 'INR',
+        name: HOTEL_CONFIG.name,
+        description: `Booking for ${selectedTier.name} (Room ${selectedRoomNumber})`,
+        image: '/favicon.svg',
+        handler: async function (response) {
+          bookingPayload.paymentStatus = 'Paid (Razorpay Gateway)';
+          bookingPayload.advanceDeposit = tax.total;
+          bookingPayload.balanceDue = 0;
+          await submitBookingDirect(bookingPayload);
+        },
+        prefill: {
+          name: guestName,
+          email: guestEmail,
+          contact: guestPhone
+        },
+        theme: {
+          color: '#d4af37'
+        },
+        modal: {
+          ondismiss: function() {
+            setSubmitting(false);
+          }
+        }
+      };
+
+      try {
+        const rzp = new window.Razorpay(rzpOptions);
+        rzp.open();
+        return;
+      } catch (err) {
+        console.warn("Razorpay launcher fallback:", err);
+      }
     }
+
+    await submitBookingDirect(bookingPayload);
   };
 
   return (
@@ -462,38 +498,57 @@ export default function BookingModal({
               {/* Payment Mode Selection */}
               <div className="form-group">
                 <label className="form-label">Payment Mode</label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={() => setPaymentMode('UPI')}
                     style={{
                       flex: 1,
-                      padding: '0.6rem',
+                      minWidth: '100px',
+                      padding: '0.6rem 0.5rem',
                       borderRadius: '8px',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       background: paymentMode === 'UPI' ? 'var(--gold-glow)' : 'rgba(6, 14, 26, 0.7)',
                       color: paymentMode === 'UPI' ? '#060e1a' : '#fff',
                       border: '1px solid rgba(212, 175, 55, 0.3)',
                       fontWeight: 600
                     }}
                   >
-                    UPI QR Code
+                    UPI QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('Razorpay')}
+                    style={{
+                      flex: 1,
+                      minWidth: '110px',
+                      padding: '0.6rem 0.5rem',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      background: paymentMode === 'Razorpay' ? 'linear-gradient(135deg, #38bdf8 0%, #1d4ed8 100%)' : 'rgba(6, 14, 26, 0.7)',
+                      color: '#fff',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      fontWeight: 600
+                    }}
+                  >
+                    Card / NetBanking
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaymentMode('Pay at Hotel')}
                     style={{
                       flex: 1,
-                      padding: '0.6rem',
+                      minWidth: '100px',
+                      padding: '0.6rem 0.5rem',
                       borderRadius: '8px',
-                      fontSize: '0.85rem',
-                      background: paymentMode === 'Pay at Hotel' ? 'var(--sapphire-light)' : 'rgba(6, 14, 26, 0.7)',
-                      color: paymentMode === 'Pay at Hotel' ? '#060e1a' : '#fff',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      fontSize: '0.82rem',
+                      background: paymentMode === 'Pay at Hotel' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(6, 14, 26, 0.7)',
+                      color: paymentMode === 'Pay at Hotel' ? '#fff' : '#94a3b8',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
                       fontWeight: 600
                     }}
                   >
-                    Pay at Check-In
+                    At Check-In
                   </button>
                 </div>
               </div>
