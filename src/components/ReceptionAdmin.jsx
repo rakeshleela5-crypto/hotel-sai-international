@@ -3,7 +3,8 @@ import {
   Hotel, Layers, Users, Calendar, ShieldCheck, Clock, 
   DollarSign, CheckCircle2, AlertTriangle, Printer, Download, 
   Search, RefreshCw, UserCheck, Phone, FileText, Sparkles, 
-  Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye
+  Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
+  Calculator, ClipboardList
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -52,25 +53,137 @@ export default function ReceptionAdmin({
   const [blockToDate, setBlockToDate] = useState(new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]);
   const [blockNotes, setBlockNotes] = useState('');
 
-  // Cashier Handover State
+  // Cashier Handover & Physical Note Denomination Counter State
   const [openingFloat, setOpeningFloat] = useState(5000);
   const [cashCollected, setCashCollected] = useState(18500);
   const [pettyCashPaid, setPettyCashPaid] = useState(1200);
   const [closingCashActual, setClosingCashActual] = useState(22300);
   const [handoverSuccess, setHandoverSuccess] = useState(false);
 
+  // Denominations State: 500, 200, 100, 50, 20, 10, Coins
+  const [denominations, setDenominations] = useState({
+    500: 36, // 18,000
+    200: 15, // 3,000
+    100: 10, // 1,000
+    50: 4,   // 200
+    20: 5,   // 100
+    10: 0,
+    coins: 0
+  });
+
+  const totalDenominationSum = 
+    ((Number(denominations[500]) || 0) * 500) +
+    ((Number(denominations[200]) || 0) * 200) +
+    ((Number(denominations[100]) || 0) * 100) +
+    ((Number(denominations[50]) || 0) * 50) +
+    ((Number(denominations[20]) || 0) * 20) +
+    ((Number(denominations[10]) || 0) * 10) +
+    (Number(denominations.coins) || 0);
+
+  const expectedDrawerCash = openingFloat + cashCollected - pettyCashPaid;
+  const drawerVariance = closingCashActual - expectedDrawerCash;
+
+  // Shift Handover Audit Trail Log
+  const [handoverLogs, setHandoverLogs] = useState([
+    {
+      shiftId: 'SH-2026-0921-E',
+      date: '21-Sep-2026',
+      shift: 'Evening (15:00 - 23:00)',
+      cashier: 'K. Simhachalam',
+      supervisor: 'S. Patnaik',
+      openingFloat: 5000,
+      cashCollected: 18500,
+      pettyCash: 1200,
+      expected: 22300,
+      actual: 22300,
+      variance: 0,
+      status: 'BALANCED',
+      notes: 'Denominations physically verified; safe drop completed.'
+    },
+    {
+      shiftId: 'SH-2026-0921-M',
+      date: '21-Sep-2026',
+      shift: 'Morning (07:00 - 15:00)',
+      cashier: 'E. Ramesh',
+      supervisor: 'Eswara (MD)',
+      openingFloat: 5000,
+      cashCollected: 24200,
+      pettyCash: 850,
+      expected: 28350,
+      actual: 28350,
+      variance: 0,
+      status: 'BALANCED',
+      notes: 'Morning shift turnover balanced with zero discrepancy.'
+    }
+  ]);
+
+  // Housekeeping Floor Attendants State
+  const [floorAttendants, setFloorAttendants] = useState({
+    2: { name: 'Santosh Nayak', phone: '+91 94371 88201', shift: 'Morning (07:00 - 15:30)', status: 'On Floor' },
+    3: { name: 'Kailash Gouda', phone: '+91 94372 66314', shift: 'Morning (07:00 - 15:30)', status: 'On Floor' },
+    4: { name: 'Ramesh Rao', phone: '+91 94370 55192', shift: 'Morning (07:00 - 15:30)', status: 'On Floor' }
+  });
+  const [isEditAttendantOpen, setIsEditAttendantOpen] = useState(false);
+  const [selectedFloorToEdit, setSelectedFloorToEdit] = useState(2);
+  const [attendantForm, setAttendantForm] = useState({ name: '', phone: '', shift: '' });
+
+  // Maintenance Work Orders Ticketing State
+  const [workOrders, setWorkOrders] = useState([
+    {
+      id: 'WO-2026-081',
+      roomNumber: '307',
+      issue: 'AC Cooling Coil Leaking & Remote Defective',
+      category: 'HVAC / AC',
+      priority: 'High',
+      technician: 'Bikram Patra (AC Specialist)',
+      loggedAt: '2026-09-22 08:30 AM',
+      status: 'In Progress',
+      notes: 'Capacitor replaced; gas pressure checked at 65 PSI.'
+    },
+    {
+      id: 'WO-2026-082',
+      roomNumber: '404',
+      issue: 'Geyser thermostat tripping after 5 mins',
+      category: 'Electrical',
+      priority: 'Medium',
+      technician: 'Pradeep Jena (Electrician)',
+      loggedAt: '2026-09-22 09:15 AM',
+      status: 'Pending',
+      notes: 'Replacement heating element requested from Rayagada market.'
+    }
+  ]);
+  const [isWorkOrderModalOpen, setIsWorkOrderModalOpen] = useState(false);
+  const [workOrderForm, setWorkOrderForm] = useState({
+    roomNumber: '204',
+    issue: '',
+    category: 'HVAC / AC',
+    priority: 'High',
+    technician: 'Bikram Patra (AC Specialist)',
+    notes: ''
+  });
+
   // Police Register Dispatch State
   const [policeDispatchSent, setPoliceDispatchSent] = useState(false);
 
-  // Counts for the 39 physical inventory
+  // Counts for the 39 physical inventory across 5-stage lifecycle
   const totalCount = rooms.length;
-  const occupiedCount = rooms.filter(r => r.status === 'Occupied').length;
-  const vacantCount = rooms.filter(r => r.status === 'Available').length;
-  const maintCount = rooms.filter(r => r.status === 'Maintenance' || r.status === 'Cleaning' || r.status === 'VIP Hold').length;
+  const vacantCleanCount = rooms.filter(r => r.status === 'Available').length;
+  const vacantDirtyCount = rooms.filter(r => r.status === 'Vacant Dirty' || r.status === 'Cleaning').length;
+  const occupiedCleanCount = rooms.filter(r => r.status === 'Occupied Clean').length;
+  const occupiedDirtyCount = rooms.filter(r => r.status === 'Occupied').length;
+  const oooCount = rooms.filter(r => r.status === 'Maintenance' || r.status === 'VIP Hold').length;
 
   // Filtered rooms for Tape Chart
   const filteredRooms = rooms.filter(r => {
-    const matchesFilter = statusFilter === 'all' || r.status === statusFilter;
+    let matchesFilter = true;
+    if (statusFilter === 'all') matchesFilter = true;
+    else if (statusFilter === 'Available') matchesFilter = r.status === 'Available';
+    else if (statusFilter === 'Vacant Dirty') matchesFilter = r.status === 'Vacant Dirty' || r.status === 'Cleaning';
+    else if (statusFilter === 'Occupied') matchesFilter = r.status === 'Occupied' || r.status === 'Occupied Clean';
+    else if (statusFilter === 'Occupied Clean') matchesFilter = r.status === 'Occupied Clean';
+    else if (statusFilter === 'Maintenance') matchesFilter = r.status === 'Maintenance' || r.status === 'VIP Hold';
+    else matchesFilter = r.status === statusFilter;
+
     const matchesSearch = r.roomNumber.includes(searchTerm) || 
       (r.currentGuestName && r.currentGuestName.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
@@ -132,8 +245,76 @@ export default function ReceptionAdmin({
   };
 
   const executeShiftHandover = () => {
+    const expected = openingFloat + cashCollected - pettyCashPaid;
+    const variance = closingCashActual - expected;
+    const newLog = {
+      shiftId: `SH-${Date.now().toString().slice(-6)}`,
+      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      shift: 'Evening (15:00 - 23:00)',
+      cashier: 'Front Desk Cashier',
+      supervisor: 'Operations Lead',
+      openingFloat,
+      cashCollected,
+      pettyCash: pettyCashPaid,
+      expected,
+      actual: closingCashActual,
+      variance,
+      status: variance === 0 ? 'BALANCED' : variance > 0 ? 'OVERAGE' : 'SHORTAGE',
+      denominations: { ...denominations },
+      notes: variance === 0 ? 'Shift drawer physically balanced and signed.' : `Variance of ₹${variance} logged for audit.`
+    };
+    setHandoverLogs([newLog, ...handoverLogs]);
     setHandoverSuccess(true);
     setTimeout(() => setHandoverSuccess(false), 4000);
+  };
+
+  const handleCreateWorkOrderSubmit = (e) => {
+    e.preventDefault();
+    if (!workOrderForm.roomNumber || !workOrderForm.issue) return;
+
+    const newTicket = {
+      id: `WO-${Date.now().toString().slice(-6)}`,
+      roomNumber: workOrderForm.roomNumber,
+      issue: workOrderForm.issue,
+      category: workOrderForm.category,
+      priority: workOrderForm.priority,
+      technician: workOrderForm.technician,
+      loggedAt: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      status: 'In Progress',
+      notes: workOrderForm.notes || 'Logged from Front Desk Maintenance Console'
+    };
+
+    setWorkOrders([newTicket, ...workOrders]);
+    onUpdateRoomStatus(workOrderForm.roomNumber, 'Maintenance', `OOO: ${workOrderForm.issue}`, null);
+    setIsWorkOrderModalOpen(false);
+    setWorkOrderForm({
+      roomNumber: '',
+      issue: '',
+      category: 'HVAC / AC',
+      priority: 'High',
+      technician: 'Bikram Patra (AC Specialist)',
+      notes: ''
+    });
+  };
+
+  const handleResolveWorkOrder = (ticketId, roomNumber) => {
+    setWorkOrders(workOrders.map(wo => wo.id === ticketId ? { ...wo, status: 'Resolved' } : wo));
+    // Move room to Vacant Dirty so housekeeping inspects after maintenance repair
+    onUpdateRoomStatus(roomNumber, 'Vacant Dirty', null, null);
+  };
+
+  const handleSaveFloorAttendant = (e) => {
+    e.preventDefault();
+    setFloorAttendants({
+      ...floorAttendants,
+      [selectedFloorToEdit]: {
+        name: attendantForm.name,
+        phone: attendantForm.phone,
+        shift: attendantForm.shift || 'Morning (07:00 - 15:30)',
+        status: 'On Floor'
+      }
+    });
+    setIsEditAttendantOpen(false);
   };
 
   const dispatchPoliceRegisterWhatsApp = () => {
@@ -241,22 +422,26 @@ export default function ReceptionAdmin({
             padding: '0.85rem 1.25rem',
             marginBottom: '1.25rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Physical Keys</span>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>{totalCount} Rooms</div>
               </div>
-              <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1.25rem' }}>
-                <span style={{ fontSize: '0.72rem', color: '#34d399', textTransform: 'uppercase' }}>Vacant / Clean</span>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34d399' }}>{vacantCount} Vacant</div>
+              <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1rem' }}>
+                <span style={{ fontSize: '0.72rem', color: '#34d399', textTransform: 'uppercase' }}>Vacant Clean</span>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399' }}>{vacantCleanCount} Ready</div>
               </div>
-              <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1.25rem' }}>
+              <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1rem' }}>
+                <span style={{ fontSize: '0.72rem', color: '#facc15', textTransform: 'uppercase' }}>Vacant Dirty</span>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#facc15' }}>{vacantDirtyCount} Dirty</div>
+              </div>
+              <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1rem' }}>
                 <span style={{ fontSize: '0.72rem', color: '#fb923c', textTransform: 'uppercase' }}>Occupied (In-House)</span>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fb923c' }}>{occupiedCount} Occupied</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fb923c' }}>{occupiedDirtyCount + occupiedCleanCount} Occ</div>
               </div>
-              <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1.25rem' }}>
-                <span style={{ fontSize: '0.72rem', color: '#f87171', textTransform: 'uppercase' }}>Blocked / Maint</span>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f87171' }}>{maintCount} Blocked</div>
+              <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1rem' }}>
+                <span style={{ fontSize: '0.72rem', color: '#f87171', textTransform: 'uppercase' }}>Blocked / OOO</span>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f87171' }}>{oooCount} Maint</div>
               </div>
             </div>
 
@@ -301,7 +486,7 @@ export default function ReceptionAdmin({
             </div>
           </div>
 
-          {/* Search & Filter Bar */}
+          {/* Search & Filter Bar with 5-Stage Lifecycle Tabs */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -311,26 +496,51 @@ export default function ReceptionAdmin({
             marginBottom: '1.25rem'
           }}>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {['all', 'Available', 'Occupied', 'Cleaning', 'Maintenance', 'VIP Hold'].map(st => (
+              {[
+                { id: 'all', label: `All (${totalCount})` },
+                { id: 'Available', label: `Vacant Clean (${vacantCleanCount})` },
+                { id: 'Vacant Dirty', label: `Vacant Dirty (${vacantDirtyCount})` },
+                { id: 'Occupied', label: `Occupied In-House (${occupiedDirtyCount + occupiedCleanCount})` },
+                { id: 'Occupied Clean', label: `Occupied Serviced (${occupiedCleanCount})` },
+                { id: 'Maintenance', label: `OOO / Maint (${oooCount})` }
+              ].map(tab => (
                 <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
                   style={{
                     padding: '0.35rem 0.8rem',
                     borderRadius: '6px',
                     fontSize: '0.78rem',
                     fontWeight: 600,
-                    background: statusFilter === st ? 'rgba(212, 175, 55, 0.25)' : 'rgba(12, 24, 43, 0.6)',
-                    color: statusFilter === st ? 'var(--gold-glow)' : '#94a3b8',
-                    border: statusFilter === st ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.08)'
+                    background: statusFilter === tab.id ? 'rgba(212, 175, 55, 0.25)' : 'rgba(12, 24, 43, 0.6)',
+                    color: statusFilter === tab.id ? 'var(--gold-glow)' : '#94a3b8',
+                    border: statusFilter === tab.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.08)'
                   }}
                 >
-                  {st === 'all' ? `All (${totalCount})` : st}
+                  {tab.label}
                 </button>
               ))}
             </div>
 
-            <div style={{ position: 'relative', width: 260 }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                onClick={() => {
+                  setWorkOrderForm({
+                    roomNumber: '201',
+                    issue: '',
+                    category: 'HVAC / AC',
+                    priority: 'High',
+                    technician: 'Bikram Patra (AC Specialist)',
+                    notes: ''
+                  });
+                  setIsWorkOrderModalOpen(true);
+                }}
+                className="btn-outline-gold"
+                style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Wrench size={14} color="var(--gold-glow)" /> + Log Work Order
+              </button>
+              <div style={{ position: 'relative', width: 220 }}>
               <Search size={16} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-muted)' }} />
               <input 
                 type="text" 
@@ -342,6 +552,7 @@ export default function ReceptionAdmin({
               />
             </div>
           </div>
+        </div>
 
           {/* VIEW 1: MYSOFT LEGACY TAPE MATRIX (Screenshot 2 Mirror) */}
           {tapeChartViewMode === 'mysoft' ? (
@@ -743,198 +954,674 @@ export default function ReceptionAdmin({
 
       {/* TAB 2: CASHIER SHIFT HANDOVER & NIGHT AUDIT */}
       {activeTab === 'cashier-audit' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem' }}>
-          {/* Shift Handover Card */}
-          <div className="glass-panel" style={{ padding: '1.75rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={18} color="var(--gold-glow)" /> Cashier Shift Handover Slip
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Shift Type:</span>
-                <span style={{ fontWeight: 600 }}>Evening (15:00 - 23:00)</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Opening Float:</span>
-                <span style={{ fontWeight: 600 }}>₹{openingFloat.toLocaleString()}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Cash Receipts (Rooms &amp; POS):</span>
-                <span style={{ fontWeight: 600, color: '#10b981' }}>+ ₹{cashCollected.toLocaleString()}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Petty Cash Vouchers Paid:</span>
-                <span style={{ fontWeight: 600, color: '#ef4444' }}>- ₹{pettyCashPaid.toLocaleString()}</span>
-              </div>
-
-              <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 600 }}>Expected Cash in Drawer:</span>
-                <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--gold-glow)' }}>
-                  ₹{(openingFloat + cashCollected - pettyCashPaid).toLocaleString()}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem' }}>
+            {/* Shift Handover Card with Note Denomination Counter */}
+            <div className="glass-panel" style={{ padding: '1.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Clock size={18} color="var(--gold-glow)" /> Cashier Shift Handover &amp; Drawer Balance
+                </h3>
+                <span className="badge" style={{ background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', fontSize: '0.72rem' }}>
+                  IDS Next Standard
                 </span>
               </div>
 
-              <div className="form-group" style={{ marginTop: '0.5rem' }}>
-                <label className="form-label">Actual Physical Cash Counted in Drawer:</label>
-                <input 
-                  type="number"
-                  className="form-input"
-                  value={closingCashActual}
-                  onChange={(e) => setClosingCashActual(Number(e.target.value))}
-                />
-              </div>
-
-              {/* Discrepancy Status */}
-              <div style={{
-                padding: '0.75rem',
-                borderRadius: '8px',
-                background: closingCashActual === (openingFloat + cashCollected - pettyCashPaid)
-                  ? 'rgba(16, 185, 129, 0.15)'
-                  : 'rgba(239, 68, 68, 0.15)',
-                border: closingCashActual === (openingFloat + cashCollected - pettyCashPaid)
-                  ? '1px solid rgba(16, 185, 129, 0.3)'
-                  : '1px solid rgba(239, 68, 68, 0.3)',
-                fontSize: '0.85rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span>Drawer Variance:</span>
-                <strong style={{ color: closingCashActual === (openingFloat + cashCollected - pettyCashPaid) ? '#10b981' : '#f87171' }}>
-                  {closingCashActual === (openingFloat + cashCollected - pettyCashPaid) ? 'BALANCED (₹0.00)' : `DISCREPANCY (₹${(closingCashActual - (openingFloat + cashCollected - pettyCashPaid)).toLocaleString()})`}
-                </strong>
-              </div>
-
-              {handoverSuccess && (
-                <div style={{ color: '#10b981', fontSize: '0.85rem', textAlign: 'center' }}>
-                  ✓ Shift Handover recorded to Cloudflare D1 and logged to Telegram.
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.88rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Current Shift:</span>
+                  <span style={{ fontWeight: 600 }}>Evening Shift (15:00 - 23:00 IST)</span>
                 </div>
-              )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Opening Float:</span>
+                  <span style={{ fontWeight: 600 }}>₹{openingFloat.toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Cash Receipts (Rooms &amp; POS):</span>
+                  <span style={{ fontWeight: 600, color: '#10b981' }}>+ ₹{cashCollected.toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Petty Cash Vouchers Paid:</span>
+                  <span style={{ fontWeight: 600, color: '#ef4444' }}>- ₹{pettyCashPaid.toLocaleString()}</span>
+                </div>
+
+                <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 700 }}>Expected Cash in Drawer:</span>
+                  <span style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--gold-glow)' }}>
+                    ₹{expectedDrawerCash.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Currency Note Denomination Counter */}
+                <div style={{
+                  background: 'rgba(10, 16, 30, 0.75)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginTop: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold-glow)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Calculator size={15} /> Physical Currency Note Denomination Counter
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setClosingCashActual(totalDenominationSum)}
+                      className="btn-outline-gold"
+                      style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem' }}
+                    >
+                      ⚡ Sync to Drawer Count
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '0.5rem' }}>
+                    {[
+                      { note: 500, count: denominations[500] },
+                      { note: 200, count: denominations[200] },
+                      { note: 100, count: denominations[100] },
+                      { note: 50, count: denominations[50] },
+                      { note: 20, count: denominations[20] },
+                      { note: 10, count: denominations[10] }
+                    ].map(d => (
+                      <div key={d.note} style={{ background: 'rgba(255,255,255,0.03)', padding: '0.4rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>₹{d.note} Notes</div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={d.count}
+                          onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            const updated = { ...denominations, [d.note]: val };
+                            setDenominations(updated);
+                            const newTotal = ((Number(updated[500]) || 0) * 500) +
+                              ((Number(updated[200]) || 0) * 200) +
+                              ((Number(updated[100]) || 0) * 100) +
+                              ((Number(updated[50]) || 0) * 50) +
+                              ((Number(updated[20]) || 0) * 20) +
+                              ((Number(updated[10]) || 0) * 10) +
+                              (Number(updated.coins) || 0);
+                            setClosingCashActual(newTotal);
+                          }}
+                          style={{
+                            width: '100%',
+                            background: '#060e1a',
+                            color: '#fff',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: '4px',
+                            padding: '0.3rem 0.4rem',
+                            fontSize: '0.82rem',
+                            fontWeight: 700
+                          }}
+                        />
+                        <div style={{ fontSize: '0.65rem', color: '#38bdf8', textAlign: 'right', marginTop: '2px' }}>
+                          ₹{(d.note * (Number(d.count) || 0)).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.4rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Coins Value</div>
+                      <input
+                        type="number"
+                        min="0"
+                        value={denominations.coins}
+                        onChange={(e) => {
+                          const val = Math.max(0, parseInt(e.target.value) || 0);
+                          const updated = { ...denominations, coins: val };
+                          setDenominations(updated);
+                          const newTotal = ((Number(updated[500]) || 0) * 500) +
+                            ((Number(updated[200]) || 0) * 200) +
+                            ((Number(updated[100]) || 0) * 100) +
+                            ((Number(updated[50]) || 0) * 50) +
+                            ((Number(updated[20]) || 0) * 20) +
+                            ((Number(updated[10]) || 0) * 10) +
+                            val;
+                          setClosingCashActual(newTotal);
+                        }}
+                        style={{
+                          width: '100%',
+                          background: '#060e1a',
+                          color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '4px',
+                          padding: '0.3rem 0.4rem',
+                          fontSize: '0.82rem',
+                          fontWeight: 700
+                        }}
+                      />
+                      <div style={{ fontSize: '0.65rem', color: '#38bdf8', textAlign: 'right', marginTop: '2px' }}>
+                        ₹{Number(denominations.coins || 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed rgba(255,255,255,0.1)' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Total Denomination Counted:</span>
+                    <strong style={{ color: 'var(--gold-glow)', fontSize: '1rem' }}>₹{totalDenominationSum.toLocaleString()}</strong>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: '0.25rem' }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Actual Physical Cash Counted in Drawer:</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Auto-synced from denominations</span>
+                  </label>
+                  <input 
+                    type="number"
+                    className="form-input"
+                    value={closingCashActual}
+                    onChange={(e) => setClosingCashActual(Number(e.target.value))}
+                  />
+                </div>
+
+                {/* Discrepancy Status */}
+                <div style={{
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  background: drawerVariance === 0
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : drawerVariance > 0
+                      ? 'rgba(56, 189, 248, 0.15)'
+                      : 'rgba(239, 68, 68, 0.15)',
+                  border: drawerVariance === 0
+                    ? '1px solid rgba(16, 185, 129, 0.4)'
+                    : drawerVariance > 0
+                      ? '1px solid rgba(56, 189, 248, 0.4)'
+                      : '1px solid rgba(239, 68, 68, 0.4)',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>Drawer Variance:</span>
+                  <strong style={{
+                    color: drawerVariance === 0 ? '#10b981' : drawerVariance > 0 ? '#38bdf8' : '#f87171'
+                  }}>
+                    {drawerVariance === 0
+                      ? 'BALANCED (₹0.00)'
+                      : drawerVariance > 0
+                        ? `OVERAGE (+₹${drawerVariance.toLocaleString()})`
+                        : `SHORTAGE (-₹${Math.abs(drawerVariance).toLocaleString()})`}
+                  </strong>
+                </div>
+
+                {handoverSuccess && (
+                  <div style={{ color: '#10b981', fontSize: '0.85rem', textAlign: 'center', background: 'rgba(16,185,129,0.1)', padding: '0.5rem', borderRadius: '6px' }}>
+                    ✓ Shift Handover recorded to Cloudflare D1 and logged to Telegram.
+                  </div>
+                )}
+
+                <button 
+                  onClick={executeShiftHandover}
+                  className="btn-primary-gold"
+                  style={{ justifyContent: 'center', marginTop: '0.5rem' }}
+                >
+                  <CheckCircle2 size={16} /> Sign Off &amp; Submit Handover Slip
+                </button>
+              </div>
+            </div>
+
+            {/* 09:00 PM Night Audit Engine */}
+            <div className="glass-panel" style={{ padding: '1.75rem' }}>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <DollarSign size={18} color="var(--gold-glow)" /> Daily Night Audit &amp; Revenue Closure
+              </h3>
+
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                Executes the daily 24-hour financial balance, verifies 39-room inventory, charges midnight room revenues, and freezes the day's cashier folios.
+              </div>
+
+              <div style={{
+                background: 'rgba(6, 14, 26, 0.6)',
+                padding: '1rem',
+                borderRadius: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem',
+                fontSize: '0.85rem',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Total 39-Room Capacity:</span>
+                  <strong>39 Keys</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Current Occupancy:</span>
+                  <strong>{occupiedDirtyCount + occupiedCleanCount} Rooms ({(((occupiedDirtyCount + occupiedCleanCount) / 39) * 100).toFixed(1)}%)</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Total Daily Revenue (Flash):</span>
+                  <strong>₹58,247.07</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>SAC 996311 GST Billed:</span>
+                  <strong>₹{bookings.reduce((sum, b) => sum + (b.cgst + b.sgst || 0), 0).toFixed(2)}</strong>
+                </div>
+              </div>
 
               <button 
-                onClick={executeShiftHandover}
-                className="btn-primary-gold"
-                style={{ justifyContent: 'center', marginTop: '0.5rem' }}
+                onClick={() => onRunNightAudit()}
+                className="btn-secondary-sapphire"
+                style={{ width: '100%', justifyContent: 'center' }}
               >
-                Sign Off &amp; Submit Handover
+                <RefreshCw size={16} /> Execute 09:00 PM Night Audit Run
               </button>
             </div>
           </div>
 
-          {/* 09:00 PM Night Audit Engine */}
-          <div className="glass-panel" style={{ padding: '1.75rem' }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <DollarSign size={18} color="var(--gold-glow)" /> Daily Night Audit &amp; Revenue Closure
-            </h3>
-
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-              Executes the daily 24-hour financial balance, verifies 39-room inventory, charges midnight room revenues, and freezes the day's cashier folios.
+          {/* Cashier Shift Handover Audit Trail Table */}
+          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+            <h4 style={{ fontSize: '1.05rem', color: '#fff', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ClipboardList size={18} color="var(--gold-glow)" /> Shift Handover Audit Trail &amp; Safe Drop Register
+            </h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Shift ID / Date</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Cashier &amp; Shift</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Float (₹)</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Receipts (₹)</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Petty Cash (₹)</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Expected (₹)</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Physical (₹)</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Variance Status</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Verification Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {handoverLogs.map(log => (
+                    <tr key={log.shiftId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ fontWeight: 700, color: '#fff' }}>{log.shiftId}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{log.date}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--gold-glow)' }}>{log.cashier}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{log.shift}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>₹{log.openingFloat.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#10b981', fontWeight: 600 }}>+₹{log.cashCollected.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171' }}>-₹{log.pettyCash.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 700, color: '#fff' }}>₹{log.expected.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>₹{log.actual.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: log.variance === 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+                          color: log.variance === 0 ? '#34d399' : '#f87171',
+                          border: log.variance === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(239,68,68,0.4)'
+                        }}>
+                          {log.status} {log.variance !== 0 && `(₹${log.variance})`}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem' }}>
+                        {log.notes}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            <div style={{
-              background: 'rgba(6, 14, 26, 0.6)',
-              padding: '1rem',
-              borderRadius: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.6rem',
-              fontSize: '0.85rem',
-              marginBottom: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Total 39-Room Capacity:</span>
-                <strong>39 Keys</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Current Occupancy:</span>
-                <strong>{occupiedCount} Rooms ({((occupiedCount / 39) * 100).toFixed(1)}%)</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Total Daily Revenue (Flash):</span>
-                <strong>₹58,247.07</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>SAC 996311 GST Billed:</span>
-                <strong>₹{bookings.reduce((sum, b) => sum + (b.cgst + b.sgst || 0), 0).toFixed(2)}</strong>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => onRunNightAudit()}
-              className="btn-secondary-sapphire"
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              <RefreshCw size={16} /> Execute 09:00 PM Night Audit Run
-            </button>
           </div>
         </div>
       )}
 
-      {/* TAB 3: HOUSEKEEPING & LINEN TRACKER */}
+      {/* TAB 3: HOUSEKEEPING & 5-STAGE LIFECYCLE TRACKER */}
       {activeTab === 'housekeeping' && (
-        <div className="glass-panel" style={{ padding: '1.75rem' }}>
-          <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>
-            🧹 Housekeeping &amp; 39-Room Linen Par-Stock Tracker
-          </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+          {/* Floor Attendant Allocation Cards */}
+          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🧹 Housekeeping Operations &amp; Floor Attendant Allocation
+                </h3>
+                <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  Floor attendants assigned per shift • Turnaround time tracking • Linen par-stock buffer
+                </p>
+              </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '1.25rem',
-            marginBottom: '2rem'
-          }}>
-            <div style={{ background: 'rgba(6, 14, 26, 0.6)', padding: '1rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Rooms Queued for Cleaning</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--status-cleaning)' }}>
-                {rooms.filter(r => r.status === 'Cleaning').length}
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => {
+                    setWorkOrderForm({
+                      roomNumber: '202',
+                      issue: '',
+                      category: 'HVAC / AC',
+                      priority: 'High',
+                      technician: 'Bikram Patra (AC Specialist)',
+                      notes: ''
+                    });
+                    setIsWorkOrderModalOpen(true);
+                  }}
+                  className="btn-outline-gold"
+                  style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Wrench size={14} color="var(--gold-glow)" /> + Log Maintenance Ticket
+                </button>
               </div>
             </div>
-            <div style={{ background: 'rgba(6, 14, 26, 0.6)', padding: '1rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>King Bed Sheets Buffer</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#10b981' }}>70 / 120 Par</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              {[2, 3, 4].map(floorNum => {
+                const att = floorAttendants[floorNum] || { name: 'Staff Assigned', phone: '-', shift: 'Morning' };
+                const floorRooms = rooms.filter(r => r.floor === floorNum);
+                const dirtyRooms = floorRooms.filter(r => r.status === 'Vacant Dirty' || r.status === 'Cleaning').length;
+                const cleanRooms = floorRooms.filter(r => r.status === 'Available').length;
+
+                return (
+                  <div key={floorNum} style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '10px',
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem'
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span style={{ fontWeight: 800, color: 'var(--gold-glow)', fontSize: '0.95rem' }}>
+                          FLOOR {floorNum} ATTENDANT
+                        </span>
+                        <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontSize: '0.7rem' }}>
+                          {att.status || 'On Floor'}
+                        </span>
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '1.05rem', marginTop: '0.25rem' }}>
+                        {att.name}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        📞 {att.phone} • {att.shift}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem' }}>
+                      <span style={{ color: '#facc15' }}>{dirtyRooms} Dirty Pending</span>
+                      <span style={{ color: '#34d399' }}>{cleanRooms} Ready to Sell</span>
+                      <button
+                        onClick={() => {
+                          setSelectedFloorToEdit(floorNum);
+                          setAttendantForm({ name: att.name, phone: att.phone, shift: att.shift });
+                          setIsEditAttendantOpen(true);
+                        }}
+                        style={{
+                          background: 'rgba(212, 175, 55, 0.15)',
+                          border: '1px solid rgba(212, 175, 55, 0.3)',
+                          color: 'var(--gold-glow)',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div style={{ background: 'rgba(6, 14, 26, 0.6)', padding: '1rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Bath Towels Buffer</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#10b981' }}>55 / 100 Par</div>
+
+            {/* 5-Stage Inventory KPI Counters */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '0.85rem'
+            }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '0.85rem', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.72rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600 }}>1. Vacant Clean</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399' }}>{vacantCleanCount}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Inspected &amp; Ready</div>
+              </div>
+
+              <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '0.85rem', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.72rem', color: '#facc15', textTransform: 'uppercase', fontWeight: 600 }}>2. Vacant Dirty</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#facc15' }}>{vacantDirtyCount}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Checked Out Turnover</div>
+              </div>
+
+              <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '0.85rem', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.72rem', color: '#38bdf8', textTransform: 'uppercase', fontWeight: 600 }}>3. Occupied Clean</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8' }}>{occupiedCleanCount}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Stayover Serviced</div>
+              </div>
+
+              <div style={{ background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)', padding: '0.85rem', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.72rem', color: '#fb923c', textTransform: 'uppercase', fontWeight: 600 }}>4. Occupied Dirty</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fb923c' }}>{occupiedDirtyCount}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Service Pending</div>
+              </div>
+
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.85rem', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.72rem', color: '#f87171', textTransform: 'uppercase', fontWeight: 600 }}>5. Out of Order</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f87171' }}>{oooCount}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Maintenance Blocked</div>
+              </div>
             </div>
           </div>
 
-          <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--gold-glow)' }}>
-            Rooms Currently in Cleaning Workflow:
-          </h4>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {rooms.filter(r => r.status === 'Cleaning').map(r => (
-              <div 
-                key={r.roomNumber}
-                style={{
-                  background: 'rgba(245, 158, 11, 0.15)',
-                  border: '1px solid rgba(245, 158, 11, 0.4)',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem'
+          {/* Interactive 39-Room Cleaning Matrix */}
+          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h4 style={{ color: 'var(--gold-glow)', margin: 0, fontSize: '1.05rem' }}>
+                Interactive 39-Room Status &amp; Cleaning Dispatch:
+              </h4>
+              <button
+                onClick={() => {
+                  rooms.forEach(r => {
+                    if (r.status === 'Vacant Dirty' || r.status === 'Cleaning') {
+                      onUpdateRoomStatus(r.roomNumber, 'Available', null, null);
+                    }
+                  });
                 }}
+                className="btn-primary-gold"
+                style={{ padding: '0.35rem 0.85rem', fontSize: '0.75rem' }}
               >
-                <div>
-                  <strong style={{ color: '#fff' }}>Room {r.roomNumber}</strong>
-                  <div style={{ fontSize: '0.75rem', color: '#fbbf24' }}>Floor {r.floor} • Linen Dispatched</div>
-                </div>
-                <button
-                  onClick={() => onUpdateRoomStatus(r.roomNumber, 'Available', null, null)}
-                  className="btn-primary-gold"
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                >
-                  Mark Inspected &amp; Ready
-                </button>
-              </div>
-            ))}
-            {rooms.filter(r => r.status === 'Cleaning').length === 0 && (
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                ✓ All 39 rooms are clean and turnover inspected.
-              </div>
-            )}
+                🧹 Quick Release: Mark All Dirty As Inspected Clean
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
+              {rooms.map(r => {
+                const isClean = r.status === 'Available';
+                const isDirty = r.status === 'Vacant Dirty' || r.status === 'Cleaning';
+                const isOccClean = r.status === 'Occupied Clean';
+                const isOcc = r.status === 'Occupied';
+                const isMaint = r.status === 'Maintenance' || r.status === 'VIP Hold';
+
+                const statusLabel = isClean ? 'Vacant Clean' : isDirty ? 'Vacant Dirty' : isOccClean ? 'Occupied Clean' : isOcc ? 'Occupied Dirty' : 'Out of Order';
+                const statusColor = isClean ? '#34d399' : isDirty ? '#facc15' : isOccClean ? '#38bdf8' : isOcc ? '#fb923c' : '#f87171';
+
+                return (
+                  <div key={r.roomNumber} style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${statusColor}40`,
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ color: '#fff', fontSize: '1.1rem' }}>Room {r.roomNumber}</strong>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Floor {r.floor} • {r.tier}</div>
+                      </div>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: statusColor,
+                        background: `${statusColor}20`,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        border: `1px solid ${statusColor}50`
+                      }}>
+                        {statusLabel}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                      {isDirty && (
+                        <button
+                          onClick={() => onUpdateRoomStatus(r.roomNumber, 'Available', null, null)}
+                          style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', background: 'rgba(16,185,129,0.2)', color: '#34d399', border: '1px solid #10b981', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          ✓ Mark Clean
+                        </button>
+                      )}
+                      {isClean && (
+                        <button
+                          onClick={() => onUpdateRoomStatus(r.roomNumber, 'Vacant Dirty', null, null)}
+                          style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', background: 'rgba(234,179,8,0.2)', color: '#facc15', border: '1px solid #facc15', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          Mark Dirty
+                        </button>
+                      )}
+                      {isOcc && (
+                        <button
+                          onClick={() => onUpdateRoomStatus(r.roomNumber, 'Occupied Clean', r.currentGuestName, null)}
+                          style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', background: 'rgba(56,189,248,0.2)', color: '#38bdf8', border: '1px solid #38bdf8', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          ✨ Serviced
+                        </button>
+                      )}
+                      {isOccClean && (
+                        <button
+                          onClick={() => onUpdateRoomStatus(r.roomNumber, 'Occupied', r.currentGuestName, null)}
+                          style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', background: 'rgba(249,115,22,0.2)', color: '#fb923c', border: '1px solid #fb923c', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          Svc Pending
+                        </button>
+                      )}
+                      {isMaint ? (
+                        <button
+                          onClick={() => onUpdateRoomStatus(r.roomNumber, 'Available', null, null)}
+                          style={{ flex: 1, padding: '3px 6px', fontSize: '0.7rem', background: 'rgba(16,185,129,0.2)', color: '#34d399', border: '1px solid #10b981', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          Release OOO
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setWorkOrderForm({ ...workOrderForm, roomNumber: r.roomNumber });
+                            setIsWorkOrderModalOpen(true);
+                          }}
+                          style={{ padding: '3px 6px', fontSize: '0.7rem', background: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          🔧 Ticket
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Maintenance Work Orders Ticketing Dashboard */}
+          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h4 style={{ color: '#fff', margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Wrench size={17} color="#f87171" /> Maintenance Work Orders &amp; Defect Logs
+              </h4>
+              <button
+                onClick={() => setIsWorkOrderModalOpen(true)}
+                className="btn-outline-gold"
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+              >
+                + New Work Order
+              </button>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Ticket # / Date</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Room</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Category &amp; Defect Issue</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Assigned Technician</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Priority</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Status</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workOrders.map(wo => (
+                    <tr key={wo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ fontWeight: 700, color: '#fff' }}>{wo.id}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{wo.loggedAt}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontWeight: 800 }}>
+                          Room {wo.roomNumber}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>{wo.issue}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Category: {wo.category} • {wo.notes}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#cbd5e1' }}>
+                        {wo.technician}
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          background: wo.priority === 'High' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
+                          color: wo.priority === 'High' ? '#f87171' : '#fbbf24'
+                        }}>
+                          {wo.priority}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          background: wo.status === 'Resolved' ? 'rgba(16,185,129,0.2)' : 'rgba(56,189,248,0.2)',
+                          color: wo.status === 'Resolved' ? '#34d399' : '#38bdf8'
+                        }}>
+                          {wo.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                        {wo.status !== 'Resolved' ? (
+                          <button
+                            onClick={() => handleResolveWorkOrder(wo.id, wo.roomNumber)}
+                            style={{
+                              background: 'rgba(16,185,129,0.2)',
+                              border: '1px solid #10b981',
+                              color: '#34d399',
+                              padding: '0.3rem 0.6rem',
+                              borderRadius: '4px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✓ Resolve &amp; Release
+                          </button>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Closed</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1343,6 +2030,182 @@ export default function ReceptionAdmin({
             setSelectedFolioRoom(null);
           }}
         />
+      )}
+
+      {/* MAINTENANCE WORK ORDER MODAL */}
+      {isWorkOrderModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Wrench size={20} color="#f87171" />
+                <h3 style={{ fontSize: '1.2rem', color: '#fff' }}>Log Maintenance Defect Ticket</h3>
+              </div>
+              <button onClick={() => setIsWorkOrderModalOpen(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateWorkOrderSubmit} className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Select Room Number</label>
+                <select
+                  className="form-select"
+                  value={workOrderForm.roomNumber}
+                  onChange={(e) => setWorkOrderForm({ ...workOrderForm, roomNumber: e.target.value })}
+                  required
+                >
+                  <option value="">-- Choose Room --</option>
+                  {rooms.map(r => (
+                    <option key={r.roomNumber} value={r.roomNumber}>
+                      Room {r.roomNumber} (Floor {r.floor} • Current: {r.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Defect Category</label>
+                <select
+                  className="form-select"
+                  value={workOrderForm.category}
+                  onChange={(e) => setWorkOrderForm({ ...workOrderForm, category: e.target.value })}
+                >
+                  <option value="HVAC / AC">HVAC / Air Conditioner</option>
+                  <option value="Plumbing">Plumbing &amp; Sanitary</option>
+                  <option value="Electrical">Electrical &amp; Lighting</option>
+                  <option value="Carpentry">Carpentry &amp; Door Locks</option>
+                  <option value="Electronics / TV">Electronics / TV / Wi-Fi</option>
+                  <option value="Painting / Civil">Painting &amp; Civil Works</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Specific Defect Issue Description</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. AC compressor tripping / Geyser element failure"
+                  value={workOrderForm.issue}
+                  onChange={(e) => setWorkOrderForm({ ...workOrderForm, issue: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Priority Level</label>
+                  <select
+                    className="form-select"
+                    value={workOrderForm.priority}
+                    onChange={(e) => setWorkOrderForm({ ...workOrderForm, priority: e.target.value })}
+                  >
+                    <option value="High">High (Urgent Attention)</option>
+                    <option value="Medium">Medium (Within Shift)</option>
+                    <option value="Low">Low (Routine)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Assigned Technician</label>
+                  <select
+                    className="form-select"
+                    value={workOrderForm.technician}
+                    onChange={(e) => setWorkOrderForm({ ...workOrderForm, technician: e.target.value })}
+                  >
+                    <option value="Bikram Patra (AC Specialist)">Bikram Patra (AC Specialist)</option>
+                    <option value="Pradeep Jena (Electrician & Plumber)">Pradeep Jena (Electrician &amp; Plumber)</option>
+                    <option value="Santosh Nayak (Floor Support)">Santosh Nayak (Floor Support)</option>
+                    <option value="External Rayagada Vendor">External Rayagada Vendor</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Technician Notes</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Spare parts required or diagnosis notes..."
+                  value={workOrderForm.notes}
+                  onChange={(e) => setWorkOrderForm({ ...workOrderForm, notes: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setIsWorkOrderModalOpen(false)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center', background: '#ef4444', borderColor: '#ef4444' }}>
+                  Dispatch Ticket &amp; Mark Room OOO
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT FLOOR ATTENDANT MODAL */}
+      {isEditAttendantOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <UserCheck size={20} color="var(--gold-glow)" />
+                <h3 style={{ fontSize: '1.2rem', color: '#fff' }}>Reassign Floor {selectedFloorToEdit} Attendant</h3>
+              </div>
+              <button onClick={() => setIsEditAttendantOpen(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFloorAttendant} className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Attendant Staff Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={attendantForm.name}
+                  onChange={(e) => setAttendantForm({ ...attendantForm, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Mobile Phone Number</label>
+                <input
+                  type="tel"
+                  className="form-input"
+                  value={attendantForm.phone}
+                  onChange={(e) => setAttendantForm({ ...attendantForm, phone: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Shift Timing</label>
+                <select
+                  className="form-select"
+                  value={attendantForm.shift}
+                  onChange={(e) => setAttendantForm({ ...attendantForm, shift: e.target.value })}
+                >
+                  <option value="Morning (07:00 - 15:30)">Morning (07:00 - 15:30)</option>
+                  <option value="Evening (14:30 - 23:00)">Evening (14:30 - 23:00)</option>
+                  <option value="Night (23:00 - 07:30)">Night (23:00 - 07:30)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setIsEditAttendantOpen(false)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center' }}>
+                  Save Floor Assignment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* STATUTORY TAX INVOICE, GRC & SPLIT BILL MODAL (hotel_documents.pdf Pages 1, 2, 3) */}

@@ -315,6 +315,51 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
               </span>
             </div>
 
+            {/* Audited Multi-Tender Settlement & Folio Reversals Transparency (Zero Leakage Protocol) */}
+            <div style={{
+              margin: '12px 0',
+              border: '1px solid #0f172a',
+              borderRadius: '4px',
+              padding: '8px 12px',
+              background: '#f8fafc',
+              fontSize: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '6px' }}>
+                <strong style={{ textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.5px' }}>
+                  Audited Settlement &amp; Multi-Tender Split (MySoft Forensic Upgrade)
+                </strong>
+                <span style={{ color: '#059669', fontWeight: 'bold' }}>
+                  ✓ STATUS: FULLY SETTLED / NIL BALANCE
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Cash Tender</span>
+                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹0.00</strong>
+                </div>
+                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>UPI (SBI Merchant QR)</span>
+                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹5,000.00</strong>
+                </div>
+                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Card / POS Swipe</span>
+                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹0.00</strong>
+                </div>
+                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Corporate BTC (Linde India)</span>
+                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹8,537.84</strong>
+                </div>
+              </div>
+
+              {/* Credit Memo Reversals Transparency Note */}
+              <div style={{ marginTop: '6px', paddingTop: '4px', borderTop: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: '9px' }}>
+                <span>Folio Cashier / Duty Manager: <strong>Sudhakar Reddy (Shift A)</strong></span>
+                <span>Audited Credit Memos / Reversals: <strong>₹0.00 (Reconciliation Balanced)</strong></span>
+                <span>Net Drawer Remittance: <strong>₹13,537.84</strong></span>
+              </div>
+            </div>
+
             <div className="sheet-footer-strip">
               Hotel Sai International Pvt Ltd • J.K. Road, Rayagada - 765001 • GSTIN: 21AABCH7663L1ZG • Thank You For Staying!
             </div>
@@ -716,6 +761,18 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
                 <tr style={{ borderTop: '2px dashed #0f172a', fontWeight: 'bold', fontSize: '0.88rem' }}>
                   <td style={{ paddingTop: '0.4rem' }}>NET TOTAL</td>
                   <td style={{ textAlign: 'right', paddingTop: '0.4rem' }}>₹13,537.84</td>
+                </tr>
+                <tr style={{ fontSize: '0.72rem', color: '#475569' }}>
+                  <td style={{ paddingTop: '0.3rem' }}>UPI (SBI Merchant QR):</td>
+                  <td style={{ textAlign: 'right', paddingTop: '0.3rem' }}>₹5,000.00</td>
+                </tr>
+                <tr style={{ fontSize: '0.72rem', color: '#475569' }}>
+                  <td>BTC (Linde India Ltd):</td>
+                  <td style={{ textAlign: 'right' }}>₹8,537.84</td>
+                </tr>
+                <tr style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 'bold' }}>
+                  <td>Balance Due:</td>
+                  <td style={{ textAlign: 'right' }}>₹0.00 (PAID)</td>
                 </tr>
               </tbody>
             </table>

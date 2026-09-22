@@ -3,7 +3,8 @@ import {
   Building2, FileText, Download, Printer, DollarSign, 
   Calendar, ShieldCheck, CheckCircle2, ChevronRight, X, 
   TrendingUp, CreditCard, Clock, AlertTriangle, Search,
-  Zap, PieChart, Info, Check, ArrowUpRight
+  Zap, PieChart, Info, Check, ArrowUpRight, Edit3, PlusCircle,
+  Briefcase, Percent
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER } from '../data/hotelData';
 
@@ -19,9 +20,125 @@ export default function AccountsLedgerModal({
   const [selectedMonth, setSelectedMonth] = useState('09');
   const [selectedYear, setSelectedYear] = useState('2026');
 
-  // Active corporate object
-  const currentCorp = CORPORATE_PARTNERS.find(c => c.id === selectedCorporate) || CORPORATE_PARTNERS[0];
-  const corpLedgerEntries = INITIAL_CORPORATE_LEDGER.filter(l => l.corporateId === selectedCorporate);
+  // Corporate partners and ledger state for dynamic editing & settlement
+  const [corporatePartners, setCorporatePartners] = useState(CORPORATE_PARTNERS);
+  const [corporateLedger, setCorporateLedger] = useState(INITIAL_CORPORATE_LEDGER);
+
+  // Contract Master modal state
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractForm, setContractForm] = useState({
+    creditLimit: 200000,
+    creditDays: 30,
+    contractDiscount: 10,
+    billingMode: 'Room Only',
+    contactPerson: '',
+    contactPhone: ''
+  });
+
+  // Settlement & TDS posting modal state
+  const [showSettlementModal, setShowSettlementModal] = useState(false);
+  const [settleForm, setSettleForm] = useState({
+    grossAmount: '',
+    paymentMode: 'NEFT / RTGS Bank Transfer',
+    bankUtrRef: '',
+    tdsSection: 'NONE', // 'NONE', '194C_1', '194C_2', '194I_10'
+    date: '2026-09-22',
+    notes: ''
+  });
+  const [actionSuccessMsg, setActionSuccessMsg] = useState('');
+
+  // Active corporate object and ledger calculation
+  const currentCorp = corporatePartners.find(c => c.id === selectedCorporate) || corporatePartners[0];
+  const corpLedgerEntries = corporateLedger.filter(l => l.corporateId === selectedCorporate);
+  const currentRunningBalance = corpLedgerEntries.length > 0 
+    ? corpLedgerEntries[corpLedgerEntries.length - 1].balance 
+    : currentCorp.openingBalance;
+
+  const handleOpenContractModal = () => {
+    setContractForm({
+      creditLimit: currentCorp.creditLimit || 200000,
+      creditDays: currentCorp.creditDays || 30,
+      contractDiscount: currentCorp.contractDiscount || 10,
+      billingMode: currentCorp.billingMode || 'Room Only',
+      contactPerson: currentCorp.contactPerson || '',
+      contactPhone: currentCorp.contactPhone || ''
+    });
+    setShowContractModal(true);
+  };
+
+  const handleSaveContract = (e) => {
+    e.preventDefault();
+    setCorporatePartners(prev => prev.map(corp => {
+      if (corp.id === currentCorp.id) {
+        return {
+          ...corp,
+          creditLimit: Number(contractForm.creditLimit),
+          creditDays: Number(contractForm.creditDays),
+          contractDiscount: Number(contractForm.contractDiscount),
+          billingMode: contractForm.billingMode,
+          contactPerson: contractForm.contactPerson,
+          contactPhone: contractForm.contactPhone
+        };
+      }
+      return corp;
+    }));
+    setShowContractModal(false);
+    setActionSuccessMsg(`Contract master updated for ${currentCorp.name}`);
+    setTimeout(() => setActionSuccessMsg(''), 4000);
+  };
+
+  const handleOpenSettlementModal = () => {
+    setSettleForm({
+      grossAmount: '',
+      paymentMode: 'NEFT / RTGS Bank Transfer',
+      bankUtrRef: '',
+      tdsSection: 'NONE',
+      date: '2026-09-22',
+      notes: ''
+    });
+    setShowSettlementModal(true);
+  };
+
+  const getTdsRate = (section) => {
+    if (section === '194C_1') return 0.01;
+    if (section === '194C_2') return 0.02;
+    if (section === '194I_10') return 0.10;
+    return 0;
+  };
+
+  const handlePostSettlement = (e) => {
+    e.preventDefault();
+    const grossVal = parseFloat(settleForm.grossAmount) || 0;
+    if (grossVal <= 0) {
+      alert('Please enter a valid gross settlement amount');
+      return;
+    }
+    const rate = getTdsRate(settleForm.tdsSection);
+    const tdsVal = Math.round(grossVal * rate * 100) / 100;
+    const netBankReceived = grossVal - tdsVal;
+
+    const newBalance = Math.max(0, currentRunningBalance - grossVal);
+
+    const newEntry = {
+      entryId: `CL-${Date.now()}`,
+      corporateId: currentCorp.id,
+      date: settleForm.date || '2026-09-22',
+      invoiceNo: '-',
+      bankRef: `${settleForm.paymentMode.split(' ')[0]} Ref: ${settleForm.bankUtrRef || 'UTR-UNSPECIFIED'}`,
+      type: 'Corporate Direct Remittance & TDS',
+      description: `Settlement via ${settleForm.paymentMode}. Gross: ₹${grossVal.toLocaleString('en-IN')}, TDS: ₹${tdsVal.toLocaleString('en-IN')}, Net Credit: ₹${netBankReceived.toLocaleString('en-IN')}. ${settleForm.notes || ''}`,
+      debit: 0,
+      credit: grossVal,
+      tdsSection: rate > 0 ? settleForm.tdsSection.replace('_', ' @') + '%' : null,
+      tdsAmount: tdsVal,
+      balance: newBalance
+    };
+
+    setCorporateLedger(prev => [...prev, newEntry]);
+    setShowSettlementModal(false);
+    setActionSuccessMsg(`Posted ₹${grossVal.toLocaleString('en-IN')} corporate settlement receipt for ${currentCorp.name}`);
+    setTimeout(() => setActionSuccessMsg(''), 4000);
+  };
 
   // Night Audit Flash Report Data (Date: 20/09/2026 - Exactly matches Screenshot 16)
   const flashReportData = {
@@ -779,13 +896,13 @@ export default function AccountsLedgerModal({
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Select Partner:</span>
                 <select
                   value={selectedCorporate}
                   onChange={(e) => setSelectedCorporate(e.target.value)}
                   style={{
-                    padding: '0.5rem 1rem',
+                    padding: '0.5rem 0.85rem',
                     background: '#0d111d',
                     color: '#fff',
                     border: '1px solid rgba(212, 175, 55, 0.4)',
@@ -794,10 +911,24 @@ export default function AccountsLedgerModal({
                     fontWeight: 600
                   }}
                 >
-                  {CORPORATE_PARTNERS.map(c => (
+                  {corporatePartners.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
+                <button
+                  onClick={handleOpenContractModal}
+                  className="btn-outline"
+                  style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: '#38bdf8', color: '#38bdf8' }}
+                >
+                  <Edit3 size={15} /> Edit Contract Master
+                </button>
+                <button
+                  onClick={handleOpenSettlementModal}
+                  className="btn-primary-gold"
+                  style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <DollarSign size={15} /> Post Settlement &amp; TDS
+                </button>
                 <button
                   onClick={() => alert(`Printing Official Statement of Account for ${currentCorp.name}`)}
                   className="btn-outline"
@@ -808,6 +939,25 @@ export default function AccountsLedgerModal({
               </div>
             </div>
 
+            {/* Flash Feedback Banner */}
+            {actionSuccessMsg && (
+              <div style={{
+                background: 'rgba(52, 211, 153, 0.15)',
+                border: '1px solid #34d399',
+                color: '#34d399',
+                padding: '0.6rem 1rem',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <CheckCircle2 size={16} />
+                <span>{actionSuccessMsg}</span>
+              </div>
+            )}
+
             {/* Corporate Profile Header */}
             <div style={{
               background: 'rgba(255,255,255,0.02)',
@@ -816,30 +966,57 @@ export default function AccountsLedgerModal({
               padding: '1.25rem',
               marginBottom: '1.25rem',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: '1rem'
             }}>
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Corporate Entity</span>
                 <div style={{ fontWeight: 700, color: '#fff', fontSize: '1.05rem' }}>{currentCorp.name}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{currentCorp.location}</div>
+                <div style={{ fontSize: '0.75rem', color: '#38bdf8', marginTop: '3px' }}>
+                  Billing Mode: <strong>{currentCorp.billingMode || 'Room Only'}</strong>
+                </div>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>GSTIN Identification</span>
                 <div style={{ fontFamily: 'monospace', fontWeight: 600, color: '#fbbf24' }}>{currentCorp.gstin}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Credit Terms: {currentCorp.creditDays} Days</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Credit Terms: {currentCorp.creditDays || 30} Days</div>
+                <div style={{ fontSize: '0.75rem', color: '#a78bfa', marginTop: '3px' }}>
+                  Contact: {currentCorp.contactPerson || 'Officer In-Charge'}
+                </div>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Approved Credit Limit</span>
-                <div style={{ fontWeight: 700, color: '#60a5fa' }}>₹{currentCorp.creditLimit?.toLocaleString('en-IN')}</div>
+                <div style={{ fontWeight: 700, color: '#60a5fa', fontSize: '1.05rem' }}>₹{currentCorp.creditLimit?.toLocaleString('en-IN')}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Contract Discount: {currentCorp.contractDiscount}%</div>
+                
+                {/* Credit Limit Utilization Progress Bar */}
+                <div style={{ marginTop: '5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    <span>Utilized</span>
+                    <span style={{ fontWeight: 600, color: (currentRunningBalance / (currentCorp.creditLimit || 1)) > 0.9 ? '#f87171' : '#34d399' }}>
+                      {Math.min(100, Math.round((currentRunningBalance / (currentCorp.creditLimit || 1)) * 100))}%
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: '5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginTop: '2px' }}>
+                    <div style={{
+                      width: `${Math.min(100, Math.round((currentRunningBalance / (currentCorp.creditLimit || 1)) * 100))}%`,
+                      height: '100%',
+                      background: (currentRunningBalance / (currentCorp.creditLimit || 1)) > 0.9 ? '#ef4444' : (currentRunningBalance / (currentCorp.creditLimit || 1)) > 0.7 ? '#f59e0b' : '#10b981',
+                      borderRadius: '3px'
+                    }}></div>
+                  </div>
+                </div>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Current Running Balance Due</span>
-                <div style={{ fontWeight: 800, color: '#f87171', fontSize: '1.2rem' }}>
-                  ₹{(corpLedgerEntries[corpLedgerEntries.length - 1]?.balance || currentCorp.openingBalance).toLocaleString('en-IN')}
+                <div style={{ fontWeight: 800, color: '#f87171', fontSize: '1.25rem' }}>
+                  ₹{currentRunningBalance.toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#f87171' }}>Debit Balance (Payable to Hotel)</div>
+                <div style={{ fontSize: '0.72rem', color: currentRunningBalance > (currentCorp.creditLimit || 0) ? '#f87171' : '#34d399', marginTop: '3px', fontWeight: 600 }}>
+                  {currentRunningBalance > (currentCorp.creditLimit || 0) ? '⚠️ Credit Limit Breached!' : '✓ Within Sanctioned Limit'}
+                </div>
               </div>
             </div>
 
@@ -1002,7 +1179,7 @@ export default function AccountsLedgerModal({
                 </tr>
               </thead>
               <tbody>
-                {CORPORATE_PARTNERS.map(corp => (
+                {corporatePartners.map(corp => (
                   <tr key={corp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '0.85rem 1rem' }}>
                       <div style={{ fontWeight: 600, color: '#fff' }}>{corp.name}</div>
@@ -1027,6 +1204,335 @@ export default function AccountsLedgerModal({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Modal 1: Edit Corporate Contract Master */}
+        {showContractModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.78)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            backdropFilter: 'blur(5px)',
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#0d1527',
+              border: '1px solid var(--gold-glow)',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '520px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+              padding: '1.5rem',
+              color: '#fff'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Edit3 size={20} color="var(--gold-glow)" />
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>
+                    Edit Corporate Contract Master
+                  </h3>
+                </div>
+                <button onClick={() => setShowContractModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+                <strong>Entity:</strong> {currentCorp.name} ({currentCorp.gstin})
+              </div>
+
+              <form onSubmit={handleSaveContract}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Approved Credit Limit (₹)</label>
+                    <input
+                      type="number"
+                      value={contractForm.creditLimit}
+                      onChange={(e) => setContractForm({ ...contractForm, creditLimit: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Credit Period (Days)</label>
+                    <input
+                      type="number"
+                      value={contractForm.creditDays}
+                      onChange={(e) => setContractForm({ ...contractForm, creditDays: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Contract Discount (%)</label>
+                    <input
+                      type="number"
+                      value={contractForm.contractDiscount}
+                      onChange={(e) => setContractForm({ ...contractForm, contractDiscount: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Billing Scope / Mode</label>
+                    <select
+                      value={contractForm.billingMode}
+                      onChange={(e) => setContractForm({ ...contractForm, billingMode: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: '#0a0f1d', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                    >
+                      <option value="Room Only">Room Only (Food Direct)</option>
+                      <option value="All-Inclusive (Room + Dining + Laundry)">All-Inclusive (Room + Dining + Laundry)</option>
+                      <option value="Fixed Corporate Package">Fixed Corporate Package</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Key Contact Person</label>
+                    <input
+                      type="text"
+                      value={contractForm.contactPerson}
+                      onChange={(e) => setContractForm({ ...contractForm, contactPerson: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Key Contact Phone</label>
+                    <input
+                      type="text"
+                      value={contractForm.contactPhone}
+                      onChange={(e) => setContractForm({ ...contractForm, contactPhone: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowContractModal(false)}
+                    className="btn-outline"
+                    style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary-gold"
+                    style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
+                  >
+                    Save Contract Master
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 2: Post Corporate Settlement & TDS */}
+        {showSettlementModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.78)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            backdropFilter: 'blur(5px)',
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#0d1527',
+              border: '1px solid #34d399',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '560px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+              padding: '1.5rem',
+              color: '#fff'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <DollarSign size={20} color="#34d399" />
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>
+                    Post Corporate Settlement &amp; TDS Certificate
+                  </h3>
+                </div>
+                <button onClick={() => setShowSettlementModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '0.75rem',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                marginBottom: '1rem',
+                fontSize: '0.85rem'
+              }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Corporate Entity</span>
+                  <div style={{ fontWeight: 700, color: '#fff' }}>{currentCorp.name}</div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Current Outstanding Due</span>
+                  <div style={{ fontWeight: 800, color: '#f87171' }}>₹{currentRunningBalance.toLocaleString('en-IN')}</div>
+                </div>
+              </div>
+
+              <form onSubmit={handlePostSettlement}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.85rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                      Gross Invoice Paid (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 50000"
+                      value={settleForm.grossAmount}
+                      onChange={(e) => setSettleForm({ ...settleForm, grossAmount: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff', fontWeight: 600 }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                      Settlement Tender / Mode
+                    </label>
+                    <select
+                      value={settleForm.paymentMode}
+                      onChange={(e) => setSettleForm({ ...settleForm, paymentMode: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: '#0a0f1d', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                    >
+                      <option value="NEFT / RTGS Bank Transfer">NEFT / RTGS Bank Transfer</option>
+                      <option value="Bank Cheque / Draft">Bank Cheque / Draft</option>
+                      <option value="Corporate Credit Card">Corporate Credit Card</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.85rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                      Bank UTR / Cheque Ref #
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. AXISR5202609220019"
+                      value={settleForm.bankUtrRef}
+                      onChange={(e) => setSettleForm({ ...settleForm, bankUtrRef: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                      Statutory TDS Deduction Rate
+                    </label>
+                    <select
+                      value={settleForm.tdsSection}
+                      onChange={(e) => setSettleForm({ ...settleForm, tdsSection: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem', background: '#0a0f1d', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fbbf24', fontWeight: 600 }}
+                    >
+                      <option value="NONE">No TDS Deducted (0.00%)</option>
+                      <option value="194C_1">Sec 194C - Contractor Indiv/HUF (1.00%)</option>
+                      <option value="194C_2">Sec 194C - Contractor Company (2.00%)</option>
+                      <option value="194I_10">Sec 194I - Hotel Room Rent (10.00%)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Dynamic Calculation Breakdown Card */}
+                {(() => {
+                  const gross = parseFloat(settleForm.grossAmount) || 0;
+                  const rate = getTdsRate(settleForm.tdsSection);
+                  const tdsVal = Math.round(gross * rate * 100) / 100;
+                  const netReceived = gross - tdsVal;
+                  const resultingBal = Math.max(0, currentRunningBalance - gross);
+
+                  return (
+                    <div style={{
+                      background: 'rgba(52, 211, 153, 0.08)',
+                      border: '1px solid rgba(52, 211, 153, 0.3)',
+                      borderRadius: '8px',
+                      padding: '0.85rem',
+                      marginBottom: '1rem',
+                      fontSize: '0.8rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Gross Invoice Debits Liquidated:</span>
+                        <span style={{ fontWeight: 700, color: '#fff' }}>₹{gross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span style={{ color: '#fbbf24' }}>TDS Deducted (Form 16A Certificate):</span>
+                        <span style={{ fontWeight: 700, color: '#fbbf24' }}>- ₹{tdsVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '0.35rem' }}>
+                        <span style={{ color: '#34d399', fontWeight: 600 }}>Actual Bank Remittance Credit:</span>
+                        <span style={{ fontWeight: 800, color: '#34d399', fontSize: '0.95rem' }}>₹{netReceived.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(52, 211, 153, 0.2)', paddingTop: '0.35rem' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Resulting Corporate Ledger Balance:</span>
+                        <span style={{ fontWeight: 700, color: resultingBal === 0 ? '#34d399' : '#f87171' }}>
+                          ₹{resultingBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} Dr
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Remittance Notes / Reference Remarks
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cleared August bill batch #402-405, Form 16A emailed"
+                    value={settleForm.notes}
+                    onChange={(e) => setSettleForm({ ...settleForm, notes: e.target.value })}
+                    style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', color: '#fff' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowSettlementModal(false)}
+                    className="btn-outline"
+                    style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary-gold"
+                    style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem', background: '#34d399', color: '#060e1a', border: 'none', fontWeight: 700 }}
+                  >
+                    Post Receipt to Corporate Ledger
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>

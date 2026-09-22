@@ -31,19 +31,34 @@ export default function CannonKitchenPOS({
   const [searchQuery, setSearchQuery] = useState('');
   const codeInputRef = useRef(null);
 
-  // Cart / KOT Items
+  // Cart / KOT Items with Cooking Modifiers
   const [cart, setCart] = useState([
     {
       item: RESTAURANT_MENU.find(m => m.itemCode === '214') || RESTAURANT_MENU[4],
       quantity: 1,
-      notes: 'Medium spicy, stone-ground mustard gravy'
+      notes: 'Stone-ground mustard gravy',
+      cookingTags: ['Satvik', 'Mild']
     },
     {
       item: RESTAURANT_MENU.find(m => m.itemCode === '307') || RESTAURANT_MENU[7],
       quantity: 2,
-      notes: 'Extra hot'
+      notes: 'Extra hot and steamed fresh',
+      cookingTags: ['Spicy']
     }
   ]);
+
+  // Item Void / Cancellation State with Mandatory Reason
+  const [voidTargetIndex, setVoidTargetIndex] = useState(null);
+  const [voidReason, setVoidReason] = useState('Guest Changed Mind');
+  const [voidCustomNote, setVoidCustomNote] = useState('');
+  const [voidAuditLogs, setVoidAuditLogs] = useState([]);
+
+  // Bill Discount & NC (Non-Commercial) Billing State
+  const [discountType, setDiscountType] = useState('none'); // 'none', 'percentage', 'flat'
+  const [discountValue, setDiscountValue] = useState(10);
+  const [discountReason, setDiscountReason] = useState('Managing Director Courtesy');
+  const [isNonCommercial, setIsNonCommercial] = useState(false);
+  const [ncReason, setNcReason] = useState('Managing Director Eswara VIP Dining');
 
   const [kotSentSuccess, setKotSentSuccess] = useState(false);
   const [lastOrderDetails, setLastOrderDetails] = useState(null);
@@ -83,7 +98,7 @@ export default function CannonKitchenPOS({
       updated[existingIndex].quantity += 1;
       setCart(updated);
     } else {
-      setCart([...cart, { item, quantity: 1, notes: '' }]);
+      setCart([...cart, { item, quantity: 1, notes: '', cookingTags: [] }]);
     }
   };
 
@@ -98,27 +113,79 @@ export default function CannonKitchenPOS({
     setCart(updated);
   };
 
-  // Tax calculations (F&B: 5% GST without ITC under SAC 996331)
-  const subtotal = cart.reduce((sum, c) => sum + (getItemPrice(c.item) * c.quantity), 0);
-  const gst = subtotal * 0.05;
-  const netTotal = subtotal + gst;
+  const toggleCookingTag = (index, tag) => {
+    const updated = [...cart];
+    const item = updated[index];
+    const tags = item.cookingTags || [];
+    if (tags.includes(tag)) {
+      item.cookingTags = tags.filter(t => t !== tag);
+    } else {
+      item.cookingTags = [...tags, tag];
+    }
+    setCart(updated);
+  };
+
+  const handleConfirmItemVoid = () => {
+    if (voidTargetIndex === null) return;
+    const target = cart[voidTargetIndex];
+    const voidRecord = {
+      id: `VOID-${Date.now().toString().slice(-4)}`,
+      itemName: target.item.name,
+      quantity: target.quantity,
+      amount: getItemPrice(target.item) * target.quantity,
+      reason: voidReason,
+      notes: voidCustomNote || 'None',
+      captain: captainName,
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+    setVoidAuditLogs([voidRecord, ...voidAuditLogs]);
+    setCart(cart.filter((_, idx) => idx !== voidTargetIndex));
+    setVoidTargetIndex(null);
+    setVoidCustomNote('');
+  };
+
+  // Tax calculations (F&B: 5% GST without ITC under SAC 996331) with Discount & NC Support
+  const grossSubtotal = cart.reduce((sum, c) => sum + (getItemPrice(c.item) * c.quantity), 0);
+  
+  let calculatedDiscount = 0;
+  if (!isNonCommercial) {
+    if (discountType === 'percentage') {
+      calculatedDiscount = (grossSubtotal * (Number(discountValue) || 0)) / 100;
+    } else if (discountType === 'flat') {
+      calculatedDiscount = Math.min(grossSubtotal, Number(discountValue) || 0);
+    }
+  } else {
+    calculatedDiscount = grossSubtotal; // 100% complimentary NC
+  }
+
+  const taxableSubtotal = isNonCommercial ? 0 : Math.max(0, grossSubtotal - calculatedDiscount);
+  const gst = isNonCommercial ? 0 : taxableSubtotal * 0.05;
+  const netTotal = isNonCommercial ? 0 : taxableSubtotal + gst;
 
   // Handle "Bill to Room" action (fixes MySoft bug)
   const handleTransferToRoom = () => {
     if (cart.length === 0) return;
 
     const kotId = `CK-KOT-${Date.now().toString().slice(-4)}`;
-    const itemsDescription = cart.map(c => `${c.quantity}x ${c.item.name}`).join(', ');
+    const itemsDescription = cart.map(c => {
+      const tagStr = (c.cookingTags && c.cookingTags.length > 0) ? ` [${c.cookingTags.join(', ')}]` : '';
+      return `${c.quantity}x ${c.item.name}${tagStr}`;
+    }).join(', ');
 
     const payload = {
       kotId,
       roomNumber: targetRoom,
       outlet: selectedOutlet,
       items: cart,
-      subtotal,
+      grossSubtotal,
+      discount: calculatedDiscount,
+      discountReason: isNonCommercial ? `NC Comp: ${ncReason}` : (discountType !== 'none' ? `${discountReason} (${discountType === 'percentage' ? discountValue + '%' : '₹' + discountValue})` : 'None'),
+      subtotal: taxableSubtotal,
       gst,
       totalAmount: netTotal,
-      description: `${selectedOutlet} Order (${itemsDescription})`,
+      isNonCommercial,
+      ncReason: isNonCommercial ? ncReason : null,
+      description: `${selectedOutlet} Order (${itemsDescription})${isNonCommercial ? ' [NC COMPLIMENTARY]' : ''}`,
       captainName,
       createdAt: new Date().toISOString()
     };
@@ -773,7 +840,7 @@ export default function CannonKitchenPOS({
             </div>
 
             {/* Cart Items List */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem' }}>
               {cart.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
                   <UtensilsCrossed size={36} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
@@ -784,114 +851,337 @@ export default function CannonKitchenPOS({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {cart.map((c, i) => {
                     const price = getItemPrice(c.item);
+                    const activeTags = c.cookingTags || [];
+
                     return (
                       <div
-                        key={c.item.id}
+                        key={i}
                         style={{
                           background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.08)',
                           borderRadius: '8px',
                           padding: '0.75rem',
                           display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
+                          flexDirection: 'column',
+                          gap: '0.5rem'
                         }}
                       >
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.85rem' }}>
-                            {c.item.name}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.85rem' }}>
+                              {c.item.name}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              #{c.item.itemCode} • ₹{price.toFixed(0)} each
+                            </div>
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            #{c.item.itemCode} • ₹{price.toFixed(0)} each
+
+                          {/* Quantity controls & Void button */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (c.quantity === 1) {
+                                  setVoidTargetIndex(i);
+                                } else {
+                                  updateQuantity(c.item.id, -1);
+                                }
+                              }}
+                              style={{
+                                background: 'rgba(255,255,255,0.08)',
+                                border: 'none',
+                                color: '#fff',
+                                width: 24,
+                                height: 24,
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Minus size={12} />
+                            </button>
+                            <span style={{ fontWeight: 700, color: '#fff', minWidth: 20, textAlign: 'center', fontSize: '0.85rem' }}>
+                              {c.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(c.item.id, 1)}
+                              style={{
+                                background: 'rgba(255,255,255,0.08)',
+                                border: 'none',
+                                color: '#fff',
+                                width: 24,
+                                height: 24,
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Plus size={12} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setVoidTargetIndex(i)}
+                              title="Cancel / Void Item with Mandatory Reason"
+                              style={{
+                                background: 'rgba(239,68,68,0.15)',
+                                border: '1px solid rgba(239,68,68,0.3)',
+                                color: '#f87171',
+                                width: 24,
+                                height: 24,
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+
+                          <div style={{ width: 75, textAlign: 'right', fontWeight: 700, color: '#38bdf8', fontSize: '0.9rem' }}>
+                            ₹{(price * c.quantity).toFixed(0)}
                           </div>
                         </div>
 
-                        {/* Quantity controls */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => updateQuantity(c.item.id, -1)}
-                            style={{
-                              background: 'rgba(255,255,255,0.08)',
-                              border: 'none',
-                              color: '#fff',
-                              width: 24,
-                              height: 24,
-                              borderRadius: '4px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Minus size={12} />
-                          </button>
-                          <span style={{ fontWeight: 700, color: '#fff', minWidth: 20, textAlign: 'center' }}>
-                            {c.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(c.item.id, 1)}
-                            style={{
-                              background: 'rgba(255,255,255,0.08)',
-                              border: 'none',
-                              color: '#fff',
-                              width: 24,
-                              height: 24,
-                              borderRadius: '4px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Plus size={12} />
-                          </button>
+                        {/* Cooking Instruction Modifiers Strip */}
+                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Modifiers:</span>
+                          {[
+                            { id: 'Satvik', label: 'Satvik (No Onion/Garlic)' },
+                            { id: 'Jain', label: 'Jain Prep' },
+                            { id: 'Spicy', label: 'Extra Spicy' },
+                            { id: 'Mild', label: 'Mild' },
+                            { id: 'Less Oil', label: 'Less Oil' }
+                          ].map(tag => {
+                            const isSelected = activeTags.includes(tag.id);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => toggleCookingTag(i, tag.id)}
+                                style={{
+                                  padding: '1px 6px',
+                                  borderRadius: '3px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  background: isSelected ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.05)',
+                                  color: isSelected ? 'var(--gold-glow)' : '#94a3b8',
+                                  border: isSelected ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)'
+                                }}
+                              >
+                                {isSelected ? '✓ ' : ''}{tag.label}
+                              </button>
+                            );
+                          })}
                         </div>
 
-                        <div style={{ width: 80, textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>
-                          ₹{(price * c.quantity).toFixed(0)}
-                        </div>
+                        <input
+                          type="text"
+                          placeholder="Special kitchen prep notes..."
+                          value={c.notes || ''}
+                          onChange={(e) => {
+                            const updated = [...cart];
+                            updated[i].notes = e.target.value;
+                            setCart(updated);
+                          }}
+                          style={{
+                            width: '100%',
+                            background: '#070b14',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '4px',
+                            color: '#cbd5e1',
+                            fontSize: '0.72rem',
+                            padding: '0.25rem 0.5rem'
+                          }}
+                        />
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              {/* Void Audit Log Trail */}
+              {voidAuditLogs.length > 0 && (
+                <div style={{ marginTop: '1rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '6px', padding: '0.6rem' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f87171', marginBottom: '0.25rem' }}>
+                    🚨 Audited Item Voids in Current Order:
+                  </div>
+                  {voidAuditLogs.map(v => (
+                    <div key={v.id} style={{ fontSize: '0.68rem', color: '#cbd5e1', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{v.quantity}x {v.itemName} (Reason: {v.reason})</span>
+                      <span style={{ color: '#f87171' }}>-₹{v.amount.toFixed(0)} at {v.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Bill Summary & Action Footer */}
+            {/* Bill Summary & Modifiers Footer */}
             <div style={{
-              padding: '1.25rem 1.5rem',
+              padding: '1rem 1.25rem',
               borderTop: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(0,0,0,0.4)'
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
-                <span>Subtotal ({cart.length} items):</span>
-                <span>₹{subtotal.toFixed(2)}</span>
+              {/* Discount and NC Billing Toolbar */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '0.65rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.3rem' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--gold-glow)', fontWeight: 700 }}>
+                    🏷️ Bill Discount &amp; NC Billing Controls:
+                  </span>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer', color: isNonCommercial ? '#f87171' : '#cbd5e1' }}>
+                    <input
+                      type="checkbox"
+                      checked={isNonCommercial}
+                      onChange={(e) => setIsNonCommercial(e.target.checked)}
+                    />
+                    <strong style={{ color: isNonCommercial ? '#f87171' : 'inherit' }}>NC (Non-Commercial / Comp)</strong>
+                  </label>
+                </div>
+
+                {!isNonCommercial ? (
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {[
+                      { type: 'none', label: 'No Disc' },
+                      { type: 'percentage', val: 10, label: '10%' },
+                      { type: 'percentage', val: 15, label: '15%' },
+                      { type: 'flat', val: 100, label: '₹100 Off' }
+                    ].map((btn, idx) => {
+                      const isSelected = discountType === btn.type && (btn.type === 'none' || discountValue === btn.val);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setDiscountType(btn.type);
+                            if (btn.val) setDiscountValue(btn.val);
+                          }}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            background: isSelected ? 'var(--gold-glow)' : 'rgba(255,255,255,0.05)',
+                            color: isSelected ? '#000' : '#cbd5e1',
+                            border: isSelected ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)'
+                          }}
+                        >
+                          {btn.label}
+                        </button>
+                      );
+                    })}
+
+                    {discountType !== 'none' && (
+                      <select
+                        value={discountReason}
+                        onChange={(e) => setDiscountReason(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '2px 6px',
+                          background: '#0d111d',
+                          color: '#fff',
+                          border: '1px solid rgba(212, 175, 55, 0.4)',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem'
+                        }}
+                      >
+                        <option value="Managing Director Courtesy">MD Eswara Courtesy</option>
+                        <option value="Corporate Contract Discount">Corporate Contract (Linde/JK)</option>
+                        <option value="Food Quality Recovery">Food Quality Recovery</option>
+                        <option value="Loyal Regular Guest">Loyal Regular Guest</option>
+                      </select>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#f87171' }}>NC Reason:</span>
+                    <select
+                      value={ncReason}
+                      onChange={(e) => setNcReason(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '2px 6px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#f87171',
+                        border: '1px solid #ef4444',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="Managing Director Eswara VIP Dining">MD Eswara VIP Dining</option>
+                      <option value="Operations Consultant Shravan Patnaik Review">Consultant Patnaik Audit Review</option>
+                      <option value="Chef Kitchen Tasting & QC">Chef Tasting &amp; QC Sampling</option>
+                      <option value="Staff / Duty Meal">Staff / Duty Meal Allocation</option>
+                    </select>
+                  </div>
+                )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+
+              {/* Financial Calculation Lines */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span>Gross F&amp;B Subtotal ({cart.length} items):</span>
+                <span>₹{grossSubtotal.toFixed(2)}</span>
+              </div>
+
+              {calculatedDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#34d399' }}>
+                  <span>Less Discount ({isNonCommercial ? 'NC Comp' : discountReason}):</span>
+                  <span>-₹{calculatedDiscount.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 <span>GST @ 5% (SAC 996331):</span>
                 <span>₹{gst.toFixed(2)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 800, color: '#fff', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.5rem', marginBottom: '1rem' }}>
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '1.15rem',
+                fontWeight: 800,
+                color: '#fff',
+                borderTop: '1px solid rgba(255,255,255,0.08)',
+                paddingTop: '0.4rem'
+              }}>
                 <span>Net KOT Total:</span>
-                <span style={{ color: '#fbbf24' }}>₹{netTotal.toFixed(2)}</span>
+                <span style={{ color: isNonCommercial ? '#34d399' : '#fbbf24' }}>
+                  {isNonCommercial ? '₹0.00 (NC Approved)' : `₹${netTotal.toFixed(2)}`}
+                </span>
               </div>
 
-              {kotSentSuccess ? (
+              {kotSentSuccess && (
                 <div style={{
-                  padding: '0.85rem',
+                  padding: '0.65rem',
                   background: 'rgba(52, 211, 153, 0.15)',
                   border: '1px solid #34d399',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   color: '#34d399',
-                  fontSize: '0.85rem',
+                  fontSize: '0.8rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  marginBottom: '0.5rem'
+                  gap: '0.5rem'
                 }}>
-                  <CheckCircle2 size={18} />
+                  <CheckCircle2 size={16} />
                   <div>
                     <strong>KOT #{lastOrderDetails?.kotId} Transferred!</strong>
-                    <div>₹{lastOrderDetails?.totalAmount.toFixed(2)} debited directly to Room {lastOrderDetails?.roomNumber} Master Folio.</div>
+                    <div>₹{lastOrderDetails?.totalAmount.toFixed(2)} billed to Room {lastOrderDetails?.roomNumber} Master Folio.</div>
                   </div>
                 </div>
-              ) : null}
+              )}
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
                 {orderType === 'room' ? (
                   <button
                     onClick={handleTransferToRoom}
@@ -899,8 +1189,8 @@ export default function CannonKitchenPOS({
                     className="btn-primary"
                     style={{
                       flex: 1,
-                      padding: '0.75rem',
-                      fontSize: '0.9rem',
+                      padding: '0.7rem',
+                      fontSize: '0.88rem',
                       fontWeight: 700,
                       background: '#f59e0b',
                       color: '#000',
@@ -917,12 +1207,12 @@ export default function CannonKitchenPOS({
                 ) : (
                   <button
                     onClick={() => {
-                      alert(`KOT for ${tableNumber} printed to Cannon Kitchen! Total: ₹${netTotal.toFixed(2)}`);
+                      alert(`KOT for Table ${tableNumber} printed to Kitchen! Total: ${isNonCommercial ? '₹0.00 (NC Comp)' : '₹' + netTotal.toFixed(2)}`);
                       setCart([]);
                     }}
                     disabled={cart.length === 0}
                     className="btn-primary"
-                    style={{ flex: 1, padding: '0.75rem', fontWeight: 700 }}
+                    style={{ flex: 1, padding: '0.7rem', fontWeight: 700 }}
                   >
                     Print KOT to Kitchen (Table {tableNumber})
                   </button>
@@ -931,6 +1221,90 @@ export default function CannonKitchenPOS({
             </div>
           </div>
         </div>
+
+        {/* MODAL: ITEM VOID / CANCELLATION REASON */}
+        {voidTargetIndex !== null && cart[voidTargetIndex] && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}>
+            <div className="glass-panel" style={{
+              width: '100%',
+              maxWidth: 440,
+              padding: '1.5rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(239, 68, 68, 0.4)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Trash2 size={18} /> Confirm Item Cancellation / Void
+                </h3>
+                <button
+                  onClick={() => setVoidTargetIndex(null)}
+                  style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: '0.85rem', color: '#cbd5e1', margin: '0 0 1rem', lineHeight: 1.4 }}>
+                Voiding <strong>{cart[voidTargetIndex].quantity}x {cart[voidTargetIndex].item.name}</strong> (₹{(getItemPrice(cart[voidTargetIndex].item) * cart[voidTargetIndex].quantity).toFixed(0)}). A mandatory cancellation reason is required for the kitchen auditor:
+              </p>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mandatory Void Reason</label>
+                <select
+                  className="form-select"
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem', background: '#070b14', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px' }}
+                >
+                  <option value="Guest Changed Mind">Guest Changed Mind</option>
+                  <option value="Kitchen Out of Stock">Kitchen Out of Stock</option>
+                  <option value="Duplicate Punch Error">Duplicate Punch Error</option>
+                  <option value="Captain Mistake">Captain / Order Entry Mistake</option>
+                  <option value="Food Preparation Delay">Food Preparation Delay</option>
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Additional Audit Notes (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Guest replaced with 307 rice instead"
+                  value={voidCustomNote}
+                  onChange={(e) => setVoidCustomNote(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem', background: '#070b14', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setVoidTargetIndex(null)}
+                  className="btn-outline"
+                  style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem' }}
+                >
+                  Keep Item
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmItemVoid}
+                  className="btn-primary"
+                  style={{ flex: 1.5, padding: '0.6rem', fontSize: '0.85rem', background: '#ef4444', borderColor: '#ef4444' }}
+                >
+                  Confirm Audited Void
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
