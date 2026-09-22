@@ -2,8 +2,7 @@ name = "hotel-sai-international"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-09-01"
 
-# D1 Database binding: Configure in Cloudflare Dashboard (Pages > hotel-sai-international > Settings > Functions > D1 Database Bindings: DB)
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "hotel_sai_international_db"
-# database_id = "local-d1-sai-international"
+[[d1_databases]]
+binding = "DB"
+database_name = "hotel-sai-international-db"
+database_id = "b7ede30b-60b5-4a2d-8de6-faf7001f303f"

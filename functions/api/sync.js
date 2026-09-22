@@ -93,7 +93,7 @@ export async function onRequestGet({ request, env }) {
     // If caller is NOT an authenticated administrator, return ONLY public catalog & menu
     if (!isAdmin) {
       const [roomsRes, menuRes, configRes] = await Promise.all([
-        db.prepare("SELECT id, room_number, tier, floor, base_price, amenities, status FROM rooms ORDER BY floor ASC, room_number ASC").all(),
+        db.prepare("SELECT room_number, tier, floor, tariff, bed_type, amenities, status FROM rooms ORDER BY floor ASC, room_number ASC").all(),
         db.prepare("SELECT * FROM menu_items ORDER BY category ASC").all().catch(() => ({ results: [] })),
         db.prepare("SELECT key, value FROM hotel_config").all().catch(() => ({ results: [] }))
       ]);
@@ -106,11 +106,12 @@ export async function onRequestGet({ request, env }) {
           amenities = [];
         }
         return {
-          id: r.id,
           roomNumber: r.room_number,
           tier: r.tier,
           floor: r.floor,
-          basePrice: r.base_price,
+          tariff: r.tariff,
+          basePrice: r.tariff,
+          bedType: r.bed_type,
           amenities,
           status: r.status
           // Notice: current_guest_name and current_booking_id are intentionally omitted for privacy
@@ -208,7 +209,15 @@ export async function onRequestGet({ request, env }) {
       } catch {
         amenities = [];
       }
-      return { ...r, amenities };
+      return {
+        ...r,
+        roomNumber: r.room_number,
+        tariff: r.tariff,
+        basePrice: r.tariff,
+        currentGuestName: r.current_guest_name,
+        currentBookingId: r.current_booking_id,
+        amenities
+      };
     });
 
     const configRows = configRes.results || [];
