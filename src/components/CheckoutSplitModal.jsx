@@ -28,7 +28,7 @@ export default function CheckoutSplitModal({
     advancePaid: 0.00
   };
 
-  // The default bill amount: owner specifically demoed ₹962 (e.g. Cannon Kitchen dining balance or stay balance)
+  // The default bill amount: owner specifically demoed ₹962 (e.g. Fenugreek Restaurant dining balance or stay balance)
   const defaultTotal = Number(room.balanceDue || matchedBooking.totalAmount || 962.00);
 
   const [billTotal, setBillTotal] = useState(defaultTotal);
@@ -79,7 +79,7 @@ export default function CheckoutSplitModal({
     setErrorMsg('');
     if (type === 'owner-split-btc') {
       // The exact corporate lodging + dining split from the owner's video:
-      // ₹962 Cannon Kitchen Restaurant Dining -> PhonePe (UPI)
+      // ₹962 Fenugreek Restaurant Dining -> PhonePe (UPI)
       // ₹12,596 Room Lodging Tariff -> Linde India Ltd (BTC Credit)
       setBillTotal(13558);
       setBillBreakdown({
@@ -126,8 +126,8 @@ export default function CheckoutSplitModal({
     }
   };
 
-  const handleCheckoutSubmit = (e) => {
-    e.preventDefault();
+  const handleCheckoutSubmit = (e, receiptTarget = 'a4') => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!isBalanced) {
       setErrorMsg(`Cannot settle: Variance of ₹${Math.abs(variance).toFixed(2)} remaining. Total allocated (₹${totalAllocated.toFixed(2)}) must equal Total Due (₹${netDue.toFixed(2)}).`);
       return;
@@ -161,7 +161,8 @@ export default function CheckoutSplitModal({
         btcCompany
       },
       tendersSummary,
-      openReceiptAfter
+      openReceiptAfter,
+      targetReceiptType: receiptTarget
     };
 
     onConfirmCheckout(settlementPayload);
@@ -309,7 +310,7 @@ export default function CheckoutSplitModal({
                 <p style={{ margin: '0.15rem 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                   Generating two legally isolated tax invoices for Room {room.roomNumber}: 
                   <strong> Bill A (Room Lodging)</strong> under company GSTIN for travel claims &amp; 
-                  <strong> Bill B (Cannon Kitchen Food)</strong> under guest name for F&amp;B meal allowances.
+                  <strong> Bill B (Fenugreek Restaurant Food)</strong> under guest name for F&amp;B meal allowances.
                 </p>
               </div>
             </div>
@@ -381,7 +382,7 @@ export default function CheckoutSplitModal({
                 </div>
               </div>
 
-              {/* BILL B: CANNON KITCHEN FOOD */}
+              {/* BILL B: FENUGREEK RESTAURANT FOOD */}
               <div style={{
                 background: 'rgba(12, 24, 43, 0.85)',
                 border: '1px solid rgba(52, 211, 153, 0.4)',
@@ -395,7 +396,7 @@ export default function CheckoutSplitModal({
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
                     <div>
                       <span className="badge" style={{ background: '#34d399', color: '#060e1a', fontWeight: 800, fontSize: '0.7rem' }}>
-                        BILL B: CANNON KITCHEN FOOD INVOICE
+                        BILL B: FENUGREEK RESTAURANT FOOD INVOICE
                       </span>
                       <h4 style={{ margin: '0.4rem 0 0', color: '#fff', fontSize: '1.05rem' }}>
                         #{matchedBooking.billNo || 'FMBIL2627'}-F
@@ -409,7 +410,7 @@ export default function CheckoutSplitModal({
 
                   <div style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.6 }}>
                     <div><strong>Billed To:</strong> {room.currentGuestName || matchedBooking.guestName} (Personal)</div>
-                    <div><strong>Outlet:</strong> Cannon Kitchen Restaurant &amp; Room Dining</div>
+                    <div><strong>Outlet:</strong> Fenugreek Restaurant &amp; Room Dining</div>
                     <div><strong>KOT Numbers:</strong> F2627-7514, F2627-7515</div>
                     <div><strong>Payment Mode:</strong> PhonePe UPI / Cash (Personal Settlement)</div>
                   </div>
@@ -1060,6 +1061,8 @@ export default function CheckoutSplitModal({
           <div style={{
             display: 'flex',
             justifyContent: 'flex-end',
+            alignItems: 'center',
+            flexWrap: 'wrap',
             gap: '0.75rem',
             paddingTop: '0.75rem',
             borderTop: '1px solid rgba(255, 255, 255, 0.1)'
@@ -1081,11 +1084,38 @@ export default function CheckoutSplitModal({
               Cancel
             </button>
 
+            {/* Instant Money Receipt Button (Owner Video Demonstration) */}
             <button
-              type="submit"
+              type="button"
+              onClick={(e) => handleCheckoutSubmit(e, 'money-receipt')}
+              disabled={!isBalanced}
+              title="Settle folio & instantly generate Official Money Receipt Voucher (Page 5)"
+              style={{
+                padding: '0.6rem 1.25rem',
+                borderRadius: '8px',
+                background: isBalanced ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'rgba(255, 255, 255, 0.08)',
+                color: isBalanced ? '#ffffff' : '#64748b',
+                border: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: isBalanced ? 'pointer' : 'not-allowed',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                boxShadow: isBalanced ? '0 4px 15px rgba(225, 29, 72, 0.35)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Receipt size={16} /> 🧾 Settle &amp; Print Money Receipt
+            </button>
+
+            {/* Consolidated Tax Invoice Button */}
+            <button
+              type="button"
+              onClick={(e) => handleCheckoutSubmit(e, 'a4')}
               disabled={!isBalanced}
               style={{
-                padding: '0.6rem 1.5rem',
+                padding: '0.6rem 1.4rem',
                 borderRadius: '8px',
                 background: isBalanced ? 'linear-gradient(135deg, #d4af37, #f3c64c)' : 'rgba(255, 255, 255, 0.1)',
                 color: isBalanced ? '#060e1a' : '#64748b',
@@ -1100,7 +1130,7 @@ export default function CheckoutSplitModal({
                 transition: 'all 0.2s ease'
               }}
             >
-              <Check size={18} /> Confirm Split Settlement &amp; Complete Checkout
+              <Check size={18} /> 📄 Settle &amp; Print Tax Invoice
             </button>
           </div>
 

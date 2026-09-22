@@ -4,7 +4,7 @@ import {
   DollarSign, CheckCircle2, AlertTriangle, Printer, Download, 
   Search, RefreshCw, UserCheck, Phone, FileText, Sparkles, 
   Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
-  Calculator, ClipboardList
+  Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -20,8 +20,14 @@ export default function ReceptionAdmin({
   onUpdateRoomStatus,
   onNewBooking,
   onRunNightAudit,
-  nightAudits = []
+  nightAudits = [],
+  onOpenRestaurantPOS,
+  onOpenAccountsLedger,
+  onOpenStoreInventory
 }) {
+  // The 3 Authorized Roles & 5 Department Console (Owner Video 2 Requirement)
+  const [activeRole, setActiveRole] = useState('owner'); // 'owner' (Eswara MD), 'receptionist' (Front Desk), 'accounts' (Accounts Lead)
+  const [activeDepartment, setActiveDepartment] = useState('reception'); // 'reception', 'restaurant', 'accounts', 'store', 'housekeeping'
   const [activeTab, setActiveTab] = useState('tape-chart'); // 'tape-chart', 'cashier-audit', 'housekeeping', 'police-register', 'dpdp'
   const [tapeChartViewMode, setTapeChartViewMode] = useState('mysoft'); // 'mysoft' (Screenshot 2 Legacy Tape Chart) or 'modern'
   const [statusFilter, setStatusFilter] = useState('all');
@@ -51,8 +57,8 @@ export default function ReceptionAdmin({
   ]);
 
   const handleCheckoutConfirm = (payload) => {
-    // 1. Release room to Cleaning
-    onUpdateRoomStatus(payload.roomNumber, 'Cleaning', null, null);
+    // 1. Release room to Vacant Dirty (Owner requirement: "automatic ga Dirty ani padatadi")
+    onUpdateRoomStatus(payload.roomNumber, 'Vacant Dirty', null, null);
 
     // 2. Add cash to cashier drawer if cash tender was used
     if (payload.tenders.cash > 0) {
@@ -70,7 +76,7 @@ export default function ReceptionAdmin({
     // 4. Close checkout modal
     setCheckoutRoom(null);
 
-    // 5. If requested, automatically open the official split tax invoice
+    // 5. If requested, automatically open the requested document (Money Receipt Voucher or Tax Invoice)
     if (payload.openReceiptAfter) {
       const receiptBooking = {
         bookingId: payload.billNo,
@@ -88,7 +94,7 @@ export default function ReceptionAdmin({
         foodAmount: payload.billTotal > 1500 ? 962 : payload.billTotal,
         grcNo: '684'
       };
-      setReceiptModalType('a4');
+      setReceiptModalType(payload.targetReceiptType || 'a4');
       setSelectedReceiptBooking(receiptBooking);
       setIsReceiptModalOpen(true);
     }
@@ -398,6 +404,175 @@ export default function ReceptionAdmin({
 
   return (
     <section style={{ padding: '2rem 1.5rem 4rem 1.5rem', maxWidth: 1580, margin: '0 auto' }}>
+      {/* 5-DEPARTMENT CONSOLE & 3-ROLE AUTHORIZATION BAR (Owner Video Requirement) */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(12, 24, 43, 0.98), rgba(6, 14, 26, 0.99))',
+        border: '1px solid rgba(212, 175, 55, 0.4)',
+        borderRadius: '14px',
+        padding: '1rem 1.25rem',
+        marginBottom: '1.75rem',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+      }}>
+        {/* Top Line: 3 Authorized Operational Roles */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          paddingBottom: '0.85rem',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge" style={{ background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', border: '1px solid rgba(212, 175, 55, 0.4)', fontWeight: 800 }}>
+                AUTHENTIC MYSOFT ENTERPRISE PMS
+              </span>
+              <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                Active Operator Profile: <strong style={{ color: activeRole === 'owner' ? '#fbbf24' : activeRole === 'receptionist' ? '#38bdf8' : '#34d399' }}>
+                  {activeRole === 'owner' ? '👑 Eswara (Managing Director / Owner)' : activeRole === 'receptionist' ? '👤 Front Desk Reception Lead' : '💼 Chief Accountant & Cashier Lead'}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          {/* 3 Role Switcher Buttons */}
+          <div style={{ display: 'flex', gap: '0.4rem', background: 'rgba(0,0,0,0.4)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {[
+              { id: 'owner', label: '👑 Owner / MD (Eswara)', color: '#fbbf24' },
+              { id: 'receptionist', label: '👤 Receptionist', color: '#38bdf8' },
+              { id: 'accounts', label: '💼 Accounts Lead', color: '#34d399' }
+            ].map(r => (
+              <button
+                key={r.id}
+                onClick={() => setActiveRole(r.id)}
+                style={{
+                  padding: '0.35rem 0.8rem',
+                  borderRadius: '6px',
+                  border: activeRole === r.id ? `1px solid ${r.color}` : '1px solid transparent',
+                  background: activeRole === r.id ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: activeRole === r.id ? r.color : '#94a3b8',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Line: 5 Department Master Section Tabs */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '0.65rem',
+          paddingTop: '0.85rem'
+        }}>
+          {[
+            { 
+              id: 'reception', 
+              label: '1. Front Desk & Reception', 
+              icon: Hotel, 
+              color: '#38bdf8', 
+              desc: 'Tape Chart, 39 Rooms, Walk-in, GRC',
+              onClick: () => {
+                setActiveDepartment('reception');
+                setActiveTab('tape-chart');
+              }
+            },
+            { 
+              id: 'restaurant', 
+              label: '2. Fenugreek Restaurant', 
+              icon: Utensils, 
+              color: '#fbbf24', 
+              desc: 'KOT Billing, In-Room Dining & POS',
+              onClick: () => {
+                setActiveDepartment('restaurant');
+                if (onOpenRestaurantPOS) onOpenRestaurantPOS();
+              }
+            },
+            { 
+              id: 'accounts', 
+              label: '3. Accounts & Cashier', 
+              icon: DollarSign, 
+              color: '#34d399', 
+              desc: 'Cash Drawer, Split Tenders, Day Book',
+              onClick: () => {
+                setActiveDepartment('accounts');
+                setActiveTab('cashier-audit');
+              }
+            },
+            { 
+              id: 'store', 
+              label: '4. Mandi Store & Inventory', 
+              icon: ShoppingBag, 
+              color: '#a78bfa', 
+              desc: 'Kitchen Stock, Linen & Amenities',
+              onClick: () => {
+                setActiveDepartment('store');
+                if (onOpenStoreInventory) onOpenStoreInventory();
+              }
+            },
+            { 
+              id: 'housekeeping', 
+              label: '5. Housekeeping & Turnover', 
+              icon: Layers, 
+              color: '#facc15', 
+              desc: '39-Room Vacant Dirty Turnover',
+              onClick: () => {
+                setActiveDepartment('housekeeping');
+                setActiveTab('housekeeping');
+              }
+            }
+          ].map(dept => {
+            const Icon = dept.icon;
+            const isSelected = activeDepartment === dept.id;
+            return (
+              <button
+                key={dept.id}
+                onClick={dept.onClick}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '10px',
+                  background: isSelected ? 'rgba(212, 175, 55, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                  border: isSelected ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.07)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '8px',
+                  background: isSelected ? dept.color : 'rgba(255,255,255,0.08)',
+                  color: isSelected ? '#060e1a' : dept.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Icon size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isSelected ? '#fff' : '#cbd5e1' }}>
+                    {dept.label}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: isSelected ? 'var(--gold-glow)' : 'var(--text-muted)' }}>
+                    {dept.desc}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
       {/* Front Desk Header */}
       <div style={{
         display: 'flex',
@@ -705,7 +880,7 @@ export default function ReceptionAdmin({
                       {floorRooms.map(room => {
                         const isOccupied = room.status === 'Occupied';
                         const isMaint = room.status === 'Maintenance';
-                        const isCleaning = room.status === 'Cleaning';
+                        const isCleaning = room.status === 'Cleaning' || room.status === 'Vacant Dirty';
                         const isVacant = room.status === 'Available';
 
                         const bgColor = isOccupied
@@ -771,7 +946,7 @@ export default function ReceptionAdmin({
                                   padding: '1px 5px',
                                   borderRadius: '3px'
                                 }}>
-                                  {isMaint ? 'MAINT' : isOccupied ? 'OCCUPIED' : isCleaning ? 'CLEANING' : 'VACANT'}
+                                  {isMaint ? 'MAINT' : isOccupied ? 'OCCUPIED' : (room.status === 'Vacant Dirty' ? 'VACANT DIRTY' : isCleaning ? 'CLEANING' : 'VACANT')}
                                 </span>
                               </div>
 
@@ -1094,11 +1269,12 @@ export default function ReceptionAdmin({
                               </>
                             )}
 
-                            {room.status === 'Cleaning' && (
+                            {(room.status === 'Cleaning' || room.status === 'Vacant Dirty') && (
                               <>
                                 <button
                                   type="button"
                                   onClick={() => onUpdateRoomStatus(room.roomNumber, 'Available', null, null)}
+                                  title="Housekeeping inspection complete: Release room to Vacant Clean"
                                   style={{
                                     flex: 2,
                                     padding: '0.35rem 0.5rem',
@@ -1111,7 +1287,7 @@ export default function ReceptionAdmin({
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  ✓ Mark Ready
+                                  ✓ Mark Inspected Clean
                                 </button>
                                 <button
                                   type="button"

@@ -28,11 +28,11 @@ export default function FolioActionsModal({
   const [folioTransactions, setFolioTransactions] = useState([
     { id: 'TX-101', date: '17/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 1)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
     { id: 'TX-102', date: '18/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 2)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
-    { id: 'TX-103', date: '18/09/2026', type: 'DINING', desc: 'Cannon Kitchen Restaurant - KOT #18346 (Veg Fried Rice)', sac: '996331', debit: 294.00, credit: 0, operator: 'Sadananda' },
+    { id: 'TX-103', date: '18/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18346 (Veg Fried Rice)', sac: '996331', debit: 294.00, credit: 0, operator: 'Sadananda' },
     { id: 'TX-104', date: '19/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 3)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
-    { id: 'TX-105', date: '19/09/2026', type: 'DINING', desc: 'Cannon Kitchen Restaurant - KOT #18372 (Paneer Tikka + Water)', sac: '996331', debit: 325.50, credit: 0, operator: 'Koti' },
+    { id: 'TX-105', date: '19/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18372 (Paneer Tikka + Water)', sac: '996331', debit: 325.50, credit: 0, operator: 'Koti' },
     { id: 'TX-106', date: '20/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 4)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
-    { id: 'TX-107', date: '20/09/2026', type: 'DINING', desc: 'Cannon Kitchen Restaurant - KOT #18401 (Dal Makhani + Naan)', sac: '996331', debit: 325.50, credit: 0, operator: 'Deepak' },
+    { id: 'TX-107', date: '20/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18401 (Dal Makhani + Naan)', sac: '996331', debit: 325.50, credit: 0, operator: 'Deepak' },
     { id: 'TX-108', date: '17/09/2026', type: 'ADVANCE', desc: 'Check-In Advance (UPI SBI Merchant QR)', sac: '-', debit: 0, credit: 3000.00, operator: 'Front Desk' }
   ]);
 
@@ -77,7 +77,7 @@ export default function FolioActionsModal({
   const [paidOutPurpose, setPaidOutPurpose] = useState('Taxi Fare to Rayagada Station');
   const [paidOutReceiver, setPaidOutReceiver] = useState('Local Auto/Taxi Driver');
 
-  const [chargeCategory, setChargeCategory] = useState('CANNON KITCHEN_RESTAURANT');
+  const [chargeCategory, setChargeCategory] = useState('FENUGREEK_RESTAURANT');
   const [chargeAmount, setChargeAmount] = useState('');
   const [chargeRemarks, setChargeRemarks] = useState('');
 
@@ -1042,7 +1042,7 @@ export default function FolioActionsModal({
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="e.g. Cannon Kitchen Restaurant Dinner - Veg Fried Rice + Mineral Water"
+                      placeholder="e.g. Fenugreek Restaurant Dinner - Veg Fried Rice + Mineral Water"
                       value={chargeRemarks}
                       onChange={(e) => setChargeRemarks(e.target.value)}
                     />
@@ -1644,7 +1644,7 @@ export default function FolioActionsModal({
                   Corporate Split Billing (Room vs Food Invoices)
                 </h3>
                 <p style={{ margin: '0 0 1.5rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                  Pages 2 &amp; 3 of hotel_documents.pdf: Automatically splits Room Tariff (SAC 996311) to Corporate BTC and Cannon Kitchen Restaurant Dining (SAC 996331) to Guest Direct settlement.
+                  Pages 2 &amp; 3 of hotel_documents.pdf &amp; Owner Video: Automatically splits Room Tariff (SAC 996311) to Corporate BTC and Fenugreek Restaurant Dining (SAC 996331) to Guest Direct settlement.
                 </p>
 
                 <div style={{
@@ -1664,7 +1664,7 @@ export default function FolioActionsModal({
                       <strong style={{ color: '#fff' }}>₹12,596.00</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.35rem' }}>
-                      <span>Invoice B (Bill #01500): Cannon Kitchen Restaurant Dining (SAC 996331)</span>
+                      <span>Invoice B (Bill #01500): Fenugreek Restaurant Dining (SAC 996331)</span>
                       <strong style={{ color: '#34d399' }}>₹962.00</strong>
                     </div>
                   </div>

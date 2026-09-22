@@ -188,7 +188,7 @@ export default function Navbar({
               gap: '0.3rem'
             }}
           >
-            🍳 Cannon Kitchen POS (Code 214)
+            🍳 Fenugreek Restaurant POS (Code 214)
           </button>
 
           <button
@@ -417,7 +417,7 @@ export default function Navbar({
                 gap: '0.35rem'
               }}
             >
-              <Utensils size={15} color="#34d399" /> Cannon Kitchen POS
+              <Utensils size={15} color="#34d399" /> Fenugreek Restaurant POS
             </button>
 
             <button 
@@ -539,7 +539,7 @@ export default function Navbar({
               🏛️ 3D Multi-Floor Explorer
             </button>
             <button onClick={() => { onOpenCannonKitchenPOS(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#34d399', padding: '0.4rem 0' }}>
-              🍳 Cannon Kitchen Multi-Outlet POS
+              🍳 Fenugreek Restaurant Multi-Outlet POS
             </button>
             <button onClick={() => { onOpenAccountsLedger(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0' }}>
               ⚖️ Watertight Audit Reconciler (Proof: ₹0.00 Gap)

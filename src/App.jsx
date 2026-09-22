@@ -330,6 +330,9 @@ export default function App() {
               onUpdateRoomStatus={handleUpdateRoomStatus}
               onNewBooking={handleBookingSuccess}
               onRunNightAudit={handleRunNightAudit}
+              onOpenRestaurantPOS={() => setPosModalOpen(true)}
+              onOpenAccountsLedger={() => setAccountsModalOpen(true)}
+              onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
             />
 
             <FinancialAnalytics bookings={bookings} />
