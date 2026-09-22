@@ -69,11 +69,11 @@ export default function CannonKitchenPOS({
     }
   }, [isOpen]);
 
-  // Determine price based on active outlet
+  // Determine price based on active outlet (Owner Requirement: Swiggy/Zomato Surge Pricing)
   const getItemPrice = (item) => {
-    if (selectedOutlet === 'Room Service') return item.roomServicePrice || item.price * 1.1;
-    if (selectedOutlet === 'Swiggy' || selectedOutlet === 'Zomato') return item.swiggyPrice || item.price * 1.45;
-    if (selectedOutlet === 'Drop In Bar') return item.barPrice || item.price * 1.05;
+    if (selectedOutlet === 'Room Service') return item.roomServicePrice || Math.round(item.price * 1.10);
+    if (selectedOutlet === 'Swiggy' || selectedOutlet === 'Zomato') return item.swiggyPrice || Math.round(item.price * 1.25);
+    if (selectedOutlet === 'Drop In Bar') return item.barPrice || Math.round(item.price * 1.05);
     return item.dineInPrice || item.price;
   };
 
@@ -255,14 +255,14 @@ export default function CannonKitchenPOS({
             </p>
           </div>
 
-          {/* Outlet Selector Tabs (Official Outlets from hotel_documents.pdf Screenshot 10) */}
+          {/* Outlet Selector Tabs (Official Outlets with Dynamic Channel Pricing) */}
           <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '0.3rem', borderRadius: '10px', overflowX: 'auto' }}>
             {[
-              { id: 'Fenugreek Restaurant', label: 'Fenugreek Restaurant', markup: 'Dine-In (Code F)' },
-              { id: 'Drop In Bar', label: 'Drop In Bar', markup: 'Lounge (Code D)' },
-              { id: 'Room Service', label: 'Room Service', markup: '24x7 In-Room (Code H)' },
-              { id: 'Swiggy', label: 'Swiggy Delivery', markup: 'Online (Code S)' },
-              { id: 'Zomato', label: 'Zomato Delivery', markup: 'Online (Code Z)' }
+              { id: 'Cannon Kitchen', label: 'Cannon Kitchen', markup: 'Dine-In (Base Rate)' },
+              { id: 'Drop In Bar', label: 'Drop In Bar', markup: 'Lounge (+5% Code D)' },
+              { id: 'Room Service', label: 'Room Service', markup: '24x7 In-Room (+10%)' },
+              { id: 'Swiggy', label: 'Swiggy Delivery', markup: 'Online (+25% Surge)' },
+              { id: 'Zomato', label: 'Zomato Delivery', markup: 'Online (+25% Surge)' }
             ].map(outlet => (
               <button
                 key={outlet.id}

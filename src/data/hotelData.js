@@ -327,7 +327,7 @@ export const HOTEL_OUTLETS = [
   { 
     id: 'fenugreek', 
     code: 'F', 
-    name: 'Fenugreek Restaurant', 
+    name: 'Cannon Kitchen Restaurant', 
     type: 'Signature Vegetarian & Multi-Cuisine Dining', 
     timings: '07:00 AM - 11:00 PM', 
     sacCode: '996331', 
@@ -352,7 +352,7 @@ export const HOTEL_OUTLETS = [
     timings: '24 Hours', 
     sacCode: '996331', 
     gstRate: 5,
-    description: 'Direct in-room service serving fresh meals from Fenugreek Restaurant to all 39 rooms.'
+    description: 'Direct in-room service serving fresh meals from Cannon Kitchen Restaurant to all 39 rooms.'
   },
   { 
     id: 'swiggy', 
@@ -388,7 +388,7 @@ export const POST_CHARGE_CATEGORIES = [
   { id: 'EXP_PLAN', name: 'EXP. PLAN', desc: 'Extended Meal Plan Upgrade (CP/MAP/AP)', sac: '996311', taxRate: 5 },
   { id: 'LAUNDRY', name: 'LAUNDRY', desc: 'Guest Dry Cleaning & Pressing Services', sac: '999799', taxRate: 18 },
   { id: 'MISCELLANEOUS', name: 'MISCELLANEOUS', desc: 'Front Desk Incidental Services', sac: '996311', taxRate: 5 },
-  { id: 'FENUGREEK_RESTAURANT', name: 'FENUGREEK RESTAURANT', desc: 'Restaurant Dining Charges (KOT)', sac: '996331', taxRate: 5 }
+  { id: 'CANNON KITCHEN_RESTAURANT', name: 'CANNON KITCHEN RESTAURANT', desc: 'Restaurant Dining Charges (KOT)', sac: '996331', taxRate: 5 }
 ];
 
 

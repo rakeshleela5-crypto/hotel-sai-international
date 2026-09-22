@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Hotel, Phone, Clock, Layers, Utensils, Compass, Bot, 
+  Scale, Hotel, Phone, Clock, Layers, Utensils, Compass, Bot, 
   ShieldCheck, Lock, Sparkles, Building2, Menu, X, ShoppingBag, 
   MapPin, CheckCircle2
 } from 'lucide-react';
@@ -22,6 +22,7 @@ export default function Navbar({
   onOpenStoreInventory,
   onOpenDirectorPortal,
   onOpenRevenueManagement,
+  onOpenCommercialProposal,
   cartCount = 0,
   rooms = [],
   adminPinVerified,
@@ -286,6 +287,26 @@ export default function Navbar({
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
             ⚡ IDeaS G3 RMS Console
           </button>
+
+          <button
+            onClick={onOpenCommercialProposal}
+            style={{
+              padding: '0.3rem 0.75rem',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(56, 189, 248, 0.25))',
+              border: '1px solid var(--gold-glow)',
+              color: '#fff',
+              cursor: 'pointer',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              boxShadow: '0 2px 10px rgba(212, 175, 55, 0.2)'
+            }}
+          >
+            📜 Commercial Proposal (Post-25th)
+          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
@@ -387,7 +408,7 @@ export default function Navbar({
             </button>
 
             <button 
-              onClick={onOpenDining}
+              onClick={onOpenCannonKitchenPOS}
               style={{
                 color: 'var(--text-primary)',
                 fontSize: '0.9rem',
@@ -396,11 +417,11 @@ export default function Navbar({
                 gap: '0.35rem'
               }}
             >
-              <Utensils size={15} color="var(--gold-champagne)" /> Satvik Dining
+              <Utensils size={15} color="#34d399" /> Cannon Kitchen POS
             </button>
 
             <button 
-              onClick={onOpenDarshan}
+              onClick={onOpenAccountsLedger}
               style={{
                 color: 'var(--text-primary)',
                 fontSize: '0.9rem',
@@ -409,7 +430,7 @@ export default function Navbar({
                 gap: '0.35rem'
               }}
             >
-              <Compass size={15} color="#10b981" /> Temple Darshan
+              <Scale size={15} color="var(--gold-glow)" /> Audit Reconciler
             </button>
 
             <button 
@@ -422,24 +443,26 @@ export default function Navbar({
                 gap: '0.35rem'
               }}
             >
-              <Building2 size={15} color="#8b5cf6" /> Corporate B2B
+              <Building2 size={15} color="#8b5cf6" /> Corporate Ledgers
             </button>
 
             <button 
-              onClick={onOpenBotFleet}
+              onClick={onOpenCommercialProposal}
               style={{
-                color: 'var(--text-primary)',
-                fontSize: '0.9rem',
+                color: '#fff',
+                fontSize: '0.85rem',
+                fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                background: 'rgba(212, 175, 55, 0.12)',
-                border: '1px solid rgba(212, 175, 55, 0.3)',
+                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(56, 189, 248, 0.2))',
+                border: '1px solid var(--gold-glow)',
                 padding: '0.45rem 0.85rem',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                cursor: 'pointer'
               }}
             >
-              <Bot size={15} color="var(--gold-glow)" /> 20-Bot Fleet
+              <FileText size={15} color="var(--gold-glow)" /> 📜 Commercial Proposal
             </button>
           </div>
 
@@ -515,17 +538,17 @@ export default function Navbar({
             <button onClick={() => { onOpen3DExplorer(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#38bdf8', padding: '0.4rem 0' }}>
               🏛️ 3D Multi-Floor Explorer
             </button>
-            <button onClick={() => { onOpenDining(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0' }}>
-              🍛 Odia & Satvik Dining
+            <button onClick={() => { onOpenCannonKitchenPOS(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#34d399', padding: '0.4rem 0' }}>
+              🍳 Cannon Kitchen Multi-Outlet POS
             </button>
-            <button onClick={() => { onOpenDarshan(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#10b981', padding: '0.4rem 0' }}>
-              🛕 Maa Majhighariani Darshan
+            <button onClick={() => { onOpenAccountsLedger(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0' }}>
+              ⚖️ Watertight Audit Reconciler (Proof: ₹0.00 Gap)
             </button>
             <button onClick={() => { onOpenCorporate(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#a78bfa', padding: '0.4rem 0' }}>
-              🏢 Corporate B2B (JK / IMFA / Utkal)
+              🏢 Corporate B2B (Ashok Leyland / JK Paper)
             </button>
-            <button onClick={() => { onOpenBotFleet(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-champagne)', padding: '0.4rem 0' }}>
-              ⚙️ 20-Bot Autonomous Fleet
+            <button onClick={() => { onOpenCommercialProposal(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#38bdf8', padding: '0.4rem 0', fontWeight: 800 }}>
+              📜 Commercial Proposal (Post-25th Review)
             </button>
             <button onClick={() => { onOpenRevenueManagement(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0', fontWeight: 800 }}>
               ⚡ IDeaS G3 RMS Console

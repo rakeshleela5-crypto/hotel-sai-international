@@ -158,6 +158,25 @@ export default function StoreInventoryModal({
           >
             <Package size={15} /> Kitchen Issue Requisitions ({requisitions.length})
           </button>
+
+          <button
+            onClick={() => setActiveTab('vendor-payables')}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: activeTab === 'vendor-payables' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+              color: activeTab === 'vendor-payables' ? '#fbbf24' : 'var(--text-muted)',
+              border: activeTab === 'vendor-payables' ? '1px solid #fbbf24' : '1px solid transparent'
+            }}
+          >
+            <DollarSign size={15} /> 🏪 Rayagada Vendor Credit Ledger (₹48,650)
+          </button>
         </div>
 
         {/* Body Content */}
@@ -227,6 +246,101 @@ export default function StoreInventoryModal({
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Tab 3: Local Rayagada Vendor Credit Ledger */}
+          {activeTab === 'vendor-payables' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h4 style={{ color: '#fff', margin: 0, fontSize: '1.15rem' }}>Rayagada Local Vendor &amp; Supplier Credit Ledger</h4>
+                  <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Tracks purchases, payments, and outstanding balances to local vegetable, poultry, dairy &amp; grocery suppliers.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => alert('Printing Consolidated Vendor Payment Sheet for Managing Director Eswara')}
+                    className="btn-outline"
+                    style={{ padding: '0.5rem 0.85rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderColor: '#fbbf24', color: '#fbbf24' }}
+                  >
+                    <FileText size={15} /> Print Vendor Sheet
+                  </button>
+                </div>
+              </div>
+
+              {/* Vendor KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Inward Purchases (Sep 2026)</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#38bdf8' }}>₹1,38,050.00</div>
+                </div>
+
+                <div style={{ background: 'rgba(52, 211, 153, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#34d399' }}>Total Paid to Vendors (Bank/Cash)</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#34d399' }}>₹89,400.00</div>
+                </div>
+
+                <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', border: '1px solid #fbbf24' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>Total Net Vendor Payables</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f87171' }}>₹48,650.00</div>
+                </div>
+              </div>
+
+              {/* Vendor Table */}
+              <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                      <th style={{ padding: '0.75rem' }}>Vendor Name</th>
+                      <th style={{ padding: '0.75rem' }}>Category</th>
+                      <th style={{ padding: '0.75rem' }}>Contact Person</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Total Supplies (₹)</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Paid Amount (₹)</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Outstanding Due (₹)</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { name: 'Maa Majhighariani Daily Sabzi Mandi', cat: 'Fresh Vegetables & Herbs', contact: 'Kishore Sahu (+91 94371 88201)', supplies: 24800, paid: 18000, due: 6800 },
+                      { name: 'Rayagada Broiler & Mutton Center', cat: 'Poultry, Chicken & Mutton Cuts', contact: 'M. Ramesh (+91 98612 44902)', supplies: 46500, paid: 32000, due: 14500 },
+                      { name: 'Om Sai Dairy & Milk Cooperative', cat: 'Pure Milk, Paneer, Curd, Butter', contact: 'G. Patnaik (+91 82490 33811)', supplies: 18400, paid: 12000, due: 6400 },
+                      { name: 'Pooja Grocery & Spices Wholesale', cat: 'Basmati Rice, Dal, Edible Oil, Spices', contact: 'Suresh Agarwal (+91 94370 22105)', supplies: 35900, paid: 20000, due: 15900 },
+                      { name: 'Rayagada Commercial Gas Agency', cat: 'Commercial 19kg LPG Cylinders', contact: 'Delivery Desk (+91 06856 22214)', supplies: 12450, paid: 7400, due: 5050 }
+                    ].map((v, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td style={{ padding: '0.7rem 0.75rem', fontWeight: 600, color: '#fff' }}>{v.name}</td>
+                        <td style={{ padding: '0.7rem 0.75rem', color: '#cbd5e1' }}>{v.cat}</td>
+                        <td style={{ padding: '0.7rem 0.75rem', color: 'var(--text-muted)' }}>{v.contact}</td>
+                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'right', color: '#38bdf8' }}>₹{v.supplies.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'right', color: '#34d399' }}>₹{v.paid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#f87171' }}>₹{v.due.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'center' }}>
+                          <button
+                            onClick={() => alert(`Recording Cash/Cheque Payment Voucher for ${v.name}`)}
+                            className="btn-outline-gold"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                          >
+                            Pay Voucher
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: 'rgba(255,255,255,0.05)', fontWeight: 800 }}>
+                      <td colSpan={3} style={{ padding: '0.75rem', color: 'var(--gold-glow)' }}>TOTAL VENDOR OUTSTANDING</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#38bdf8' }}>₹1,38,050.00</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#34d399' }}>₹89,400.00</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171' }}>₹48,650.00</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           )}
 

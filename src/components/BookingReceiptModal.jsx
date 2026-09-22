@@ -186,7 +186,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                 transition: 'all 0.15s ease'
               }}
             >
-              Fenugreek Food Bill #01500 (Page 2)
+              Cannon Kitchen Food Bill #01500 (Page 2)
             </button>
 
             <button
@@ -444,7 +444,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                 <tr>
                   <td>2</td>
                   <td>
-                    <strong>Fenugreek Restaurant - Food &amp; Dining (KOT F2627-18346)</strong>
+                    <strong>Cannon Kitchen Restaurant - Food &amp; Dining (KOT F2627-18346)</strong>
                     <div style={{ fontSize: '9px', color: '#444' }}>
                       18-Sep (₹280) + 19-Sep (₹310) + 20-Sep (₹310) Dining Orders
                     </div>
@@ -494,7 +494,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               };
 
               const reversalsList = booking.reversals || [
-                { memoId: 'REV-103', desc: 'Fenugreek Restaurant KOT #18346 duplicate punch credit memo', sac: '996331', amount: 294.00, operator: 'S. Patnaik (Auditor)' }
+                { memoId: 'REV-103', desc: 'Cannon Kitchen Restaurant KOT #18346 duplicate punch credit memo', sac: '996331', amount: 294.00, operator: 'S. Patnaik (Auditor)' }
               ];
 
               const upiLabel = tenders.upiProvider ? `${tenders.upiProvider} (UPI)` : 'UPI';
@@ -718,13 +718,13 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
           </div>
         )}
 
-        {/* VIEW 3: FENUGREEK RESTAURANT FOOD INVOICE (Page 2 of hotel_documents.pdf - Bill #01500) */}
+        {/* VIEW 3: CANNON KITCHEN RESTAURANT FOOD INVOICE (Page 2 of hotel_documents.pdf - Bill #01500) */}
         {invoiceType === 'food-split' && (
           <div className="tax-invoice-sheet">
             <div className="sheet-header">
               <div className="header-left">
                 <span className="page-mark" style={{ background: '#059669' }}>F&amp;B DINING MEAL REIMBURSEMENT COPY</span>
-                <h1 className="tax-invoice-title" style={{ letterSpacing: '1px' }}>FENUGREEK RESTAURANT INVOICE</h1>
+                <h1 className="tax-invoice-title" style={{ letterSpacing: '1px' }}>CANNON KITCHEN RESTAURANT INVOICE</h1>
                 <div className="copy-type">SAC 996331 (Restaurant &amp; In-Room Dining Services)</div>
               </div>
               <div className="header-right">
@@ -732,7 +732,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                   <div className="hotel-trade-name" style={{ fontSize: '1.2rem', fontWeight: 900 }}>
                     {HOTEL_CONFIG.legalName.toUpperCase()}
                   </div>
-                  <div className="address-line">FENUGREEK RESTAURANT • Rayagada, Odisha - 765001</div>
+                  <div className="address-line">CANNON KITCHEN RESTAURANT • Rayagada, Odisha - 765001</div>
                   <div className="contact-line">
                     GSTIN: <span className="text-bold-gstin">{HOTEL_CONFIG.gstin}</span> | State: 21 (Odisha)
                   </div>
@@ -792,9 +792,9 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               </thead>
               <tbody>
                 {[
-                  { date: '18-Sep-2026', desc: 'FENUGREEK RESTAURANT', taxVal: 280.00, gstPct: 5, gstVal: 14.00, tot: 294.00 },
-                  { date: '19-Sep-2026', desc: 'FENUGREEK RESTAURANT', taxVal: 310.00, gstPct: 5, gstVal: 15.50, tot: 325.50 },
-                  { date: '20-Sep-2026', desc: 'FENUGREEK RESTAURANT', taxVal: 310.00, gstPct: 5, gstVal: 15.50, tot: 325.50 }
+                  { date: '18-Sep-2026', desc: 'CANNON KITCHEN RESTAURANT', taxVal: 280.00, gstPct: 5, gstVal: 14.00, tot: 294.00 },
+                  { date: '19-Sep-2026', desc: 'CANNON KITCHEN RESTAURANT', taxVal: 310.00, gstPct: 5, gstVal: 15.50, tot: 325.50 },
+                  { date: '20-Sep-2026', desc: 'CANNON KITCHEN RESTAURANT', taxVal: 310.00, gstPct: 5, gstVal: 15.50, tot: 325.50 }
                 ].map((row, idx) => (
                   <tr key={idx}>
                     <td>{row.date}</td>
@@ -835,7 +835,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
             </div>
 
             <div style={{ marginTop: '15px', fontSize: '9px', color: '#64748b', textAlign: 'center' }}>
-              Fenugreek Restaurant • Hotel Sai International Pvt Ltd • FSSAI Lic &amp; Satvik Hygiene Certified
+              Cannon Kitchen Restaurant • Hotel Sai International Pvt Ltd • FSSAI Lic &amp; Satvik Hygiene Certified
             </div>
           </div>
         )}
@@ -1015,7 +1015,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               <div style={{ display: 'flex', alignItems: 'baseline', borderBottom: '1px dotted #94a3b8' }}>
                 <span style={{ minWidth: '180px', color: '#475569', fontWeight: 600 }}>Towards Settlement Of :</span>
                 <span style={{ flex: 1, color: '#0f172a' }}>
-                  Fenugreek Restaurant Dining &amp; Room Service Meals (SAC 996331)
+                  Cannon Kitchen Restaurant Dining &amp; Room Service Meals (SAC 996331)
                 </span>
                 <span style={{ color: '#b45309', fontWeight: 600, fontSize: '11px' }}>
                   * Room Tariff (₹{roomTotal.toFixed(2)}) transferred to Corporate BTC Credit
@@ -1101,7 +1101,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                   <td style={{ textAlign: 'right' }}>₹11,996.00</td>
                 </tr>
                 <tr>
-                  <td>Fenugreek Dining</td>
+                  <td>Cannon Kitchen Dining</td>
                   <td style={{ textAlign: 'right' }}>₹900.00</td>
                 </tr>
                 <tr>

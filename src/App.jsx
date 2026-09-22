@@ -14,6 +14,7 @@ import DarshanAdvisorModal from './components/DarshanAdvisorModal';
 import AiConciergeModal from './components/AiConciergeModal';
 import CorporatePortalModal from './components/CorporatePortalModal';
 import MasterFolioModal from './components/MasterFolioModal';
+import CommercialProposalModal from './components/CommercialProposalModal';
 import CannonKitchenPOS from './components/CannonKitchenPOS';
 import AccountsLedgerModal from './components/AccountsLedgerModal';
 import NightAuditModal from './components/NightAuditModal';
@@ -25,7 +26,7 @@ import Footer from './components/Footer';
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
 import { FloatingDock } from '@/components/ui/floating-dock';
-import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles } from 'lucide-react';
+import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale, FileText } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('guest'); // 'guest' or 'pms'
@@ -137,6 +138,7 @@ export default function App() {
 
   // IDS Next Operational Modules State
   const [folioModalOpen, setFolioModalOpen] = useState(false);
+  const [commercialProposalOpen, setCommercialProposalOpen] = useState(false);
   const [posModalOpen, setPosModalOpen] = useState(false);
   const [accountsModalOpen, setAccountsModalOpen] = useState(false);
   const [nightAuditModalOpen, setNightAuditModalOpen] = useState(false);
@@ -283,6 +285,7 @@ export default function App() {
         onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
         onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
         onOpenRevenueManagement={() => setRevenueModalOpen(true)}
+        onOpenCommercialProposal={() => setCommercialProposalOpen(true)}
         rooms={rooms}
         adminPinVerified={adminPinVerified}
         setAdminPinVerified={setAdminPinVerified}
@@ -389,6 +392,11 @@ export default function App() {
         onClose={() => setCorporateModalOpen(false)}
       />
 
+      <CommercialProposalModal
+        isOpen={commercialProposalOpen}
+        onClose={() => setCommercialProposalOpen(false)}
+      />
+
       {/* IDS Next Enterprise Operational Modals */}
       <MasterFolioModal 
         isOpen={folioModalOpen}
@@ -480,14 +488,19 @@ export default function App() {
             onClick: () => setFloorExplorerOpen(true)
           },
           {
-            title: "Maa Majhighariani Darshan",
-            icon: <Compass className="h-5 w-5" />,
-            onClick: () => setDarshanModalOpen(true)
+            title: "Audit Reconciler (Proof)",
+            icon: <Scale className="h-5 w-5" />,
+            onClick: () => setAccountsModalOpen(true)
           },
           {
-            title: "Satvik Dining & Menu",
+            title: "Cannon Kitchen POS",
             icon: <Utensils className="h-5 w-5" />,
-            onClick: () => setDiningModalOpen(true)
+            onClick: () => setPosModalOpen(true)
+          },
+          {
+            title: "Commercial Proposal",
+            icon: <FileText className="h-5 w-5" />,
+            onClick: () => setCommercialProposalOpen(true)
           },
           {
             title: currentView === 'pms' ? "Guest Portal" : "Reception PMS",

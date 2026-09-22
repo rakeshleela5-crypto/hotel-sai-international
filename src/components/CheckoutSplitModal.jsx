@@ -54,6 +54,7 @@ export default function CheckoutSplitModal({
   const [btcCompany, setBtcCompany] = useState('Linde India Ltd');
 
   const [openReceiptAfter, setOpenReceiptAfter] = useState(true);
+  const [checkoutMode, setCheckoutMode] = useState('tenders'); // 'tenders' | 'split-invoices'
   const [errorMsg, setErrorMsg] = useState('');
 
   // Total allocated sum
@@ -78,7 +79,7 @@ export default function CheckoutSplitModal({
     setErrorMsg('');
     if (type === 'owner-split-btc') {
       // The exact corporate lodging + dining split from the owner's video:
-      // ₹962 Fenugreek Restaurant Dining -> PhonePe (UPI)
+      // ₹962 Cannon Kitchen Restaurant Dining -> PhonePe (UPI)
       // ₹12,596 Room Lodging Tariff -> Linde India Ltd (BTC Credit)
       setBillTotal(13558);
       setBillBreakdown({
@@ -224,9 +225,45 @@ export default function CheckoutSplitModal({
                 Room {room.roomNumber} ({room.tier})
               </span>
             </div>
-            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#fff' }}>
-              Guest Checkout &amp; <span className="gold-gradient-text">Multi-Tender Split Settlement</span>
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.2rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#fff' }}>
+                Guest Checkout &amp; <span className="gold-gradient-text">Settlement Suite</span>
+              </h2>
+              <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(0,0,0,0.5)', padding: '0.25rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <button
+                  type="button"
+                  onClick={() => setCheckoutMode('tenders')}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: checkoutMode === 'tenders' ? 'var(--gold-primary)' : 'transparent',
+                    color: checkoutMode === 'tenders' ? '#000' : 'var(--text-muted)'
+                  }}
+                >
+                  💳 Multi-Tender Payment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCheckoutMode('split-invoices')}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: checkoutMode === 'split-invoices' ? '#38bdf8' : 'transparent',
+                    color: checkoutMode === 'split-invoices' ? '#000' : 'var(--text-muted)'
+                  }}
+                >
+                  📑 Split Tax Invoices (Room vs Food)
+                </button>
+              </div>
+            </div>
             <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
               Guest: <strong style={{ color: '#fff' }}>{room.currentGuestName || matchedBooking.guestName}</strong> • Official Bill #{matchedBooking.billNo}
             </p>
@@ -252,6 +289,189 @@ export default function CheckoutSplitModal({
           </button>
         </div>
 
+        {checkoutMode === 'split-invoices' ? (
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto' }}>
+            {/* Corporate Split Notice */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(212, 175, 55, 0.12))',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '10px',
+              padding: '1rem 1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <ShieldCheck size={24} color="#38bdf8" />
+              <div>
+                <strong style={{ color: '#fff', fontSize: '0.9rem' }}>
+                  Corporate Tax Invoicing Compliance (JK Paper, GAIL, Ashok Leyland Standard)
+                </strong>
+                <p style={{ margin: '0.15rem 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                  Generating two legally isolated tax invoices for Room {room.roomNumber}: 
+                  <strong> Bill A (Room Lodging)</strong> under company GSTIN for travel claims &amp; 
+                  <strong> Bill B (Cannon Kitchen Food)</strong> under guest name for F&amp;B meal allowances.
+                </p>
+              </div>
+            </div>
+
+            {/* Split Invoices Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+              {/* BILL A: ROOM LODGING */}
+              <div style={{
+                background: 'rgba(12, 24, 43, 0.85)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <span className="badge" style={{ background: '#38bdf8', color: '#060e1a', fontWeight: 800, fontSize: '0.7rem' }}>
+                        BILL A: ROOM TARIFF INVOICE
+                      </span>
+                      <h4 style={{ margin: '0.4rem 0 0', color: '#fff', fontSize: '1.05rem' }}>
+                        #{matchedBooking.billNo || 'FMBIL2627'}-R
+                      </h4>
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      <div>SAC Code: <strong style={{ color: '#38bdf8' }}>996311</strong></div>
+                      <div>GST Rate: <strong>12% (6%+6%)</strong></div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.6 }}>
+                    <div><strong>Billed To:</strong> {btcCompany || 'Ashok Leyland Limited'}</div>
+                    <div><strong>GSTIN:</strong> 33AAACA0779M1ZT (Corporate B2B)</div>
+                    <div><strong>Guest:</strong> {room.currentGuestName || matchedBooking.guestName} (Room {room.roomNumber})</div>
+                    <div><strong>Period:</strong> 18/09/2026 to 21/09/2026 (3 Nights)</div>
+                  </div>
+
+                  <div style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Room Base Tariff:</span>
+                      <span style={{ color: '#fff', fontWeight: 600 }}>₹{((billTotal > 1500 ? billTotal - 962 : billTotal) / 1.12).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>CGST (6%):</span>
+                      <span style={{ color: '#fbbf24' }}>₹{(((billTotal > 1500 ? billTotal - 962 : billTotal) / 1.12) * 0.06).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>SGST (6%):</span>
+                      <span style={{ color: '#fbbf24' }}>₹{(((billTotal > 1500 ? billTotal - 962 : billTotal) / 1.12) * 0.06).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.4rem', fontWeight: 800 }}>
+                      <span style={{ color: '#38bdf8' }}>Total Room Bill:</span>
+                      <span style={{ color: '#38bdf8', fontSize: '1.05rem' }}>₹{(billTotal > 1500 ? billTotal - 962 : billTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => alert(`Printing Bill A: Official Room Tax Invoice #${matchedBooking.billNo}-R for ${btcCompany || 'Corporate'}`)}
+                    className="btn-outline"
+                    style={{ flex: 1, padding: '0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', borderColor: '#38bdf8', color: '#38bdf8' }}
+                  >
+                    <Printer size={15} /> Print Room Bill A
+                  </button>
+                </div>
+              </div>
+
+              {/* BILL B: CANNON KITCHEN FOOD */}
+              <div style={{
+                background: 'rgba(12, 24, 43, 0.85)',
+                border: '1px solid rgba(52, 211, 153, 0.4)',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <span className="badge" style={{ background: '#34d399', color: '#060e1a', fontWeight: 800, fontSize: '0.7rem' }}>
+                        BILL B: CANNON KITCHEN FOOD INVOICE
+                      </span>
+                      <h4 style={{ margin: '0.4rem 0 0', color: '#fff', fontSize: '1.05rem' }}>
+                        #{matchedBooking.billNo || 'FMBIL2627'}-F
+                      </h4>
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      <div>SAC Code: <strong style={{ color: '#34d399' }}>996331</strong></div>
+                      <div>GST Rate: <strong>5% (2.5%+2.5%)</strong></div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.6 }}>
+                    <div><strong>Billed To:</strong> {room.currentGuestName || matchedBooking.guestName} (Personal)</div>
+                    <div><strong>Outlet:</strong> Cannon Kitchen Restaurant &amp; Room Dining</div>
+                    <div><strong>KOT Numbers:</strong> F2627-7514, F2627-7515</div>
+                    <div><strong>Payment Mode:</strong> PhonePe UPI / Cash (Personal Settlement)</div>
+                  </div>
+
+                  <div style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Food Base Value:</span>
+                      <span style={{ color: '#fff', fontWeight: 600 }}>₹{(962.00 / 1.05).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>CGST (2.5%):</span>
+                      <span style={{ color: '#fbbf24' }}>₹{((962.00 / 1.05) * 0.025).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>SGST (2.5%):</span>
+                      <span style={{ color: '#fbbf24' }}>₹{((962.00 / 1.05) * 0.025).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.4rem', fontWeight: 800 }}>
+                      <span style={{ color: '#34d399' }}>Total Food Bill:</span>
+                      <span style={{ color: '#34d399', fontSize: '1.05rem' }}>₹962.00</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => alert(`Printing Bill B: Cannon Kitchen Food Invoice #${matchedBooking.billNo}-F for ${room.currentGuestName || matchedBooking.guestName}`)}
+                    className="btn-outline"
+                    style={{ flex: 1, padding: '0.5rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', borderColor: '#34d399', color: '#34d399' }}
+                  >
+                    <Printer size={15} /> Print Food Bill B
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Back to Tenders or Proceed */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <button
+                type="button"
+                onClick={() => setCheckoutMode('tenders')}
+                className="btn-outline"
+                style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
+              >
+                ← Back to Multi-Tender Payment
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  alert('Both Bill A (Room) and Bill B (Cannon Kitchen Food) generated and logged in statutory sales summary.');
+                  setCheckoutMode('tenders');
+                }}
+                className="btn-primary-gold"
+                style={{ padding: '0.55rem 1.5rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <CheckCircle2 size={16} /> Confirm Split Invoices &amp; Proceed to Settlement
+              </button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleCheckoutSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
           {/* NET DUE & BALANCING SUMMARY CARD */}
@@ -885,6 +1105,7 @@ export default function CheckoutSplitModal({
           </div>
 
         </form>
+        )}
       </div>
     </div>
   );

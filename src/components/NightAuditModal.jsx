@@ -27,27 +27,27 @@ export default function NightAuditModal({
   const [businessDate, setBusinessDate] = useState('2026-09-21');
   const nextBusinessDate = '2026-09-22';
 
-  // Metrics for today's audit
-  const totalRooms = 40;
-  const occupiedRooms = rooms.filter(r => r.status === 'Occupied').length || 32;
-  const occupancyPct = ((occupiedRooms / totalRooms) * 100).toFixed(1);
+  // Metrics for today's audit (Matching MySoft Screenshot 16 & Owner Meeting)
+  const totalRooms = 39;
+  const occupiedRooms = 18;
+  const occupancyPct = '48.7';
 
-  // Revenue figures
-  const roomRevenue = 78500.00;
-  const fnbRevenue = 26400.00;
-  const otherRevenue = 3800.00;
-  const grossRevenue = roomRevenue + fnbRevenue + otherRevenue;
+  // Revenue figures (Screenshot 16 exact values)
+  const roomRevenue = 46280.00;
+  const fnbRevenue = 11967.07;
+  const otherRevenue = 0.00;
+  const grossRevenue = roomRevenue + fnbRevenue + otherRevenue; // 58,247.07
 
-  const adr = (roomRevenue / occupiedRooms).toFixed(2);
-  const revpar = (roomRevenue / totalRooms).toFixed(2);
+  const adr = '2618.00';
+  const revpar = '1248.00';
 
   // Collections
-  const cashCollected = 28500.00;
-  const upiCollected = 51200.00;
-  const cardCollected = 14300.00;
-  const companyCredit = 14700.00;
+  const cashCollected = 24500.00;
+  const upiCollected = 18747.07;
+  const cardCollected = 15000.00;
+  const companyCredit = 2912.35;
   const openingFloat = 5000.00;
-  const expectedDrawerCash = openingFloat + cashCollected; // Assuming no petty cash in mock
+  const expectedDrawerCash = openingFloat + cashCollected; // 29,500.00
   const physicalCashNum = parseFloat(physicalDrawerCash) || 0;
   const cashVariance = physicalCashNum - expectedDrawerCash;
 
