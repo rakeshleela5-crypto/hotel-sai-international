@@ -948,11 +948,11 @@ export default function CannonKitchenPOS({
                         <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Modifiers:</span>
                           {[
-                            { id: 'Satvik', label: 'Satvik (No Onion/Garlic)' },
-                            { id: 'Jain', label: 'Jain Prep' },
-                            { id: 'Spicy', label: 'Extra Spicy' },
-                            { id: 'Mild', label: 'Mild' },
-                            { id: 'Less Oil', label: 'Less Oil' }
+                            { id: 'Satvik / No Onion & Garlic', label: 'Satvik / No Onion & Garlic' },
+                            { id: 'Jain Prep', label: 'Jain Prep' },
+                            { id: 'Medium Spicy', label: 'Medium Spicy' },
+                            { id: 'Less Oil', label: 'Less Oil' },
+                            { id: 'Extra Crispy', label: 'Extra Crispy' }
                           ].map(tag => {
                             const isSelected = activeTags.includes(tag.id);
                             return (
@@ -1052,18 +1052,19 @@ export default function CannonKitchenPOS({
                   <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     {[
                       { type: 'none', label: 'No Disc' },
+                      { type: 'percentage', val: 5, label: '5%' },
                       { type: 'percentage', val: 10, label: '10%' },
                       { type: 'percentage', val: 15, label: '15%' },
-                      { type: 'flat', val: 100, label: '₹100 Off' }
+                      { type: 'flat', val: 100, label: 'Custom Flat (₹)' }
                     ].map((btn, idx) => {
-                      const isSelected = discountType === btn.type && (btn.type === 'none' || discountValue === btn.val);
+                      const isSelected = discountType === btn.type && (btn.type === 'none' || btn.type === 'flat' || discountValue === btn.val);
                       return (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => {
                             setDiscountType(btn.type);
-                            if (btn.val) setDiscountValue(btn.val);
+                            if (btn.val !== undefined) setDiscountValue(btn.val);
                           }}
                           style={{
                             padding: '2px 8px',
@@ -1081,6 +1082,25 @@ export default function CannonKitchenPOS({
                       );
                     })}
 
+                    {discountType === 'flat' && (
+                      <input
+                        type="number"
+                        placeholder="₹ Amount"
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
+                        style={{
+                          width: '75px',
+                          padding: '2px 6px',
+                          background: '#0d111d',
+                          color: '#34d399',
+                          fontWeight: 700,
+                          border: '1px solid rgba(52, 211, 153, 0.4)',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem'
+                        }}
+                      />
+                    )}
+
                     {discountType !== 'none' && (
                       <select
                         value={discountReason}
@@ -1097,8 +1117,10 @@ export default function CannonKitchenPOS({
                       >
                         <option value="Managing Director Courtesy">MD Eswara Courtesy</option>
                         <option value="Corporate Contract Discount">Corporate Contract (Linde/JK)</option>
+                        <option value="Operations Consultant Shravan Patnaik Courtesy">Consultant Patnaik Courtesy</option>
                         <option value="Food Quality Recovery">Food Quality Recovery</option>
                         <option value="Loyal Regular Guest">Loyal Regular Guest</option>
+                        <option value="GM Discretionary Allowance">GM Discretionary Allowance</option>
                       </select>
                     )}
                   </div>

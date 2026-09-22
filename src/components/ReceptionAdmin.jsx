@@ -137,6 +137,7 @@ export default function ReceptionAdmin({
       category: 'HVAC / AC',
       priority: 'High',
       technician: 'Bikram Patra (AC Specialist)',
+      targetEta: 'Within 2 Hours',
       loggedAt: '2026-09-22 08:30 AM',
       status: 'In Progress',
       notes: 'Capacitor replaced; gas pressure checked at 65 PSI.'
@@ -148,6 +149,7 @@ export default function ReceptionAdmin({
       category: 'Electrical',
       priority: 'Medium',
       technician: 'Pradeep Jena (Electrician)',
+      targetEta: 'Same Day by 18:00',
       loggedAt: '2026-09-22 09:15 AM',
       status: 'Pending',
       notes: 'Replacement heating element requested from Rayagada market.'
@@ -160,8 +162,13 @@ export default function ReceptionAdmin({
     category: 'HVAC / AC',
     priority: 'High',
     technician: 'Bikram Patra (AC Specialist)',
+    targetEta: 'Within 2 Hours',
     notes: ''
   });
+
+  // Printable Cashier Handover Voucher Modal State
+  const [handoverVoucherModalOpen, setHandoverVoucherModalOpen] = useState(false);
+  const [activeHandoverForVoucher, setActiveHandoverForVoucher] = useState(null);
 
   // Police Register Dispatch State
   const [policeDispatchSent, setPoliceDispatchSent] = useState(false);
@@ -265,6 +272,7 @@ export default function ReceptionAdmin({
       notes: variance === 0 ? 'Shift drawer physically balanced and signed.' : `Variance of ₹${variance} logged for audit.`
     };
     setHandoverLogs([newLog, ...handoverLogs]);
+    setActiveHandoverForVoucher(newLog);
     setHandoverSuccess(true);
     setTimeout(() => setHandoverSuccess(false), 4000);
   };
@@ -280,6 +288,7 @@ export default function ReceptionAdmin({
       category: workOrderForm.category,
       priority: workOrderForm.priority,
       technician: workOrderForm.technician,
+      targetEta: workOrderForm.targetEta || 'Within 2 Hours',
       loggedAt: new Date().toLocaleDateString('en-IN') + ' ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       status: 'In Progress',
       notes: workOrderForm.notes || 'Logged from Front Desk Maintenance Console'
@@ -294,6 +303,7 @@ export default function ReceptionAdmin({
       category: 'HVAC / AC',
       priority: 'High',
       technician: 'Bikram Patra (AC Specialist)',
+      targetEta: 'Within 2 Hours',
       notes: ''
     });
   };
@@ -1180,13 +1190,42 @@ export default function ReceptionAdmin({
                   </div>
                 )}
 
-                <button 
-                  onClick={executeShiftHandover}
-                  className="btn-primary-gold"
-                  style={{ justifyContent: 'center', marginTop: '0.5rem' }}
-                >
-                  <CheckCircle2 size={16} /> Sign Off &amp; Submit Handover Slip
-                </button>
+                <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                  <button 
+                    onClick={executeShiftHandover}
+                    className="btn-primary-gold"
+                    style={{ flex: 1.5, justifyContent: 'center' }}
+                  >
+                    <CheckCircle2 size={16} /> Sign Off &amp; Submit Handover Slip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVoucher = {
+                        shiftId: `SH-${Date.now().toString().slice(-6)}`,
+                        date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+                        shift: 'Evening (15:00 - 23:00)',
+                        cashier: 'Front Desk Cashier (K. Simhachalam)',
+                        supervisor: 'Operations Lead (S. Patnaik)',
+                        openingFloat,
+                        cashCollected,
+                        pettyCash: pettyCashPaid,
+                        expected: expectedDrawerCash,
+                        actual: closingCashActual,
+                        variance: drawerVariance,
+                        status: drawerVariance === 0 ? 'BALANCED' : drawerVariance > 0 ? 'OVERAGE' : 'SHORTAGE',
+                        denominations: { ...denominations },
+                        notes: drawerVariance === 0 ? 'Physical drawer notes counted and balanced.' : `Variance of ₹${drawerVariance} noted.`
+                      };
+                      setActiveHandoverForVoucher(currentVoucher);
+                      setHandoverVoucherModalOpen(true);
+                    }}
+                    className="btn-outline-gold"
+                    style={{ flex: 1, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <Printer size={16} /> Print Voucher
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1256,6 +1295,7 @@ export default function ReceptionAdmin({
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Physical (₹)</th>
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Variance Status</th>
                     <th style={{ padding: '0.6rem 0.75rem' }}>Verification Notes</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Voucher</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1289,6 +1329,27 @@ export default function ReceptionAdmin({
                       </td>
                       <td style={{ padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem' }}>
                         {log.notes}
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveHandoverForVoucher(log);
+                            setHandoverVoucherModalOpen(true);
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            background: 'rgba(212, 175, 55, 0.15)',
+                            color: 'var(--gold-glow)',
+                            border: '1px solid rgba(212, 175, 55, 0.3)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🖨️ Print
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1577,6 +1638,7 @@ export default function ReceptionAdmin({
                     <th style={{ padding: '0.6rem 0.75rem' }}>Room</th>
                     <th style={{ padding: '0.6rem 0.75rem' }}>Category &amp; Defect Issue</th>
                     <th style={{ padding: '0.6rem 0.75rem' }}>Assigned Technician</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Target ETA</th>
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Priority</th>
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Status</th>
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Action</th>
@@ -1600,6 +1662,19 @@ export default function ReceptionAdmin({
                       </td>
                       <td style={{ padding: '0.75rem', color: '#cbd5e1' }}>
                         {wo.technician}
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.3)'
+                        }}>
+                          ⏱️ {wo.targetEta || 'Within 2 Hours'}
+                        </span>
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <span style={{
@@ -2151,6 +2226,20 @@ export default function ReceptionAdmin({
               </div>
 
               <div className="form-group">
+                <label className="form-label">Target Resolution ETA</label>
+                <select
+                  className="form-select"
+                  value={workOrderForm.targetEta}
+                  onChange={(e) => setWorkOrderForm({ ...workOrderForm, targetEta: e.target.value })}
+                >
+                  <option value="Within 2 Hours">Within 2 Hours (Urgent Attention)</option>
+                  <option value="Within 4 Hours">Within 4 Hours (Standard)</option>
+                  <option value="Same Day by 18:00">Same Day by 18:00 PM</option>
+                  <option value="Next Morning (Scheduled)">Next Morning (Scheduled)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Technician Notes</label>
                 <input
                   type="text"
@@ -2244,6 +2333,260 @@ export default function ReceptionAdmin({
           onClose={() => setIsReceiptModalOpen(false)}
           booking={selectedReceiptBooking}
         />
+      )}
+
+      {/* PRINTABLE SHIFT HANDOVER & NOTE DENOMINATION VOUCHER MODAL */}
+      {handoverVoucherModalOpen && activeHandoverForVoucher && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(5, 7, 15, 0.92)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 4000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%',
+            maxWidth: 680,
+            maxHeight: '94vh',
+            overflowY: 'auto',
+            borderRadius: '12px',
+            border: '1px solid rgba(212, 175, 55, 0.4)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
+            background: '#ffffff',
+            color: '#0f172a',
+            padding: '2rem'
+          }}>
+            {/* Header (Printable) */}
+            <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.5px' }}>
+                    {HOTEL_CONFIG.legalName.toUpperCase()}
+                  </h2>
+                  <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>
+                    {HOTEL_CONFIG.address} • Phone: {HOTEL_CONFIG.phone}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', marginTop: '2px' }}>
+                    GSTIN: {HOTEL_CONFIG.gstin} • State: 21 (Odisha)
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    background: '#0f172a',
+                    color: '#fbbf24',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.5px'
+                  }}>
+                    SHIFT HANDOVER VOUCHER
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                    Shift ID: <strong>{activeHandoverForVoucher.shiftId}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Shift & Staff Particulars */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '0.75rem',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: '0.75rem 1rem',
+              marginBottom: '1.25rem',
+              fontSize: '0.8rem'
+            }}>
+              <div>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>Date &amp; Time</span>
+                <strong style={{ color: '#0f172a' }}>{activeHandoverForVoucher.date} • {activeHandoverForVoucher.shift}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>Shift Outgoing Cashier</span>
+                <strong style={{ color: '#0f172a' }}>{activeHandoverForVoucher.cashier}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>Counter-Signing Supervisor</span>
+                <strong style={{ color: '#0f172a' }}>{activeHandoverForVoucher.supervisor}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>Handover Status</span>
+                <strong style={{
+                  color: activeHandoverForVoucher.variance === 0 ? '#059669' : activeHandoverForVoucher.variance > 0 ? '#0284c7' : '#dc2626'
+                }}>
+                  {activeHandoverForVoucher.status} {activeHandoverForVoucher.variance !== 0 && `(₹${activeHandoverForVoucher.variance})`}
+                </strong>
+              </div>
+            </div>
+
+            {/* Physical Currency Denominations Table */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Physical Currency Denomination Breakdown
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', border: '1px solid #cbd5e1' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', color: '#334155', borderBottom: '1px solid #cbd5e1' }}>
+                    <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left' }}>Denomination</th>
+                    <th style={{ padding: '0.45rem 0.6rem', textAlign: 'center' }}>Multiplier</th>
+                    <th style={{ padding: '0.45rem 0.6rem', textAlign: 'center' }}>Physical Count</th>
+                    <th style={{ padding: '0.45rem 0.6rem', textAlign: 'right' }}>Total Value (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { denom: 500, label: '₹500 Note' },
+                    { denom: 200, label: '₹200 Note' },
+                    { denom: 100, label: '₹100 Note' },
+                    { denom: 50, label: '₹50 Note' },
+                    { denom: 20, label: '₹20 Note' },
+                    { denom: 10, label: '₹10 Note' },
+                    { denom: 'coins', label: 'Coins (₹1, 2, 5, 10)' }
+                  ].map(row => {
+                    const count = activeHandoverForVoucher.denominations?.[row.denom] || 0;
+                    const value = row.denom === 'coins' ? Number(count) : (Number(count) * Number(row.denom));
+                    return (
+                      <tr key={String(row.denom)} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '0.4rem 0.6rem', fontWeight: 600 }}>{row.label}</td>
+                        <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center', color: '#64748b' }}>
+                          {row.denom === 'coins' ? 'Direct Total' : `x ₹${row.denom}`}
+                        </td>
+                        <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center', fontWeight: 700 }}>
+                          {count}
+                        </td>
+                        <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                          ₹{value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: '#f8fafc', fontWeight: 800, borderTop: '2px solid #0f172a' }}>
+                    <td colSpan="3" style={{ padding: '0.5rem 0.6rem', textAlign: 'right', color: '#0f172a' }}>
+                      TOTAL PHYSICAL CASH COUNTED:
+                    </td>
+                    <td style={{ padding: '0.5rem 0.6rem', textAlign: 'right', color: '#0f172a', fontSize: '0.95rem' }}>
+                      ₹{Number(activeHandoverForVoucher.actual || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Reconciliation Statement */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              padding: '0.75rem 1rem',
+              marginBottom: '1.25rem',
+              fontSize: '0.8rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                <span>Opening Cash Float (Petty Drawer Base):</span>
+                <strong>₹{Number(activeHandoverForVoucher.openingFloat || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', color: '#059669' }}>
+                <span>Add: Shift Gross Cash Collections:</span>
+                <strong>+ ₹{Number(activeHandoverForVoucher.cashCollected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', color: '#dc2626' }}>
+                <span>Less: Authorized Petty Cash Disbursements:</span>
+                <strong>- ₹{Number(activeHandoverForVoucher.pettyCash || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '0.4rem', fontWeight: 800 }}>
+                <span>Expected Drawer Float Total:</span>
+                <span>₹{Number(activeHandoverForVoucher.expected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem', fontWeight: 800, color: activeHandoverForVoucher.variance === 0 ? '#059669' : '#dc2626' }}>
+                <span>Drawer Discrepancy / Variance:</span>
+                <span>
+                  {activeHandoverForVoucher.variance === 0 
+                    ? 'BALANCED (₹0.00 NIL VARIANCE)' 
+                    : activeHandoverForVoucher.variance > 0 
+                      ? `+₹${activeHandoverForVoucher.variance} OVERAGE` 
+                      : `-₹${Math.abs(activeHandoverForVoucher.variance)} SHORTAGE`}
+                </span>
+              </div>
+            </div>
+
+            {/* Verification Note */}
+            <div style={{ fontSize: '0.75rem', color: '#475569', marginBottom: '1.5rem', lineHeight: 1.4 }}>
+              <strong>Audit Declaration:</strong> {activeHandoverForVoucher.notes || 'All cash receipts and physical notes matched with front desk guest folio logs.'} Physical cash handed over to the incoming shift cashier and deposited into the front desk drop safe.
+            </div>
+
+            {/* Signature Blocks */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px dashed #cbd5e1' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ height: '35px', borderBottom: '1px solid #0f172a', marginBottom: '4px' }}></div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a' }}>
+                  OUTGOING CASHIER SIGNATURE
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  {activeHandoverForVoucher.cashier}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ height: '35px', borderBottom: '1px solid #0f172a', marginBottom: '4px' }}></div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a' }}>
+                  SUPERVISOR / GM VERIFICATION
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  {activeHandoverForVoucher.supervisor}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Bar (No-Print) */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+              <button
+                type="button"
+                onClick={() => setHandoverVoucherModalOpen(false)}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f1f5f9',
+                  color: '#334155',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#0f172a',
+                  color: '#fbbf24',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <Printer size={16} /> Print Shift Handover Voucher (Ctrl+P)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

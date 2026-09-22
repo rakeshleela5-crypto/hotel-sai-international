@@ -316,49 +316,96 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
             </div>
 
             {/* Audited Multi-Tender Settlement & Folio Reversals Transparency (Zero Leakage Protocol) */}
-            <div style={{
-              margin: '12px 0',
-              border: '1px solid #0f172a',
-              borderRadius: '4px',
-              padding: '8px 12px',
-              background: '#f8fafc',
-              fontSize: '10px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '6px' }}>
-                <strong style={{ textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.5px' }}>
-                  Audited Settlement &amp; Multi-Tender Split (MySoft Forensic Upgrade)
-                </strong>
-                <span style={{ color: '#059669', fontWeight: 'bold' }}>
-                  ✓ STATUS: FULLY SETTLED / NIL BALANCE
-                </span>
-              </div>
+            {(() => {
+              const tenders = booking.tenders || {
+                cash: booking.paymentMode === 'Cash' ? (booking.totalAmount || 13538) : (booking.advanceDeposit && booking.paymentMode?.includes('Cash') ? booking.advanceDeposit : 500),
+                upi: booking.paymentMode?.includes('UPI') ? (booking.advanceDeposit || 1000) : 1000,
+                card: booking.paymentMode?.includes('Card') ? (booking.totalAmount || 13538) : 0,
+                btc: booking.isB2b ? (booking.balanceDue || Math.max(0, (booking.totalAmount || 13538) - 1500)) : (booking.billingType === 'BTC' ? booking.totalAmount : 0),
+                btcCompany: booking.company || 'Linde India Ltd'
+              };
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Cash Tender</span>
-                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹0.00</strong>
-                </div>
-                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>UPI (SBI Merchant QR)</span>
-                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹5,000.00</strong>
-                </div>
-                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Card / POS Swipe</span>
-                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹0.00</strong>
-                </div>
-                <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Corporate BTC (Linde India)</span>
-                  <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹8,537.84</strong>
-                </div>
-              </div>
+              const reversalsList = booking.reversals || [
+                { memoId: 'REV-103', desc: 'Fenugreek Restaurant KOT #18346 duplicate punch credit memo', sac: '996331', amount: 294.00, operator: 'S. Patnaik (Auditor)' }
+              ];
 
-              {/* Credit Memo Reversals Transparency Note */}
-              <div style={{ marginTop: '6px', paddingTop: '4px', borderTop: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: '9px' }}>
-                <span>Folio Cashier / Duty Manager: <strong>Sudhakar Reddy (Shift A)</strong></span>
-                <span>Audited Credit Memos / Reversals: <strong>₹0.00 (Reconciliation Balanced)</strong></span>
-                <span>Net Drawer Remittance: <strong>₹13,537.84</strong></span>
-              </div>
-            </div>
+              const tenderSummaryText = [
+                tenders.cash > 0 && `Cash ₹${tenders.cash.toLocaleString('en-IN')}`,
+                tenders.upi > 0 && `UPI ₹${tenders.upi.toLocaleString('en-IN')}`,
+                tenders.card > 0 && `Card ₹${tenders.card.toLocaleString('en-IN')}`,
+                tenders.btc > 0 && `Billed to ${tenders.btcCompany} ₹${tenders.btc.toLocaleString('en-IN')}`
+              ].filter(Boolean).join(' + ');
+
+              return (
+                <div style={{
+                  margin: '12px 0',
+                  border: '1px solid #0f172a',
+                  borderRadius: '4px',
+                  padding: '8px 12px',
+                  background: '#f8fafc',
+                  fontSize: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '6px' }}>
+                    <strong style={{ textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.5px' }}>
+                      Audited Settlement &amp; Multi-Tender Split Breakdown
+                    </strong>
+                    <span style={{ color: '#059669', fontWeight: 'bold' }}>
+                      ✓ STATUS: FULLY SETTLED / NIL BALANCE
+                    </span>
+                  </div>
+
+                  {/* Multi-Tender Summary Pill */}
+                  <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '4px 8px', borderRadius: '3px', marginBottom: '8px', fontSize: '9.5px', color: '#065f46' }}>
+                    <strong>Multi-Tender Breakdown: </strong>
+                    <span>Paid: {tenderSummaryText || `Direct Settlement (${booking.paymentMode || 'Paid'})`}</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                    <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Cash Tender</span>
+                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.cash.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>UPI (Merchant QR)</span>
+                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.upi.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Card / POS Swipe</span>
+                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.card.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Corporate BTC ({tenders.btcCompany})</span>
+                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.btc.toLocaleString('en-IN')}</strong>
+                    </div>
+                  </div>
+
+                  {/* Audited Credit Memos / Reversals Transparency Note */}
+                  {reversalsList.length > 0 && (
+                    <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #cbd5e1' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                        <span style={{ fontWeight: 700, color: '#dc2626', fontSize: '9px' }}>
+                          ↩️ Section 34 CGST Act Balancing Credit Memos / Reversals:
+                        </span>
+                        <span style={{ color: '#64748b', fontSize: '9px' }}>
+                          Audited by: {reversalsList[0].operator}
+                        </span>
+                      </div>
+                      {reversalsList.map((rev, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff1f2', padding: '3px 6px', borderRadius: '3px', marginBottom: '2px', fontSize: '8.5px', color: '#9f1239' }}>
+                          <span>[{rev.memoId}] {rev.desc} (SAC {rev.sac})</span>
+                          <strong style={{ color: '#dc2626' }}>-₹{rev.amount.toFixed(2)} Credit Memo</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: '6px', paddingTop: '4px', borderTop: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: '9px' }}>
+                    <span>Folio Cashier / Duty Manager: <strong>Sudhakar Reddy (Shift A)</strong></span>
+                    <span>Net Reconciled Drawer Remittance: <strong>₹{(booking.totalAmount || 13537.84).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="sheet-footer-strip">
               Hotel Sai International Pvt Ltd • J.K. Road, Rayagada - 765001 • GSTIN: 21AABCH7663L1ZG • Thank You For Staying!

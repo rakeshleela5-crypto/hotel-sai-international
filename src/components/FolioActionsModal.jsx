@@ -130,14 +130,24 @@ export default function FolioActionsModal({
       id: `REV-${Date.now().toString().slice(-4)}`,
       date: new Date().toLocaleDateString('en-IN'),
       type: 'REVERSAL',
-      desc: `↩️ Reversal of ${reversingTx.desc} [Reason: ${reversalReason}]`,
+      desc: `↩️ Balancing Reversal of [${reversingTx.id}] ${reversingTx.desc} [Reason: ${reversalReason}]`,
       sac: reversingTx.sac,
       debit: 0,
       credit: reversingTx.debit, // Balances the original debit exactly!
-      operator: 'Authorized Auditor'
+      operator: 'Authorized Auditor (S. Patnaik)',
+      reversedTxId: reversingTx.id,
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
 
-    setFolioTransactions([balancingCreditMemo, ...folioTransactions]);
+    const updatedTxs = [
+      balancingCreditMemo,
+      ...folioTransactions.map(t => t.id === reversingTx.id ? { ...t, isReversed: true, reversalMemoId: balancingCreditMemo.id } : t)
+    ];
+
+    setFolioTransactions(updatedTxs);
+    if (onUpdateFolio) {
+      onUpdateFolio(room.roomNumber, { transactions: updatedTxs });
+    }
     showFeedback(`✓ Reversed Transaction ${reversingTx.id}! Balancing credit memo of ₹${reversingTx.debit.toFixed(2)} posted.`);
     setReversingTx(null);
   };
@@ -150,10 +160,10 @@ export default function FolioActionsModal({
     }
 
     const tendersSummary = [];
-    if (Number(settleCash) > 0) tendersSummary.push(`Cash: ₹${settleCash}`);
-    if (Number(settleUpi) > 0) tendersSummary.push(`UPI: ₹${settleUpi} (${settleUpiRef})`);
-    if (Number(settleCard) > 0) tendersSummary.push(`Card: ₹${settleCard} (${settleCardRef})`);
-    if (Number(settleBtc) > 0) tendersSummary.push(`BTC: ₹${settleBtc} (${settleBtcCompany})`);
+    if (Number(settleCash) > 0) tendersSummary.push(`Cash: ₹${Number(settleCash).toLocaleString('en-IN')}`);
+    if (Number(settleUpi) > 0) tendersSummary.push(`UPI: ₹${Number(settleUpi).toLocaleString('en-IN')} (${settleUpiRef})`);
+    if (Number(settleCard) > 0) tendersSummary.push(`Card: ₹${Number(settleCard).toLocaleString('en-IN')} (${settleCardRef})`);
+    if (Number(settleBtc) > 0) tendersSummary.push(`BTC: ₹${Number(settleBtc).toLocaleString('en-IN')} (${settleBtcCompany})`);
 
     const settlementTx = {
       id: `SETTLE-${Date.now().toString().slice(-4)}`,
@@ -163,14 +173,31 @@ export default function FolioActionsModal({
       sac: '-',
       debit: 0,
       credit: allocatedTenders,
-      operator: 'Front Desk Lead'
+      operator: 'Front Desk Lead (K. Simhachalam)',
+      tenders: {
+        cash: Number(settleCash) || 0,
+        upi: Number(settleUpi) || 0,
+        upiRef: settleUpiRef,
+        card: Number(settleCard) || 0,
+        cardRef: settleCardRef,
+        btc: Number(settleBtc) || 0,
+        btcCompany: settleBtcCompany
+      }
     };
 
-    setFolioTransactions([settlementTx, ...folioTransactions]);
+    const finalTxs = [settlementTx, ...folioTransactions];
+    setFolioTransactions(finalTxs);
+    if (onUpdateFolio) {
+      onUpdateFolio(room.roomNumber, { transactions: finalTxs, isSettled: true });
+    }
     showFeedback(`✓ Succeeded! Room ${room.roomNumber} folio settled across ${tendersSummary.length} payment tenders. Room released to Cleaning.`);
 
     if (onCheckoutRoom) {
-      onCheckoutRoom(room.roomNumber);
+      onCheckoutRoom(room.roomNumber, {
+        tendersSummary,
+        totalSettled: allocatedTenders,
+        transactions: finalTxs
+      });
     }
   };
 
@@ -419,23 +446,62 @@ export default function FolioActionsModal({
                             {tx.credit > 0 ? `₹${tx.credit.toFixed(2)}` : '-'}
                           </td>
                           <td style={{ padding: '0.7rem', textAlign: 'center' }}>
-                            {tx.debit > 0 && !isReversal && (
+                            {tx.isReversed ? (
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                background: 'rgba(244, 63, 94, 0.15)',
+                                color: '#f43f5e',
+                                border: '1px solid rgba(244, 63, 94, 0.3)'
+                              }}>
+                                ✓ Reversed
+                              </span>
+                            ) : tx.type === 'REVERSAL' ? (
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                background: 'rgba(52, 211, 153, 0.15)',
+                                color: '#34d399',
+                                border: '1px solid rgba(52, 211, 153, 0.3)'
+                              }}>
+                                Credit Memo
+                              </span>
+                            ) : tx.type === 'SETTLEMENT' ? (
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                background: 'rgba(56, 189, 248, 0.15)',
+                                color: '#38bdf8',
+                                border: '1px solid rgba(56, 189, 248, 0.3)'
+                              }}>
+                                Settled
+                              </span>
+                            ) : tx.debit > 0 && !isReversal ? (
                               <button
                                 onClick={() => setReversingTx(tx)}
                                 title="Reverse this charge with credit memo"
                                 style={{
-                                  padding: '3px 7px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
+                                  padding: '3px 8px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
                                   background: 'rgba(244, 63, 94, 0.2)',
                                   color: '#f43f5e',
                                   border: '1px solid rgba(244, 63, 94, 0.4)',
                                   borderRadius: '4px',
-                                  cursor: 'pointer'
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
                                 }}
                               >
                                 ↩️ Void / Reverse
                               </button>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>-</span>
                             )}
                           </td>
                         </tr>
@@ -541,6 +607,71 @@ export default function FolioActionsModal({
                       Total Allocated: ₹{allocatedTenders.toFixed(2)}
                     </div>
                   </div>
+                </div>
+
+                {/* Quick Allocation Presets */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Quick Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettleUpi(netOutstanding.toFixed(2));
+                      setSettleCash('');
+                      setSettleCard('');
+                      setSettleBtc('');
+                    }}
+                    style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 600, background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', cursor: 'pointer' }}
+                  >
+                    100% UPI (PhonePe)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettleCash(netOutstanding.toFixed(2));
+                      setSettleUpi('');
+                      setSettleCard('');
+                      setSettleBtc('');
+                    }}
+                    style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 600, background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.3)', cursor: 'pointer' }}
+                  >
+                    100% Cash
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettleCard(netOutstanding.toFixed(2));
+                      setSettleCash('');
+                      setSettleUpi('');
+                      setSettleBtc('');
+                    }}
+                    style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 600, background: 'rgba(192, 132, 252, 0.15)', color: '#c084fc', border: '1px solid rgba(192, 132, 252, 0.3)', cursor: 'pointer' }}
+                  >
+                    100% Card Swipe
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettleBtc(netOutstanding.toFixed(2));
+                      setSettleCash('');
+                      setSettleUpi('');
+                      setSettleCard('');
+                    }}
+                    style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 600, background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.3)', cursor: 'pointer' }}
+                  >
+                    100% BTC Corporate
+                  </button>
+                  {tenderVariance > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentUpi = Number(settleUpi) || 0;
+                        setSettleUpi((currentUpi + tenderVariance).toFixed(2));
+                      }}
+                      style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 700, background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', border: '1px solid var(--gold-glow)', cursor: 'pointer' }}
+                    >
+                      + Auto-Add ₹{tenderVariance.toFixed(2)} to UPI
+                    </button>
+                  )}
                 </div>
 
                 {/* Split Tender Form */}
