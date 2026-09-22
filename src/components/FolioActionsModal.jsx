@@ -201,6 +201,12 @@ export default function FolioActionsModal({
     }
   };
 
+  // Inter-Room Folio Transfer State (Owner Video: Timestamps 2:15 - 4:40)
+  const otherRooms = rooms.filter(r => r.roomNumber !== room.roomNumber);
+  const [transferTargetRoom, setTransferTargetRoom] = useState(otherRooms[0]?.roomNumber || '206');
+  const [selectedTxToTransfer, setSelectedTxToTransfer] = useState(null);
+  const [transferReason, setTransferReason] = useState('Senior Officer company food allowance covers Junior Officer dining (₹1,500)');
+
   // 4. Apply Late Checkout Surcharge
   const handleApplyLateCheckout = () => {
     const baseTariff = room.tariff || 2999;
@@ -229,11 +235,109 @@ export default function FolioActionsModal({
         credit: 0,
         operator: 'Duty Manager'
       };
-      setFolioTransactions([lateTx, ...folioTransactions]);
+      const updatedTxs = [lateTx, ...folioTransactions];
+      setFolioTransactions(updatedTxs);
+      if (onUpdateFolio) onUpdateFolio(room.roomNumber, { transactions: updatedTxs });
       showFeedback(`✓ Added ${desc} of ₹${fee.toFixed(2)} to Room ${room.roomNumber} folio.`);
     } else {
       showFeedback(`✓ Grace period extension granted until ${checkoutTargetTime}. Zero surcharge applied.`);
     }
+  };
+
+  // 4B. REMOVE TARIFF / WAIVE LATE STAY TARIFF (Owner Video: Timestamps 1:40 - 2:05)
+  // "Regular guest aithe vaddu anukunte adhi REMOVE cheyali!"
+  const handleRemoveTariff = () => {
+    const tariffTxs = folioTransactions.filter(t => 
+      (t.type === 'LATE_CHECKOUT' || t.desc.toLowerCase().includes('late') || t.desc.toLowerCase().includes('surcharge')) && 
+      !t.isReversed && t.debit > 0
+    );
+
+    if (tariffTxs.length === 0) {
+      // If no late checkout fee, check if there's any active tariff debit to waive
+      const anyTariff = folioTransactions.find(t => t.type === 'TARIFF' && !t.isReversed && t.debit > 0);
+      if (anyTariff) {
+        const waiverMemo = {
+          id: `WAIVE-${Date.now().toString().slice(-4)}`,
+          date: new Date().toLocaleDateString('en-IN'),
+          type: 'REVERSAL',
+          desc: `↩️ REMOVE TARIFF: Courtesy Tariff Waiver for Regular / VIP Guest [Authorized by Eswara MD]`,
+          sac: anyTariff.sac || '996311',
+          debit: 0,
+          credit: anyTariff.debit,
+          operator: 'Authorized Front Office Manager',
+          reversedTxId: anyTariff.id,
+          timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+        };
+        const updatedTxs = [
+          waiverMemo,
+          ...folioTransactions.map(t => t.id === anyTariff.id ? { ...t, isReversed: true, reversalMemoId: waiverMemo.id } : t)
+        ];
+        setFolioTransactions(updatedTxs);
+        if (onUpdateFolio) onUpdateFolio(room.roomNumber, { transactions: updatedTxs });
+        showFeedback(`✓ Succeeded! Removed tariff of ₹${anyTariff.debit.toFixed(2)} for Regular/VIP guest! Waiver memo posted.`);
+        return;
+      }
+      showFeedback(`No active late stay tariff debits found on Room ${room.roomNumber} folio to remove.`);
+      return;
+    }
+
+    const latestTariff = tariffTxs[0];
+    const waiverMemo = {
+      id: `WAIVE-${Date.now().toString().slice(-4)}`,
+      date: new Date().toLocaleDateString('en-IN'),
+      type: 'REVERSAL',
+      desc: `↩️ REMOVE TARIFF: Late Checkout Hourly Surcharge Waived for Regular / VIP Guest [Owner Rule]`,
+      sac: latestTariff.sac || '996311',
+      debit: 0,
+      credit: latestTariff.debit,
+      operator: 'Authorized Front Office Manager',
+      reversedTxId: latestTariff.id,
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const updatedTxs = [
+      waiverMemo,
+      ...folioTransactions.map(t => t.id === latestTariff.id ? { ...t, isReversed: true, reversalMemoId: waiverMemo.id } : t)
+    ];
+    setFolioTransactions(updatedTxs);
+    if (onUpdateFolio) onUpdateFolio(room.roomNumber, { transactions: updatedTxs });
+    showFeedback(`✓ Succeeded! Removed late stay surcharge of ₹${latestTariff.debit.toFixed(2)} for Regular/VIP guest.`);
+  };
+
+  // 5. Inter-Room Folio Bill Transfer (Owner Video: Timestamps 2:15 - 4:40)
+  const handleExecuteTransfer = () => {
+    if (!selectedTxToTransfer) {
+      alert('Please click and select a charge from the folio ledger below to transfer.');
+      return;
+    }
+
+    const txToMove = folioTransactions.find(t => t.id === selectedTxToTransfer);
+    if (!txToMove) return;
+
+    const transferOutMemo = {
+      id: `XFER-${Date.now().toString().slice(-4)}`,
+      date: new Date().toLocaleDateString('en-IN'),
+      type: 'TRANSFER_OUT',
+      desc: `➡️ TRANSFER FOLIO: Shifted [${txToMove.id}] ${txToMove.desc} to Room ${transferTargetRoom} [Reason: ${transferReason}]`,
+      sac: txToMove.sac || '996331',
+      debit: 0,
+      credit: txToMove.debit,
+      operator: 'Front Desk Cashier',
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const updatedCurrentTxs = [
+      transferOutMemo,
+      ...folioTransactions.map(t => t.id === txToMove.id ? { ...t, isTransferred: true, transferredTo: transferTargetRoom } : t)
+    ];
+
+    setFolioTransactions(updatedCurrentTxs);
+    if (onUpdateFolio) {
+      onUpdateFolio(room.roomNumber, { transactions: updatedCurrentTxs });
+    }
+
+    showFeedback(`✓ Transferred ₹${txToMove.debit.toFixed(2)} [${txToMove.desc}] from Room ${room.roomNumber} to Room ${transferTargetRoom} successfully!`);
+    setSelectedTxToTransfer(null);
   };
 
   return (
@@ -339,17 +443,18 @@ export default function FolioActionsModal({
 
             {[
               { id: 'ledger', label: 'Folio Ledger & Voids', icon: Receipt, color: '#38bdf8' },
+              { id: 'charges', label: 'Post Charges (11 Types @ 1:27)', icon: PlusCircle, color: '#38bdf8' },
+              { id: 'late-checkout', label: 'Remove Tariff (Late Stay Waiver)', icon: Clock, color: '#fbbf24' },
+              { id: 'transfer-folio', label: 'Transfer Folio (Inter-Room Bill)', icon: ArrowRightLeft, color: '#a78bfa' },
+              { id: 'split-folio', label: 'Split Folio (Room vs F&B)', icon: Split, color: '#34d399' },
+              { id: 'link-room', label: 'Link Room (Multi-Room Billing)', icon: Link2, color: '#60a5fa' },
+              { id: 'change-room', label: 'Change Room (Room Shift)', icon: RefreshCw, color: '#fbbf24' },
+              { id: 'edit-guest', label: 'Edit Guest & GSTIN Details', icon: UserCheck, color: '#38bdf8' },
               { id: 'split-settle', label: 'Split-Tender Settlement', icon: CheckCheck, color: '#34d399' },
-              { id: 'late-checkout', label: 'Late Checkout Calculator', icon: Clock, color: '#fbbf24' },
-              { id: 'charges', label: 'Post Debit Charge', icon: PlusCircle, color: '#38bdf8' },
-              { id: 'advance', label: 'Room Advance (Deposit)', icon: DollarSign, color: '#34d399' },
-              { id: 'change-room', label: 'Change Room (Shift)', icon: ArrowRightLeft, color: '#fbbf24' },
-              { id: 'pax-change', label: 'Pax Change', icon: Users, color: '#a78bfa' },
-              { id: 'link-room', label: 'Link Corporate BTC', icon: Link2, color: '#60a5fa' },
+              { id: 'advance', label: 'Tag Advance (Deposit Receipt)', icon: DollarSign, color: '#34d399' },
               { id: 'paid-out', label: 'Paid Out (Drawer Cash)', icon: MinusCircle, color: '#f87171' },
-              { id: 'allowance', label: 'Allowance (Discount)', icon: Tag, color: '#fb923c' },
-              { id: 'edit-guest', label: 'Edit Guest & GSTIN', icon: UserCheck, color: '#38bdf8' },
-              { id: 'split-folio', label: 'Split Folio (Room vs F&B)', icon: Split, color: '#34d399' }
+              { id: 'allowance', label: 'Allowance & Courtesy Discount', icon: Tag, color: '#fb923c' },
+              { id: 'pax-change', label: 'Pax Change (Single ↔ Double)', icon: Users, color: '#a78bfa' }
             ].map(act => {
               const Icon = act.icon;
               const isActive = selectedAction === act.id;
@@ -833,13 +938,52 @@ export default function FolioActionsModal({
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleApplyLateCheckout}
-                    className="btn-primary-gold"
-                    style={{ alignSelf: 'flex-start', marginTop: '0.5rem' }}
-                  >
-                    Apply Extension Policy to Folio
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleApplyLateCheckout}
+                      className="btn-primary-gold"
+                    >
+                      Apply Extension Surcharge to Folio
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleRemoveTariff}
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.2))',
+                        color: '#f87171',
+                        border: '1px solid rgba(239, 68, 68, 0.5)',
+                        padding: '8px 14px',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                      title="Waive / Remove Late Stay Hourly Tariff for Regular/VIP Guest"
+                    >
+                      <RotateCcw size={15} /> ⚡ Remove Tariff (Regular/VIP Waiver)
+                    </button>
+                  </div>
+
+                  {/* OWNER'S EXACT VIDEO EXPLANATION BANNER (Timestamps 1:40 - 2:05) */}
+                  <div style={{
+                    marginTop: '1rem',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: '8px',
+                    padding: '0.85rem 1rem',
+                    fontSize: '0.8rem',
+                    color: '#fca5a5',
+                    lineHeight: 1.5
+                  }}>
+                    <strong>Owner Video Rule:</strong> <em>"24-hours tarvaatha 2-3 hours late stay tariff software lo automatically vasthadi... Regular guest aithe vaddhu anukunte adhi REMOVE cheyali!"</em>
+                    <br />
+                    Clicking <strong>Remove Tariff</strong> immediately posts an authorized GM waiver credit memo to zero-out the late tariff before final checkout.
+                  </div>
                 </div>
               </div>
             )}
@@ -1306,6 +1450,188 @@ export default function FolioActionsModal({
                     style={{ marginTop: '0.5rem', alignSelf: 'flex-start' }}
                   >
                     Save Changes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ACTION: TRANSFER FOLIO (INTER-ROOM BILL TRANSFER - Owner Video: Timestamps 2:15 - 4:40) */}
+            {selectedAction === 'transfer-folio' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                  <span className="badge" style={{ background: 'rgba(167, 139, 250, 0.2)', color: '#c084fc', border: '1px solid #c084fc', fontWeight: 700 }}>
+                    OWNER VIDEO DEMO (2:15 - 4:40)
+                  </span>
+                  <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+                    Transfer Folio • Inter-Room Bill Transfer
+                  </h3>
+                </div>
+                <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                  Move restaurant food bills or other charges between rooms (e.g. Senior Officer covering Junior Officer's dining allowance, or correcting a wrong room dining slip).
+                </p>
+
+                {/* Owner's Quick Presets */}
+                <div style={{
+                  background: 'rgba(12, 24, 43, 0.7)',
+                  border: '1px solid rgba(167, 139, 250, 0.3)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ fontSize: '0.75rem', color: '#c084fc', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                    ⚡ Owner Video Transfer Scenarios:
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTransferReason('Senior Officer ₹1,500 daily food allowance covers Junior Officer dining (Linde India Ltd)');
+                        const diningTx = folioTransactions.find(t => t.type === 'DINING' || t.desc.toLowerCase().includes('fenugreek') || t.desc.toLowerCase().includes('restaurant'));
+                        if (diningTx) setSelectedTxToTransfer(diningTx.id);
+                      }}
+                      style={{
+                        background: 'rgba(167, 139, 250, 0.15)',
+                        color: '#c084fc',
+                        border: '1px solid rgba(167, 139, 250, 0.4)',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      👔 Scenario 1: Senior Officer Covers Junior Officer (₹1,500 Allowance)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTransferReason('Wrong room number written by restaurant steward on KOT slip (Move to correct room)');
+                        const diningTx = folioTransactions.find(t => t.type === 'DINING' || t.desc.toLowerCase().includes('fenugreek'));
+                        if (diningTx) setSelectedTxToTransfer(diningTx.id);
+                      }}
+                      style={{
+                        background: 'rgba(56, 189, 248, 0.15)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🧾 Scenario 2: Wrong Room Slip Posted by Mistake
+                    </button>
+                  </div>
+                </div>
+
+                {/* Transfer Form Grid */}
+                <div style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Step 1: Select Transaction */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, color: '#38bdf8' }}>
+                      Step 1: Select Bill / Charge to Transfer from Room {room.roomNumber}:
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+                      {folioTransactions.filter(t => !t.isReversed && !t.isTransferred && t.debit > 0).map(t => {
+                        const isSelected = selectedTxToTransfer === t.id;
+                        return (
+                          <div
+                            key={t.id}
+                            onClick={() => setSelectedTxToTransfer(t.id)}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              border: `1px solid ${isSelected ? '#a78bfa' : 'rgba(255,255,255,0.08)'}`,
+                              background: isSelected ? 'rgba(167, 139, 250, 0.18)' : 'rgba(255,255,255,0.02)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <input
+                                type="radio"
+                                name="txTransfer"
+                                checked={isSelected}
+                                onChange={() => setSelectedTxToTransfer(t.id)}
+                              />
+                              <div>
+                                <strong style={{ color: isSelected ? '#c084fc' : '#fff', fontSize: '0.82rem' }}>
+                                  [{t.id}] {t.desc}
+                                </strong>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  {t.date} • SAC {t.sac} • Operator: {t.operator}
+                                </div>
+                              </div>
+                            </div>
+                            <strong style={{ color: '#34d399', fontSize: '0.9rem' }}>
+                              ₹{t.debit.toFixed(2)}
+                            </strong>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Step 2: Destination Room & Reason */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 700, color: '#38bdf8' }}>
+                        Step 2: Destination Room to Receive Charge:
+                      </label>
+                      <select
+                        className="form-select"
+                        value={transferTargetRoom}
+                        onChange={(e) => setTransferTargetRoom(e.target.value)}
+                      >
+                        {otherRooms.map(r => (
+                          <option key={r.roomNumber} value={r.roomNumber}>
+                            Room {r.roomNumber} ({r.currentGuestName || 'Guest'} - {r.status})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 700, color: '#38bdf8' }}>
+                        Step 3: Transfer Reason / Audit Memo:
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={transferReason}
+                        onChange={(e) => setTransferReason(e.target.value)}
+                        placeholder="e.g. Senior Officer covers Junior Officer dining"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="button"
+                    onClick={handleExecuteTransfer}
+                    disabled={!selectedTxToTransfer}
+                    style={{
+                      background: selectedTxToTransfer ? 'linear-gradient(135deg, #a78bfa, #8b5cf6)' : 'rgba(255,255,255,0.1)',
+                      color: selectedTxToTransfer ? '#060e1a' : '#64748b',
+                      border: 'none',
+                      padding: '10px 18px',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      cursor: selectedTxToTransfer ? 'pointer' : 'not-allowed',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      alignSelf: 'flex-start',
+                      boxShadow: selectedTxToTransfer ? '0 4px 20px rgba(167, 139, 250, 0.4)' : 'none'
+                    }}
+                  >
+                    <ArrowRightLeft size={16} /> Execute Inter-Room Folio Transfer
                   </button>
                 </div>
               </div>

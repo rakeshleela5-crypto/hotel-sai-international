@@ -376,17 +376,19 @@ export const HOTEL_OUTLETS = [
   }
 ];
 
-// Standard MySoft Post Charge Categories (Page 4 of hotel_documents.pdf)
+// Standard MySoft Post Charge Categories (Exact Dropdown from Timestamp 1:27 in Owner Video)
 export const POST_CHARGE_CATEGORIES = [
-  { id: 'TARIFF', name: 'Tariff (Late Stay / Day Use)', sac: '996311', taxRate: 5 },
-  { id: 'EXTRA_PERSON', name: 'Extra Person / Bedding', sac: '996311', taxRate: 5 },
-  { id: 'ROOM_SERVICE', name: 'In-Room Dining (Room Service)', sac: '996331', taxRate: 5 },
-  { id: 'FENUGREEK_RESTAURANT', name: 'Fenugreek Restaurant KOT', sac: '996331', taxRate: 5 },
-  { id: 'DROP_IN_BAR', name: 'Drop In Bar & Beverages', sac: '996331', taxRate: 5 },
-  { id: 'LAUNDRY', name: 'Laundry & Express Pressing', sac: '999799', taxRate: 18 },
-  { id: 'PAID_OUT', name: 'Paid Out (Taxi / Medicine on guest behalf)', sac: '000000', taxRate: 0 },
-  { id: 'ALLOWANCE', name: 'Rate Allowance / Courtesy Adjustment', sac: '996311', taxRate: 5 },
-  { id: 'MISCELLANEOUS', name: 'Miscellaneous / Conference Hall', sac: '996311', taxRate: 5 }
+  { id: 'EXTRA_PERSON', name: 'EXTRA PERSON', desc: 'Additional Adult Guest Occupancy Fee', sac: '996311', taxRate: 5 },
+  { id: 'EXTRA_CHILD', name: 'EXTRA CHILD', desc: 'Child Stay / Rollaway Bed', sac: '996311', taxRate: 5 },
+  { id: 'ROOM_SERVICE', name: 'ROOM SERVICE', desc: 'In-Room Food & Beverage Orders', sac: '996331', taxRate: 5 },
+  { id: 'BANQUETS', name: 'BANQUETS', desc: 'Conference & Event Hall Charges', sac: '996311', taxRate: 18 },
+  { id: 'ROUND_OFF', name: 'ROUND OFF', desc: 'Folio Decimal Rounding (+/-)', sac: '000000', taxRate: 0 },
+  { id: 'ALLOWANCE', name: 'ALLOWANCE', desc: 'Commercial Courtesy Rate Adjustment', sac: '996311', taxRate: 5 },
+  { id: 'DISCOUNT', name: 'DISCOUNT', desc: 'Special Managerial Discount', sac: '996311', taxRate: 5 },
+  { id: 'EXP_PLAN', name: 'EXP. PLAN', desc: 'Extended Meal Plan Upgrade (CP/MAP/AP)', sac: '996311', taxRate: 5 },
+  { id: 'LAUNDRY', name: 'LAUNDRY', desc: 'Guest Dry Cleaning & Pressing Services', sac: '999799', taxRate: 18 },
+  { id: 'MISCELLANEOUS', name: 'MISCELLANEOUS', desc: 'Front Desk Incidental Services', sac: '996311', taxRate: 5 },
+  { id: 'FENUGREEK_RESTAURANT', name: 'FENUGREEK RESTAURANT', desc: 'Restaurant Dining Charges (KOT)', sac: '996331', taxRate: 5 }
 ];
 
 
