@@ -420,27 +420,7 @@ export default function ReceptionAdmin({
 
       {/* TAB: INTERACTIVE BOOKING VISUALIZER (visualize-booking.tsx) */}
       {activeTab === 'visualize-bookings' && (
-        <div style={{
-          background: 'rgba(12, 24, 43, 0.75)',
-          border: '1px solid rgba(212, 175, 55, 0.3)',
-          borderRadius: '14px',
-          padding: '2rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#fff', fontWeight: 700 }}>
-                Interactive Booking &amp; Conference Calendar Visualizer
-              </h3>
-              <p style={{ margin: '0.35rem 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                Powered by Framer Motion, Tailwind CSS &amp; shadcn/ui. Interactive date hover and expandable booking details drawer.
-              </p>
-            </div>
-            <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid #38bdf8', padding: '0.4rem 0.8rem' }}>
-              ✓ shadcn / Tailwind Component
-            </span>
-          </div>
-
+        <div className="w-full mb-8">
           <InteractiveCalendar 
             rooms={rooms}
             bookings={bookings}

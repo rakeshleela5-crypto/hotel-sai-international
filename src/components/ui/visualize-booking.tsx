@@ -1,24 +1,27 @@
+"use client";
+
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Columns3, Grid, Calendar as CalendarIcon, Users, MapPin, 
-  Clock, Building, Award, CheckCircle2, ChevronRight, X, 
-  Coffee, Utensils, Monitor, Volume2, DollarSign, Filter, Sparkles
+  Calendar as CalendarIcon, Users, MapPin, Clock, Building, 
+  CheckCircle2, ChevronRight, X, Coffee, Utensils, Monitor, 
+  Sparkles, Layers, FileText, ArrowRight, Eye
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export type CalendarEventType = {
   id: string;
   day: string; // '01', '02', ..., '30'
-  dateStr: string; // 'Tue, 22 Sep 2026'
+  dateStr: string;
   time: string;
   title: string;
   category: 'banquet' | 'room' | 'corporate';
-  venue: string; // 'A/C Conference Hall', 'Mandapam Banquet', 'Room 402', etc.
+  venue: string;
   organizer: string;
   contactPerson?: string;
   pax: string;
-  setup?: string; // 'Theater Style', 'U-Shape', 'Cluster', 'King Bed Executive'
-  billing: string; // 'Bill to Company (BTC)', 'Direct / Cash', 'Company Account'
+  setup?: string;
+  billing: string;
   status: 'In-Progress' | 'Confirmed' | 'In-House' | 'Completed' | 'Upcoming';
   amount?: number;
   beoDetails?: {
@@ -98,109 +101,89 @@ const DEFAULT_SEPTEMBER_EVENTS: CalendarEventType[] = [
     time: '09:30 AM - 05:00 PM',
     title: 'IMFA Therubali - Annual Transporters & Vendors Conclave',
     category: 'banquet',
-    venue: 'A/C Conference Hall (Ground Floor)',
-    organizer: 'Indian Metals & Ferro Alloys (IMFA)',
-    contactPerson: 'D. K. Mohapatra (VP HR & Logistics)',
-    pax: '48 Delegates',
-    setup: 'Theater Style + Podium & Head Table',
-    billing: 'BTC (CORP-05 - IMFA Therubali)',
+    venue: 'Mandapam Grand Banquet Hall',
+    organizer: 'Indian Metals & Ferro Alloys Ltd.',
+    contactPerson: 'M. Mohanty (Logistics VP)',
+    pax: '85 Delegates',
+    setup: 'Theater Style Layout with Podium',
+    billing: 'BTC (CORP-03 - IMFA)',
     status: 'Completed',
-    amount: 42000,
+    amount: 62000,
     beoDetails: {
-      setupStyle: 'Theater Seating with Central Aisle and Dual Registration Desks',
-      avEquipments: ['Laser Projector 5000 Lumens', 'Dual Cordless UHF Handheld Mics', 'Podium Goose-neck Mic'],
+      setupStyle: 'Grand Ballroom Theater Layout with center aisle',
+      avEquipments: ['Dual 150" Motorized Screens', 'Dual Shure Wireless Handheld Mics', 'Yamaha Audio Mixer'],
       fbSchedule: [
-        { time: '09:30 AM', item: 'Morning Welcome Tea & Assorted Bakery Cookies' },
-        { time: '01:15 PM', item: 'Grand Regional Odia Buffet (Dalma, Paneer Butter, Sweet Rice)' },
-        { time: '04:30 PM', item: 'High-Tea with Fresh Rayagada Samosas & Green Tea' }
+        { time: '09:30 AM', item: 'Morning High Tea: Upma, Sambhar, Vada & Filter Coffee' },
+        { time: '01:15 PM', item: 'Grand Buffet: 12-Item Pure Veg Satvik Menu' },
+        { time: '04:30 PM', item: 'Evening Tea with Samosas & Odia Chhena Poda' }
       ],
-      billingAccount: 'IMFA Therubali Ledger #CORP-05',
-      coordinator: 'B. Sadananda (Banquet Supervisor)'
+      billingAccount: 'IMFA Therubali Corporate Ledger #5512',
+      coordinator: 'P. Tripathy & K. Simhachalam'
     }
   },
   {
     id: 'EVT-SEP-11',
     day: '11',
     dateStr: 'Fri, 11 Sep 2026',
-    time: '12:00 PM Check-in',
-    title: 'Vedanta Lanjigarh Alumina Refinery - Technical Audit Delegation',
-    category: 'room',
-    venue: 'Rooms 408, 409 & 411 (Floor 4 Executive)',
-    organizer: 'Vedanta Limited (Transit Group)',
-    contactPerson: 'Arunav Sengupta (Lead Auditor)',
-    pax: '5 Executives',
-    setup: '3 King Executive Suites',
-    billing: 'Direct Corporate Card / BTC',
+    time: '11:00 AM - 03:00 PM',
+    title: 'Vedanta Lanjigarh Alumina Refinery - CSR Partners Round Table',
+    category: 'corporate',
+    venue: 'Executive Board Room (2nd Floor)',
+    organizer: 'Vedanta Ltd. CSR Foundation',
+    contactPerson: 'Pooja Kashyap (CSR Lead)',
+    pax: '14 Representatives',
+    setup: 'Hollow Square Executive Table',
+    billing: 'BTC (CORP-04 - Vedanta)',
     status: 'Completed',
-    amount: 34500
+    amount: 18500
   },
   {
     id: 'EVT-SEP-14',
     day: '14',
     dateStr: 'Mon, 14 Sep 2026',
-    time: '10:00 AM - 04:00 PM',
-    title: 'Utkal Alumina - Sustainable CSR Livelihoods Workshop',
+    time: '10:00 AM - 01:00 PM',
+    title: 'Utkal Alumina (Aditya Birla) - Bauxite Sourcing Tech Briefing',
     category: 'banquet',
-    venue: 'Executive Board Room (2nd Floor)',
-    organizer: 'Utkal Alumina International Ltd. (Aditya Birla Group)',
-    contactPerson: 'Manish Agrawal (Corporate Logistics)',
-    pax: '18 Participants',
-    setup: 'Hollow Square Interactive Setup',
-    billing: 'BTC (CORP-06 - Utkal Alumina)',
+    venue: 'A/C Conference Hall (Ground Floor)',
+    organizer: 'Utkal Alumina International Ltd.',
+    contactPerson: 'D. K. Mishra (Technical Dir)',
+    pax: '28 Engineers',
+    setup: 'Cluster Table Setup (4 per table)',
+    billing: 'BTC (CORP-05)',
     status: 'Completed',
-    amount: 19800,
-    beoDetails: {
-      setupStyle: 'Hollow Square with Note Pads, Pencils and Bottled Mineral Water',
-      avEquipments: ['Interactive Smart Board', 'Clip-on Collar Wireless Mic', 'Ceiling Surround Sound'],
-      fbSchedule: [
-        { time: '10:00 AM', item: 'Ginger Tea & Finger Sandwiches' },
-        { time: '01:30 PM', item: 'Satvik Pure Veg Lunch Buffet (Jain Prepared Available)' }
-      ],
-      billingAccount: 'Utkal Alumina Int. Ltd. #CORP-06',
-      coordinator: 'K. Deepak (F&B Lead)'
-    }
+    amount: 24000
   },
   {
     id: 'EVT-SEP-17',
     day: '17',
     dateStr: 'Thu, 17 Sep 2026',
-    time: '06:00 PM - 09:30 PM',
-    title: 'East Coast Railway (ECoR) - Safety Inspection Team Dinner',
+    time: '03:00 PM - 07:00 PM',
+    title: 'East Coast Railway (ECoR) - Waltair Division Transit Review',
     category: 'corporate',
-    venue: 'Party Hall 15 (Banquet Section)',
-    organizer: 'East Coast Railway Rayagada Division',
-    contactPerson: 'P. K. Nayak (Sr. DSTE)',
-    pax: '30 Railway Officers',
-    setup: 'Round Banquet Tables with Centerpieces',
-    billing: 'Government Official PO / Direct Settlement',
+    venue: 'Executive Board Room (2nd Floor)',
+    organizer: 'Rayagada Railway Divisional Office',
+    contactPerson: 'Station Area Manager (RGDA)',
+    pax: '12 Officers',
+    setup: 'Executive Conference Setup',
+    billing: 'Government Official Purchase Order',
     status: 'Completed',
-    amount: 22500
+    amount: 12000
   },
   {
     id: 'EVT-SEP-20',
     day: '20',
     dateStr: 'Sun, 20 Sep 2026',
-    time: '09:00 AM - 03:30 PM',
+    time: '09:00 AM - 06:00 PM',
     title: 'Rayagada District Youth Leadership & Social Service Conclave',
     category: 'banquet',
     venue: 'Mandapam Grand Banquet Hall',
-    organizer: 'Rayagada Rotary & Social Welfare Trust',
-    contactPerson: 'Dr. B. K. Rath (President)',
-    pax: '95 Attendees',
-    setup: 'Cluster Banquet Seating (10 per table)',
-    billing: 'Advance Paid + Direct UPI Settlement',
+    organizer: 'Rotary Club of Rayagada & Yuva Morcha',
+    contactPerson: 'Adv. S. K. Mahapatra',
+    pax: '120 Delegates',
+    setup: 'Theater Style Seating',
+    billing: 'Direct Trust Ledger',
     status: 'Completed',
-    amount: 55000,
-    beoDetails: {
-      setupStyle: 'Cluster Dining and Lecture Hall Hybrid with VIP Stage Backdrop',
-      avEquipments: ['Dual 120" Screen Projection', 'JBL Line-Array Audio System', 'Stage Lighting & Podiums'],
-      fbSchedule: [
-        { time: '09:00 AM', item: 'Breakfast Buffet: Puri Bhaji, Idli Sambar, Masala Chai' },
-        { time: '01:30 PM', item: 'Grand Feast Buffet with Rayagada Chhena Poda' }
-      ],
-      billingAccount: 'Rotary Trust Direct Folio #B-8831',
-      coordinator: 'S. Ramesh (Banquet Lead)'
-    }
+    amount: 55000
   },
   // TODAY: 22 SEPTEMBER 2026
   {
@@ -208,7 +191,7 @@ const DEFAULT_SEPTEMBER_EVENTS: CalendarEventType[] = [
     day: '22',
     dateStr: 'Tue, 22 Sep 2026 (TODAY)',
     time: '10:00 AM - 04:30 PM',
-    title: 'Linde India Ltd - Cryogenic Plant Engineering Review (LIVE)',
+    title: 'Linde India Ltd - Cryogenic Plant Engineering Review',
     category: 'banquet',
     venue: 'A/C Conference Hall (Ground Floor)',
     organizer: 'Linde India Ltd (Industrial Gases Div)',
@@ -278,20 +261,9 @@ const DEFAULT_SEPTEMBER_EVENTS: CalendarEventType[] = [
     contactPerson: 'Amitabh Sen (Logistics Head)',
     pax: '28 Regional Distributors',
     setup: 'Cluster Tables with Product Displays',
-    billing: 'BTC (CORP-04 - HCCB)',
+    billing: 'BTC (CORP-08 - HCCB)',
     status: 'Confirmed',
-    amount: 24000,
-    beoDetails: {
-      setupStyle: '6 Round Tables with Product Demonstration Counter',
-      avEquipments: ['Portable High-Contrast LED Screen', 'Wireless Mic', 'PA Speaker Setup'],
-      fbSchedule: [
-        { time: '11:00 AM', item: 'Beverage Welcome Bar & Light Snacks' },
-        { time: '01:30 PM', item: 'Special South Odisha Buffet Lunch' },
-        { time: '04:45 PM', item: 'High Tea & Snack Boxes' }
-      ],
-      billingAccount: 'HCCB South Odisha Hub #CORP-04',
-      coordinator: 'B. Bijay (Banquet Ops)'
-    }
+    amount: 32000
   },
   {
     id: 'EVT-SEP-27',
@@ -354,20 +326,12 @@ const DEFAULT_SEPTEMBER_EVENTS: CalendarEventType[] = [
   }
 ];
 
-// September 2026 Grid Construction:
-// 01-Sep-2026 is Tuesday.
-// In Sunday-based calendar:
-// Sun (Aug 30) = -2, Mon (Aug 31) = -1
-// Days 01 .. 30
-// 30-Sep-2026 is Wednesday.
-// Thu (Oct 01) = +1, Fri (Oct 02) = +2, Sat (Oct 03) = +3
-// Total 35 days (5 full weeks).
 const DAYS_OF_WEEK = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 const generateSeptember2026Grid = (eventsList: CalendarEventType[]): DayType[] => {
   const grid: DayType[] = [];
 
-  // August filler days (Sunday 30 Aug, Monday 31 Aug)
+  // August filler days (Sun 30 Aug, Mon 31 Aug)
   grid.push({ day: '30', isCurrentMonth: false, isToday: false });
   grid.push({ day: '31', isCurrentMonth: false, isToday: false });
 
@@ -378,111 +342,17 @@ const generateSeptember2026Grid = (eventsList: CalendarEventType[]): DayType[] =
     grid.push({
       day: dayStr,
       isCurrentMonth: true,
-      isToday: dayStr === '22', // Today is 22-Sep-2026
-      events: dayEvents.length > 0 ? dayEvents : undefined
+      isToday: dayStr === '22',
+      events: dayEvents.length > 0 ? dayEvents : undefined,
     });
   }
 
-  // October filler days (Thursday 1 Oct, Friday 2 Oct, Saturday 3 Oct)
+  // October filler days (Thu 1 Oct, Fri 2 Oct, Sat 3 Oct)
   grid.push({ day: '01', isCurrentMonth: false, isToday: false });
   grid.push({ day: '02', isCurrentMonth: false, isToday: false });
   grid.push({ day: '03', isCurrentMonth: false, isToday: false });
 
   return grid;
-};
-
-interface DayProps {
-  day: DayType;
-  isSelected: boolean;
-  onSelect: (day: DayType) => void;
-  onHover: (dayStr: string | null) => void;
-}
-
-const DayCell: React.FC<DayProps> = ({ day, isSelected, onSelect, onHover }) => {
-  const hasEvents = !!day.events && day.events.length > 0;
-  const isBanquet = hasEvents && day.events?.some((e) => e.category === 'banquet');
-  const isCorporate = hasEvents && day.events?.some((e) => e.category === 'corporate');
-  const isRoom = hasEvents && day.events?.some((e) => e.category === 'room');
-
-  return (
-    <motion.div
-      onClick={() => day.isCurrentMonth && onSelect(day)}
-      onMouseEnter={() => day.isCurrentMonth && onHover(day.day)}
-      onMouseLeave={() => onHover(null)}
-      whileHover={day.isCurrentMonth ? { scale: 1.04, y: -2 } : {}}
-      whileTap={day.isCurrentMonth ? { scale: 0.96 } : {}}
-      transition={{ duration: 0.15 }}
-      className={`relative flex flex-col items-center justify-between p-1.5 transition-all duration-200 ${
-        !day.isCurrentMonth
-          ? 'cursor-not-allowed bg-slate-900/30 opacity-30 text-slate-600'
-          : isSelected
-          ? 'cursor-pointer bg-gradient-to-b from-amber-500/20 to-amber-950/40 border-2 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
-          : day.isToday
-          ? 'cursor-pointer bg-gradient-to-b from-emerald-950/50 to-slate-900 border-2 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-          : hasEvents
-          ? 'cursor-pointer bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-400/50'
-          : 'cursor-pointer bg-slate-900/60 hover:bg-slate-800/60 border border-slate-800/60 text-slate-400'
-      }`}
-      style={{ height: '4.8rem', borderRadius: 12 }}
-    >
-      {/* Top Header in Day Cell: Date Number + Today Tag */}
-      <div className="flex w-full items-center justify-between px-1">
-        <span
-          className={`text-xs font-bold ${
-            day.isToday
-              ? 'text-emerald-400 font-extrabold text-sm'
-              : isSelected
-              ? 'text-amber-300 font-extrabold'
-              : day.isCurrentMonth
-              ? 'text-slate-200'
-              : 'text-slate-600'
-          }`}
-        >
-          {day.day}
-        </span>
-
-        {day.isToday && (
-          <span className="flex items-center gap-0.5 rounded bg-emerald-500/30 px-1 py-0.2 text-[9px] font-black uppercase tracking-wider text-emerald-300 border border-emerald-500/50 animate-pulse">
-            Today
-          </span>
-        )}
-
-        {hasEvents && !day.isToday && (
-          <span className="flex size-4 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-300 border border-amber-500/40">
-            {day.events?.length}
-          </span>
-        )}
-      </div>
-
-      {/* Visual Indicator Dots / Badges */}
-      {hasEvents && (
-        <div className="flex w-full flex-col gap-0.5 px-0.5">
-          {day.events?.slice(0, 2).map((ev) => (
-            <div
-              key={ev.id}
-              className={`truncate rounded px-1 py-0.5 text-[9px] font-medium leading-none ${
-                ev.category === 'banquet'
-                  ? 'bg-amber-500/25 text-amber-200 border border-amber-500/30'
-                  : ev.category === 'corporate'
-                  ? 'bg-purple-500/25 text-purple-200 border border-purple-500/30'
-                  : 'bg-cyan-500/25 text-cyan-200 border border-cyan-500/30'
-              }`}
-            >
-              {ev.title.split(' - ')[0]}
-            </div>
-          ))}
-          {(day.events?.length || 0) > 2 && (
-            <span className="text-[8px] font-semibold text-slate-400 pl-1">
-              +{(day.events?.length || 0) - 2} more
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Empty Cell Bottom Spacer */}
-      {!hasEvents && <div className="h-2" />}
-    </motion.div>
-  );
 };
 
 export interface InteractiveCalendarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -491,37 +361,36 @@ export interface InteractiveCalendarProps extends React.HTMLAttributes<HTMLDivEl
   onSelectBooking?: (booking: any) => void;
 }
 
-const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendarProps>(
+export const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendarProps>(
   ({ className, rooms = [], bookings = [], onSelectBooking, ...props }, ref) => {
-    const [drawerOpen, setDrawerOpen] = useState(true);
-    const [selectedDay, setSelectedDay] = useState<string | null>('22'); // Default to Today (22 Sep)
+    const [selectedDay, setSelectedDay] = useState<string | null>('22');
     const [activeFilter, setActiveFilter] = useState<'all' | 'banquet' | 'room' | 'corporate'>('all');
+    const [activeViewMode, setActiveViewMode] = useState<'calendar' | 'agenda' | 'venues'>('calendar');
     const [selectedBeoEvent, setSelectedBeoEvent] = useState<CalendarEventType | null>(null);
 
     // Merge static seeded conventions with any dynamic active bookings passed from PMS
     const mergedEvents = useMemo(() => {
       const list = [...DEFAULT_SEPTEMBER_EVENTS];
 
-      // Convert dynamic PMS bookings if present
       if (Array.isArray(bookings) && bookings.length > 0) {
         bookings.forEach((b, idx) => {
-          // Check if already represented
           const exists = list.some((e) => e.title.includes(b.guestName || b.roomNumber));
           if (!exists && b.guestName) {
             list.push({
-              id: `PMS-BK-${b.id || idx}`,
-              day: '22', // Current live day
+              id: `PMS-BK-${b.bookingId || b.id || idx}`,
+              day: '22',
               dateStr: 'Tue, 22 Sep 2026',
               time: `${b.checkInTime || '12:00 PM'} Check-in`,
               title: `${b.guestName} (${b.roomNumber ? `Room ${b.roomNumber}` : 'Stay'})`,
-              category: b.company ? 'corporate' : 'room',
-              venue: b.roomNumber ? `Room ${b.roomNumber}` : 'Standard Stay',
-              organizer: b.company || b.guestName,
-              pax: `${b.pax || 1} Guest(s)`,
-              setup: 'In-House PMS Guest',
-              billing: b.billingType === 'BTC' ? `BTC (${b.company || 'Corporate'})` : 'Direct / Cash',
-              status: b.status === 'Checked-In' ? 'In-House' : 'Confirmed',
-              amount: b.totalAmount || b.tariff || 2199
+              category: b.isB2b || b.company ? 'corporate' : 'room',
+              venue: b.roomNumber ? `Room ${b.roomNumber} (${b.tier || 'Executive'})` : 'Standard Stay',
+              organizer: b.corporateGstin ? `B2B Account (${b.corporateGstin})` : b.guestName,
+              contactPerson: b.guestPhone || b.guestName,
+              pax: `${b.adults || b.pax || 1} Guest(s)`,
+              setup: b.tier || 'In-House PMS Stay',
+              billing: b.paymentMode || (b.isB2b ? 'Corporate B2B' : 'Direct / Cash'),
+              status: b.bookingStatus === 'Checked In' ? 'In-House' : 'Confirmed',
+              amount: b.totalAmount || b.tariff || 2464,
             });
           }
         });
@@ -532,357 +401,460 @@ const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendar
 
     const calendarGrid = useMemo(() => generateSeptember2026Grid(mergedEvents), [mergedEvents]);
 
-    // Filtered events based on active category and selected day
     const displayedEvents = useMemo(() => {
       let list = mergedEvents;
-
       if (activeFilter !== 'all') {
         list = list.filter((e) => e.category === activeFilter);
       }
-
       if (selectedDay) {
         list = list.filter((e) => e.day === selectedDay);
       }
-
       return list;
     }, [mergedEvents, activeFilter, selectedDay]);
 
-    const handleSelectDay = (day: DayType) => {
-      if (selectedDay === day.day) {
-        // Toggle off to show all
-        setSelectedDay(null);
-      } else {
-        setSelectedDay(day.day);
-      }
-    };
+    const banquetCount = mergedEvents.filter((e) => e.category === 'banquet').length;
+    const roomCount = mergedEvents.filter((e) => e.category === 'room').length;
+    const corpCount = mergedEvents.filter((e) => e.category === 'corporate').length;
 
     return (
-      <div ref={ref} className={`w-full flex flex-col gap-6 ${className || ''}`} {...props}>
-        {/* TOP STATUS BAR & HEADER */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-slate-900/90 border border-amber-500/30 rounded-2xl p-5 shadow-xl">
+      <div ref={ref} className={cn("w-full flex flex-col gap-6", className)} {...props}>
+        {/* LUXURY TOP ACTION BAR */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-[#0c182b] via-[#13223d] to-[#0c182b] border border-[rgba(212,175,55,0.3)] shadow-[0_12px_36px_rgba(0,0,0,0.6)]">
           <div>
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                <Sparkles className="size-3.5 text-amber-400" />
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-[rgba(212,175,55,0.15)] text-[#f3c64c] border border-[rgba(212,175,55,0.3)]">
+                <Sparkles className="size-3.5 text-[#f3c64c]" />
                 Hotel Sai International • Rayagada
               </span>
-              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
-                <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-[rgba(16,185,129,0.18)] text-[#34d399] border border-[rgba(16,185,129,0.35)]">
+                <span className="size-2 rounded-full bg-[#10b981] animate-pulse" />
                 Live Date: Tuesday, 22 Sep 2026
               </span>
             </div>
-            <h2 className="text-2xl lg:text-3xl font-black tracking-wide text-white">
-              SEPTEMBER <span className="text-amber-400">2026</span> CONVENTION &amp; BOOKINGS
+            <h2 className="text-xl md:text-2xl font-bold font-serif text-white tracking-wide">
+              September 2026 <span className="gold-gradient-text">Convention &amp; Function Visualizer</span>
             </h2>
-            <p className="text-slate-400 text-xs lg:text-sm mt-0.5">
-              Comprehensive interactive timeline for A/C Conference Hall, Mandapam Banquet, Party Halls &amp; Corporate Room Stays.
+            <p className="text-xs text-[#94a3b8] mt-0.5">
+              Comprehensive schedule for A/C Conference Hall, Mandapam Banquet, Boardrooms &amp; Executive Room Folios
             </p>
           </div>
 
-          {/* Controls: Filter Pills & View Toggle */}
-          <div className="flex flex-wrap items-center gap-2 self-stretch lg:self-auto justify-end">
-            <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+          {/* VIEW SWITCHER & CATEGORY FILTERS */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* View Mode Buttons */}
+            <div className="flex items-center bg-[#060e1a] p-1 rounded-xl border border-[rgba(212,175,55,0.25)]">
               <button
+                type="button"
+                onClick={() => setActiveViewMode('calendar')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
+                  activeViewMode === 'calendar'
+                    ? "bg-[#d4af37] text-[#060e1a] font-bold shadow-md"
+                    : "text-[#94a3b8] hover:text-white"
+                )}
+              >
+                <CalendarIcon className="size-3.5" />
+                Month Grid
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveViewMode('agenda');
+                  setSelectedDay('22');
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
+                  activeViewMode === 'agenda'
+                    ? "bg-[#d4af37] text-[#060e1a] font-bold shadow-md"
+                    : "text-[#94a3b8] hover:text-white"
+                )}
+              >
+                <FileText className="size-3.5" />
+                Live Agenda
+              </button>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center bg-[#060e1a] p-1 rounded-xl border border-[rgba(212,175,55,0.25)]">
+              <button
+                type="button"
                 onClick={() => setActiveFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all",
                   activeFilter === 'all'
-                    ? 'bg-amber-500 text-black font-bold shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
+                    ? "bg-[rgba(212,175,55,0.25)] text-[#fceec5] font-bold border border-[rgba(212,175,55,0.4)]"
+                    : "text-[#94a3b8] hover:text-white"
+                )}
               >
                 All ({mergedEvents.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveFilter('banquet')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1",
                   activeFilter === 'banquet'
-                    ? 'bg-amber-500 text-black font-bold shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                🏛️ Banquets
-              </button>
-              <button
-                onClick={() => setActiveFilter('room')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
-                  activeFilter === 'room'
-                    ? 'bg-amber-500 text-black font-bold shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                🏨 Room Stays
-              </button>
-              <button
-                onClick={() => setActiveFilter('corporate')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
-                  activeFilter === 'corporate'
-                    ? 'bg-amber-500 text-black font-bold shadow'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                🏭 Corporate
-              </button>
-            </div>
-
-            {/* Toggle Drawer / Split Mode */}
-            <button
-              onClick={() => setDrawerOpen(!drawerOpen)}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl text-xs font-medium transition-all"
-              title={drawerOpen ? 'Hide Events Drawer' : 'Show Events Drawer'}
-            >
-              {drawerOpen ? <Columns3 className="size-4 text-amber-400" /> : <Grid className="size-4 text-amber-400" />}
-              <span>{drawerOpen ? 'Side-by-Side' : 'Grid Only'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* MAIN BODY: CALENDAR GRID + EVENT DRAWER */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* CALENDAR COLUMN */}
-          <div className={`${drawerOpen ? 'lg:col-span-7 xl:col-span-7' : 'lg:col-span-12'} transition-all duration-300`}>
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 lg:p-5 shadow-xl">
-              {/* Day of week headers */}
-              <div className="grid grid-cols-7 gap-2 mb-2.5">
-                {DAYS_OF_WEEK.map((d, i) => (
-                  <div
-                    key={d}
-                    className={`text-center text-[11px] font-bold py-1.5 rounded-lg uppercase tracking-wider ${
-                      i === 0 || i === 6
-                        ? 'bg-slate-800/80 text-amber-400 border border-amber-400/20'
-                        : 'bg-slate-800/40 text-slate-400 border border-slate-800'
-                    }`}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              {/* 35-Day Grid */}
-              <div className="grid grid-cols-7 gap-2">
-                {calendarGrid.map((dayObj, index) => (
-                  <DayCell
-                    key={`${dayObj.day}-${index}`}
-                    day={dayObj}
-                    isSelected={selectedDay === dayObj.day && dayObj.isCurrentMonth}
-                    onSelect={handleSelectDay}
-                    onHover={() => {}}
-                  />
-                ))}
-              </div>
-
-              {/* Calendar Legend */}
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-full bg-emerald-500 border border-emerald-400" />
-                    <span className="text-slate-300">Today (22 Sep)</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-full bg-amber-500 border border-amber-400" />
-                    <span className="text-slate-300">Banquet / Hall</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-full bg-cyan-500 border border-cyan-400" />
-                    <span className="text-slate-300">Room Stay</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="size-3 rounded-full bg-purple-500 border border-purple-400" />
-                    <span className="text-slate-300">Corporate Acct</span>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-500 italic">
-                  Click on any day to inspect scheduled functions &amp; room folios
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* EVENT DRAWER COLUMN */}
-          {drawerOpen && (
-            <motion.div
-              layout
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.25 }}
-              className="lg:col-span-5 xl:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 lg:p-5 shadow-xl flex flex-col gap-4"
-            >
-              {/* Drawer Top Subheader */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <CalendarIcon className="size-4 text-amber-400" />
-                    {selectedDay ? `Scheduled: ${selectedDay} Sep 2026` : 'All September Events'}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {displayedEvents.length} event{displayedEvents.length === 1 ? '' : 's'} registered in system
-                  </p>
-                </div>
-
-                {selectedDay && (
-                  <button
-                    onClick={() => setSelectedDay(null)}
-                    className="text-xs text-amber-400 hover:text-amber-300 underline font-medium"
-                  >
-                    View All Month
-                  </button>
+                    ? "bg-[rgba(212,175,55,0.25)] text-[#fceec5] font-bold border border-[rgba(212,175,55,0.4)]"
+                    : "text-[#94a3b8] hover:text-white"
                 )}
-              </div>
-
-              {/* Event Cards Scrollable Container */}
-              <div className="flex flex-col gap-3.5 max-h-[640px] overflow-y-auto pr-1">
-                <AnimatePresence mode="popLayout">
-                  {displayedEvents.length === 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-center py-12 px-4 bg-slate-950/40 rounded-xl border border-dashed border-slate-800"
-                    >
-                      <CalendarIcon className="size-10 text-slate-600 mx-auto mb-2" />
-                      <h4 className="text-sm font-semibold text-slate-300">No events scheduled</h4>
-                      <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                        No banquet functions or corporate blocks recorded for this date.
-                      </p>
-                      <button
-                        onClick={() => setSelectedDay(null)}
-                        className="mt-3 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-semibold"
-                      >
-                        Browse All September Events
-                      </button>
-                    </motion.div>
-                  ) : (
-                    displayedEvents.map((evt) => (
-                      <motion.div
-                        key={evt.id}
-                        layout
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className={`p-4 rounded-xl border transition-all ${
-                          evt.day === '22'
-                            ? 'bg-gradient-to-br from-slate-900 to-emerald-950/30 border-emerald-500/40 shadow-md'
-                            : 'bg-slate-950/80 hover:bg-slate-950 border-slate-800 hover:border-amber-400/40'
-                        }`}
-                      >
-                        {/* Event Card Header */}
-                        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                              evt.category === 'banquet'
-                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                                : evt.category === 'corporate'
-                                ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
-                                : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                            }`}
-                          >
-                            {evt.category === 'banquet'
-                              ? '🏛️ Conference / Banquet'
-                              : evt.category === 'corporate'
-                              ? '🏭 Corporate Account'
-                              : '🏨 Room Stay'}
-                          </span>
-
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              evt.status === 'In-Progress'
-                                ? 'bg-emerald-500 text-black animate-pulse font-black'
-                                : evt.status === 'In-House'
-                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                                : evt.status === 'Confirmed'
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                : 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {evt.status}
-                          </span>
-                        </div>
-
-                        {/* Event Title */}
-                        <h4 className="text-sm font-bold text-white leading-tight mb-1.5">
-                          {evt.title}
-                        </h4>
-
-                        {/* Meta: Venue & Time */}
-                        <div className="grid grid-cols-1 gap-1 text-xs text-slate-300 mb-3">
-                          <div className="flex items-center gap-1.5 text-amber-300/90 font-medium">
-                            <MapPin className="size-3.5 shrink-0 text-amber-400" />
-                            <span>{evt.venue}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-slate-400">
-                            <Clock className="size-3.5 shrink-0 text-slate-500" />
-                            <span>{evt.time} ({evt.dateStr})</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-slate-400">
-                            <Users className="size-3.5 shrink-0 text-slate-500" />
-                            <span>{evt.pax} • {evt.setup || 'Standard'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-slate-400">
-                            <Building className="size-3.5 shrink-0 text-slate-500" />
-                            <span>{evt.organizer}</span>
-                          </div>
-                        </div>
-
-                        {/* Billing Badge & Action Trigger */}
-                        <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 flex-wrap">
-                          <div className="text-[11px] text-slate-400 font-mono">
-                            <span className="text-slate-500">Billing: </span>
-                            <span className="text-emerald-400 font-semibold">{evt.billing}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5">
-                            {evt.beoDetails && (
-                              <button
-                                onClick={() => setSelectedBeoEvent(evt)}
-                                className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm"
-                              >
-                                <Coffee className="size-3" />
-                                <span>Inspect BEO</span>
-                              </button>
-                            )}
-
-                            {onSelectBooking && (
-                              <button
-                                onClick={() => onSelectBooking(evt)}
-                                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
-                              >
-                                <span>Folio</span>
-                                <ChevronRight className="size-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
+              >
+                🏛️ Banquets ({banquetCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilter('room')}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1",
+                  activeFilter === 'room'
+                    ? "bg-[rgba(56,189,248,0.2)] text-[#38bdf8] font-bold border border-[rgba(56,189,248,0.4)]"
+                    : "text-[#94a3b8] hover:text-white"
+                )}
+              >
+                🏨 Rooms ({roomCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFilter('corporate')}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1",
+                  activeFilter === 'corporate'
+                    ? "bg-[rgba(168,85,247,0.2)] text-[#c084fc] font-bold border border-[rgba(168,85,247,0.4)]"
+                    : "text-[#94a3b8] hover:text-white"
+                )}
+              >
+                🏭 Corporate ({corpCount})
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* BEO (BANQUET EVENT ORDER) / FUNCTION SHEET MODAL */}
+        {/* VIEW 1: FULL-WIDTH CLEAN LUXURY CALENDAR GRID */}
+        {activeViewMode === 'calendar' && (
+          <div className="rounded-2xl bg-[rgba(12,24,43,0.7)] border border-[rgba(212,175,55,0.25)] p-4 md:p-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
+            {/* Weekday Columns Header */}
+            <div className="grid grid-cols-7 gap-2 mb-3">
+              {DAYS_OF_WEEK.map((d, i) => (
+                <div
+                  key={d}
+                  className={cn(
+                    "text-center text-xs font-bold py-2 rounded-lg tracking-wider",
+                    i === 0 || i === 6
+                      ? "text-[#f3c64c] bg-[rgba(212,175,55,0.1)] border border-[rgba(212,175,55,0.2)]"
+                      : "text-[#94a3b8] bg-[rgba(255,255,255,0.03)] border border-transparent"
+                  )}
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* 35-Day Calendar Cells Grid */}
+            <div className="grid grid-cols-7 gap-2">
+              {calendarGrid.map((dayObj, index) => {
+                const isSelected = selectedDay === dayObj.day && dayObj.isCurrentMonth;
+                const hasEvents = !!dayObj.events && dayObj.events.length > 0;
+                const banquetEvent = dayObj.events?.find(e => e.category === 'banquet');
+                const roomEvent = dayObj.events?.find(e => e.category === 'room');
+                const corpEvent = dayObj.events?.find(e => e.category === 'corporate');
+
+                return (
+                  <div
+                    key={`${dayObj.day}-${index}`}
+                    onClick={() => {
+                      if (dayObj.isCurrentMonth) {
+                        setSelectedDay(selectedDay === dayObj.day ? null : dayObj.day);
+                      }
+                    }}
+                    className={cn(
+                      "group relative flex flex-col justify-between p-2 rounded-xl transition-all duration-200 min-h-[95px]",
+                      !dayObj.isCurrentMonth
+                        ? "bg-[#060e1a]/40 text-slate-700 opacity-25 cursor-not-allowed border border-transparent"
+                        : isSelected
+                        ? "cursor-pointer bg-gradient-to-b from-[rgba(212,175,55,0.22)] to-[rgba(12,24,43,0.9)] border-2 border-[#f3c64c] shadow-[0_0_20px_rgba(212,175,55,0.35)] scale-[1.01]"
+                        : dayObj.isToday
+                        ? "cursor-pointer bg-gradient-to-b from-[rgba(16,185,129,0.18)] to-[rgba(12,24,43,0.85)] border-2 border-[#10b981] shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+                        : hasEvents
+                        ? "cursor-pointer bg-[rgba(19,34,61,0.7)] hover:bg-[rgba(19,34,61,0.95)] border border-[rgba(212,175,55,0.25)] hover:border-[rgba(212,175,55,0.6)] shadow-sm"
+                        : "cursor-pointer bg-[rgba(12,24,43,0.5)] hover:bg-[rgba(19,34,61,0.6)] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(212,175,55,0.3)] text-slate-400"
+                    )}
+                  >
+                    {/* Top Row: Date Number & Tags */}
+                    <div className="flex items-center justify-between w-full">
+                      <span
+                        className={cn(
+                          "text-xs font-bold",
+                          dayObj.isToday
+                            ? "text-[#34d399] font-black text-sm"
+                            : isSelected
+                            ? "text-[#fceec5] font-black text-sm"
+                            : dayObj.isCurrentMonth
+                            ? "text-slate-200"
+                            : "text-slate-700"
+                        )}
+                      >
+                        {dayObj.day}
+                      </span>
+
+                      {dayObj.isToday && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-[#10b981] text-[#060e1a] shadow-sm">
+                          Today
+                        </span>
+                      )}
+
+                      {hasEvents && !dayObj.isToday && (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[rgba(212,175,55,0.2)] text-[10px] font-bold text-[#f3c64c] border border-[rgba(212,175,55,0.4)]">
+                          {dayObj.events?.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Middle: Clean Visual Tags (Never clipped or squashed!) */}
+                    {hasEvents && (
+                      <div className="flex flex-col gap-1 my-1 w-full overflow-hidden">
+                        {banquetEvent && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[rgba(212,175,55,0.2)] border border-[rgba(212,175,55,0.35)] text-[#fceec5] text-[10px] font-medium truncate">
+                            <span className="text-[9px]">🏛️</span>
+                            <span className="truncate">{banquetEvent.title.split('-')[0].trim()}</span>
+                          </div>
+                        )}
+                        {roomEvent && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[rgba(56,189,248,0.18)] border border-[rgba(56,189,248,0.35)] text-[#38bdf8] text-[10px] font-medium truncate">
+                            <span className="text-[9px]">🏨</span>
+                            <span className="truncate">{roomEvent.venue}</span>
+                          </div>
+                        )}
+                        {corpEvent && !roomEvent && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[rgba(168,85,247,0.18)] border border-[rgba(168,85,247,0.35)] text-[#c084fc] text-[10px] font-medium truncate">
+                            <span className="text-[9px]">🏭</span>
+                            <span className="truncate">{corpEvent.title.split('-')[0].trim()}</span>
+                          </div>
+                        )}
+                        {(dayObj.events?.length || 0) > 2 && (
+                          <div className="text-[9px] text-[#f3c64c] font-semibold text-right pr-0.5">
+                            +{(dayObj.events?.length || 0) - 2} more
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Empty cell placeholder */}
+                    {!hasEvents && <div className="h-4" />}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Calendar Legend Bar */}
+            <div className="mt-5 pt-3.5 border-t border-[rgba(212,175,55,0.2)] flex flex-wrap items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-5 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
+                  <span className="text-slate-300 font-medium">Live Today (22 Sep)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]" />
+                  <span className="text-slate-300 font-medium">Banquet / Conference Hall</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]" />
+                  <span className="text-slate-300 font-medium">Executive Room Stays</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-[#c084fc] shadow-[0_0_8px_#c084fc]" />
+                  <span className="text-slate-300 font-medium">Corporate B2B Account</span>
+                </div>
+              </div>
+
+              <div className="text-[#94a3b8] text-[11px] italic">
+                💡 Click on any day cell to inspect scheduled functions &amp; room folios below.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 2: SELECTED DAY FUNCTIONS & FOLIOS (SPACIOUS LUXURY 2-COLUMN CARDS) */}
+        <div className="rounded-2xl bg-[rgba(12,24,43,0.85)] border border-[rgba(212,175,55,0.3)] p-5 md:p-6 shadow-[0_12px_40px_rgba(0,0,0,0.6)]">
+          <div className="flex items-center justify-between border-b border-[rgba(212,175,55,0.2)] pb-4 mb-5 flex-wrap gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="size-5 text-[#f3c64c]" />
+                <h3 className="text-lg md:text-xl font-bold font-serif text-white">
+                  {selectedDay
+                    ? `Scheduled Functions: Tuesday, ${selectedDay} Sep 2026`
+                    : "All September 2026 Registered Conventions"}
+                </h3>
+              </div>
+              <p className="text-xs text-[#94a3b8] mt-1">
+                {displayedEvents.length} active convention &amp; stay folio{displayedEvents.length === 1 ? '' : 's'} recorded
+              </p>
+            </div>
+
+            {selectedDay && (
+              <button
+                type="button"
+                onClick={() => setSelectedDay(null)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[rgba(212,175,55,0.15)] text-[#f3c64c] border border-[rgba(212,175,55,0.35)] hover:bg-[rgba(212,175,55,0.25)] transition-all"
+              >
+                View Full Month (All Days)
+              </button>
+            )}
+          </div>
+
+          {/* Cards Grid: Spacious 2-Column Responsive Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AnimatePresence mode="popLayout">
+              {displayedEvents.length === 0 ? (
+                <div className="col-span-full text-center py-12 px-4 rounded-xl border border-dashed border-[rgba(212,175,55,0.2)] bg-[rgba(6,14,26,0.5)]">
+                  <CalendarIcon className="size-10 text-slate-600 mx-auto mb-2" />
+                  <h4 className="text-sm font-semibold text-slate-300">No events scheduled for this date</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                    No banquet functions or corporate blocks recorded. Click any date on the calendar above to inspect other dates.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDay(null)}
+                    className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#d4af37] text-[#060e1a]"
+                  >
+                    Browse All September Events
+                  </button>
+                </div>
+              ) : (
+                displayedEvents.map((evt) => (
+                  <motion.div
+                    key={evt.id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    className={cn(
+                      "flex flex-col justify-between p-5 rounded-xl border transition-all duration-200",
+                      evt.day === '22'
+                        ? "bg-gradient-to-br from-[#13223d] to-[#0c182b] border-[rgba(212,175,55,0.4)] shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+                        : "bg-[rgba(12,24,43,0.7)] hover:bg-[rgba(19,34,61,0.8)] border-[rgba(255,255,255,0.08)] hover:border-[rgba(212,175,55,0.35)]"
+                    )}
+                  >
+                    <div>
+                      {/* Top Badges */}
+                      <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
+                        <span
+                          className={cn(
+                            "px-2.5 py-0.5 rounded text-[11px] font-bold tracking-wide uppercase border",
+                            evt.category === 'banquet'
+                              ? "bg-[rgba(212,175,55,0.2)] text-[#f3c64c] border-[rgba(212,175,55,0.4)]"
+                              : evt.category === 'corporate'
+                              ? "bg-[rgba(168,85,247,0.2)] text-[#c084fc] border-[rgba(168,85,247,0.4)]"
+                              : "bg-[rgba(56,189,248,0.2)] text-[#38bdf8] border-[rgba(56,189,248,0.4)]"
+                          )}
+                        >
+                          {evt.category === 'banquet'
+                            ? '🏛️ Conference / Banquet'
+                            : evt.category === 'corporate'
+                            ? '🏭 Corporate Account'
+                            : '🏨 Room Stay'}
+                        </span>
+
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                            evt.status === 'In-Progress'
+                              ? "bg-[#10b981] text-[#060e1a] font-black animate-pulse"
+                              : evt.status === 'In-House'
+                              ? "bg-[rgba(56,189,248,0.2)] text-[#38bdf8] border border-[rgba(56,189,248,0.4)]"
+                              : evt.status === 'Confirmed'
+                              ? "bg-[rgba(212,175,55,0.2)] text-[#f3c64c] border border-[rgba(212,175,55,0.4)]"
+                              : "bg-slate-800 text-slate-400"
+                          )}
+                        >
+                          {evt.status}
+                        </span>
+                      </div>
+
+                      {/* Event Title */}
+                      <h4 className="text-base font-bold text-white font-serif leading-snug mb-2">
+                        {evt.title}
+                      </h4>
+
+                      {/* Meta Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300 mb-3 bg-[rgba(6,14,26,0.6)] p-3 rounded-lg border border-[rgba(255,255,255,0.05)]">
+                        <div className="flex items-center gap-1.5 text-[#f3c64c] font-medium">
+                          <MapPin className="size-3.5 shrink-0" />
+                          <span>{evt.venue}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Clock className="size-3.5 shrink-0 text-slate-500" />
+                          <span>{evt.time}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Users className="size-3.5 shrink-0 text-slate-500" />
+                          <span>{evt.pax} • {evt.setup || 'Standard'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Building className="size-3.5 shrink-0 text-slate-500" />
+                          <span className="truncate">{evt.organizer}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Billing & Action Buttons */}
+                    <div className="pt-3 border-t border-[rgba(212,175,55,0.15)] flex items-center justify-between gap-3 flex-wrap">
+                      <div className="text-xs">
+                        <span className="text-slate-500 text-[11px] block">Billing Settlement</span>
+                        <span className="text-emerald-400 font-semibold">{evt.billing}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {evt.beoDetails && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBeoEvent(evt)}
+                            className="px-3 py-1.5 bg-[#d4af37] hover:bg-[#f3c64c] text-[#060e1a] text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
+                          >
+                            <Coffee className="size-3.5" />
+                            <span>Inspect BEO</span>
+                          </button>
+                        )}
+
+                        {onSelectBooking && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectBooking(evt)}
+                            className="px-3 py-1.5 bg-[rgba(19,34,61,0.9)] hover:bg-[rgba(212,175,55,0.2)] text-slate-200 hover:text-[#f3c64c] border border-[rgba(212,175,55,0.3)] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>Open Folio</span>
+                            <ChevronRight className="size-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* BEO (BANQUET EVENT ORDER) FULL DETAILS MODAL */}
         <AnimatePresence>
           {selectedBeoEvent && selectedBeoEvent.beoDetails && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
               <motion.div
-                initial={{ opacity: 0, scale: 0.92 }}
+                initial={{ opacity: 0, scale: 0.94 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.92 }}
-                className="w-full max-w-2xl bg-slate-900 border-2 border-amber-500/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                exit={{ opacity: 0, scale: 0.94 }}
+                className="w-full max-w-2xl bg-[#0c182b] border-2 border-[rgba(212,175,55,0.6)] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col max-h-[90vh]"
               >
-                {/* BEO Modal Header */}
-                <div className="bg-gradient-to-r from-amber-500/20 via-slate-900 to-slate-900 p-5 border-b border-amber-500/30 flex items-start justify-between">
+                {/* Modal Header */}
+                <div className="bg-gradient-to-r from-[rgba(212,175,55,0.25)] via-[#13223d] to-[#0c182b] p-5 border-b border-[rgba(212,175,55,0.3)] flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="bg-amber-500 text-black text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-wider">
-                        HOTEL SAI INTERNATIONAL BEO
+                      <span className="bg-[#d4af37] text-[#060e1a] text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-wider">
+                        Hotel Sai International BEO
                       </span>
-                      <span className="text-amber-300 font-mono text-xs">
+                      <span className="text-[#fceec5] font-mono text-xs">
                         BEO #{selectedBeoEvent.id}
                       </span>
                     </div>
-                    <h3 className="text-xl font-extrabold text-white">
+                    <h3 className="text-xl font-bold text-white font-serif">
                       {selectedBeoEvent.title}
                     </h3>
                     <p className="text-slate-400 text-xs mt-0.5">
@@ -890,24 +862,25 @@ const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendar
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setSelectedBeoEvent(null)}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+                    className="p-1.5 rounded-lg bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.15)] text-slate-300 hover:text-white"
                   >
                     <X className="size-5" />
                   </button>
                 </div>
 
-                {/* BEO Content Body */}
+                {/* Modal Body */}
                 <div className="p-6 overflow-y-auto space-y-5 text-sm">
-                  {/* Top Key Parameters Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950/70 p-4 rounded-xl border border-slate-800 text-xs">
+                  {/* Parameters Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#060e1a] p-4 rounded-xl border border-[rgba(212,175,55,0.2)] text-xs">
                     <div>
                       <span className="text-slate-500 block uppercase text-[10px]">Date &amp; Day</span>
                       <span className="font-bold text-white">{selectedBeoEvent.dateStr}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block uppercase text-[10px]">Venue</span>
-                      <span className="font-bold text-amber-400">{selectedBeoEvent.venue}</span>
+                      <span className="font-bold text-[#f3c64c]">{selectedBeoEvent.venue}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block uppercase text-[10px]">Guaranteed Pax</span>
@@ -919,20 +892,20 @@ const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendar
                     </div>
                   </div>
 
-                  {/* Hall Setup Specifications */}
+                  {/* Hall Setup */}
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#d4af37] mb-2 flex items-center gap-1.5">
                       <Building className="size-3.5" />
                       Hall &amp; Seating Setup
                     </h4>
-                    <div className="bg-slate-950/50 p-3.5 rounded-xl border border-slate-800 text-slate-300 text-xs">
+                    <div className="bg-[#060e1a] p-3.5 rounded-xl border border-slate-800 text-slate-300 text-xs leading-relaxed">
                       {selectedBeoEvent.beoDetails.setupStyle}
                     </div>
                   </div>
 
-                  {/* Audio Visual & Tech Equipment */}
+                  {/* Audio Visual Tech */}
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#d4af37] mb-2 flex items-center gap-1.5">
                       <Monitor className="size-3.5" />
                       Audio / Visual &amp; Conference Tech
                     </h4>
@@ -940,7 +913,7 @@ const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendar
                       {selectedBeoEvent.beoDetails.avEquipments.map((av, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 text-xs text-slate-200"
+                          className="flex items-center gap-2 p-2.5 rounded-lg bg-[#060e1a] border border-slate-800 text-xs text-slate-200"
                         >
                           <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
                           <span>{av}</span>
@@ -949,9 +922,9 @@ const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendar
                     </div>
                   </div>
 
-                  {/* F&B Service Schedule */}
+                  {/* F&B Schedule */}
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#d4af37] mb-2 flex items-center gap-1.5">
                       <Utensils className="size-3.5" />
                       F&amp;B Catering Schedule (Cannon Kitchen Banquets)
                     </h4>
@@ -959,9 +932,9 @@ const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendar
                       {selectedBeoEvent.beoDetails.fbSchedule.map((fb, idx) => (
                         <div
                           key={idx}
-                          className="flex items-start gap-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs"
+                          className="flex items-start gap-3 p-3 rounded-xl bg-[#060e1a] border border-slate-800 text-xs"
                         >
-                          <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold shrink-0">
+                          <span className="px-2 py-0.5 rounded bg-[rgba(212,175,55,0.2)] text-[#f3c64c] font-mono font-bold shrink-0">
                             {fb.time}
                           </span>
                           <span className="text-slate-200 font-medium">{fb.item}</span>
@@ -970,27 +943,28 @@ const InteractiveCalendar = React.forwardRef<HTMLDivElement, InteractiveCalendar
                     </div>
                   </div>
 
-                  {/* Financial & Corporate Settlement */}
-                  <div className="bg-gradient-to-r from-slate-950 via-slate-950 to-amber-950/20 p-4 rounded-xl border border-amber-500/30 flex items-center justify-between flex-wrap gap-3">
+                  {/* Financial Settlement */}
+                  <div className="bg-gradient-to-r from-[#060e1a] via-[#13223d] to-[rgba(212,175,55,0.15)] p-4 rounded-xl border border-[rgba(212,175,55,0.3)] flex items-center justify-between flex-wrap gap-3">
                     <div>
                       <span className="text-slate-500 text-[10px] block uppercase font-mono">Settlement Account</span>
                       <span className="font-bold text-white text-xs">{selectedBeoEvent.beoDetails.billingAccount}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 text-[10px] block uppercase font-mono">Contract Value</span>
-                      <span className="text-lg font-black text-amber-400">₹{selectedBeoEvent.amount?.toLocaleString('en-IN') || '0'}</span>
+                      <span className="text-lg font-black text-[#f3c64c]">₹{selectedBeoEvent.amount?.toLocaleString('en-IN') || '0'}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* BEO Modal Footer */}
-                <div className="bg-slate-950 p-4 border-t border-slate-800 flex items-center justify-between">
+                {/* Modal Footer */}
+                <div className="bg-[#060e1a] p-4 border-t border-[rgba(212,175,55,0.2)] flex items-center justify-between">
                   <span className="text-xs text-slate-500">
                     Approved by Hotel General Manager &amp; Corporate Representative
                   </span>
                   <button
+                    type="button"
                     onClick={() => setSelectedBeoEvent(null)}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-xl transition-colors"
+                    className="px-4 py-2 bg-[#d4af37] hover:bg-[#f3c64c] text-[#060e1a] text-xs font-bold rounded-xl transition-colors cursor-pointer"
                   >
                     Close Function Sheet
                   </button>
