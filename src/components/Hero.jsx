@@ -7,6 +7,7 @@ import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Marquee } from '@/components/ui/marquee';
+import { SparklesCore } from '@/components/ui/sparkles';
 
 export default function Hero({
   rooms = [],
@@ -106,12 +107,22 @@ export default function Hero({
           </div>
         </div>
 
-        {/* Hero Main Headline & Subtitle */}
-        <div style={{ maxWidth: 880, marginBottom: '2.5rem' }}>
+        {/* Hero Main Headline & Subtitle with Aceternity SparklesCore */}
+        <div style={{ maxWidth: 880, marginBottom: '2.5rem', position: 'relative' }}>
+          <div className="absolute -inset-x-10 -top-10 h-[220px] pointer-events-none opacity-40">
+            <SparklesCore
+              minSize={0.8}
+              maxSize={2.2}
+              particleDensity={35}
+              particleColor="#f3c64c"
+            />
+          </div>
           <h1 style={{
             fontSize: 'clamp(2.3rem, 5vw, 3.8rem)',
             lineHeight: 1.15,
-            marginBottom: '1.25rem'
+            marginBottom: '1.25rem',
+            position: 'relative',
+            zIndex: 1
           }}>
             Experience Imperial Serenity in the <span className="gold-gradient-text">Heart of Rayagada</span>
           </h1>
@@ -119,9 +130,11 @@ export default function Hero({
             fontSize: '1.15rem',
             color: 'var(--text-secondary)',
             lineHeight: 1.6,
-            maxWidth: 760
+            maxWidth: 760,
+            position: 'relative',
+            zIndex: 1
           }}>
-            Welcome to <strong>Hotel Sai International</strong>, Sai Priya Nagar. Featuring 40 thoughtfully curated rooms across 4 luxury tiers, in-room Satvik & Odia dining, seamless RGDA train transit pickups, and sacred Maa Majhighariani Temple pilgrimage assistance.
+            Welcome to <strong>Hotel Sai International</strong>, Sai Priya Nagar. Featuring 40 thoughtfully curated rooms across 4 luxury tiers, in-room Satvik &amp; Odia dining, seamless RGDA train transit pickups, and sacred Maa Majhighariani Temple pilgrimage assistance.
           </p>
         </div>
 

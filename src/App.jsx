@@ -24,6 +24,8 @@ import Footer from './components/Footer';
 
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
+import { FloatingDock } from '@/components/ui/floating-dock';
+import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('guest'); // 'guest' or 'pms'
@@ -462,6 +464,37 @@ export default function App() {
         onOpenDining={() => setDiningModalOpen(true)}
         onOpenCorporate={() => setCorporateModalOpen(true)}
         onOpenBotFleet={() => setBotFleetOpen(true)}
+      />
+
+      {/* 21st.dev / Magic UI Floating Luxury Navigation Dock */}
+      <FloatingDock 
+        items={[
+          {
+            title: "Reserve Luxury Room",
+            icon: <Hotel className="h-5 w-5" />,
+            onClick: () => handleOpenBooking(ROOM_TIERS[0])
+          },
+          {
+            title: "3D Isometric Tour",
+            icon: <Layers className="h-5 w-5" />,
+            onClick: () => setFloorExplorerOpen(true)
+          },
+          {
+            title: "Maa Majhighariani Darshan",
+            icon: <Compass className="h-5 w-5" />,
+            onClick: () => setDarshanModalOpen(true)
+          },
+          {
+            title: "Satvik Dining & Menu",
+            icon: <Utensils className="h-5 w-5" />,
+            onClick: () => setDiningModalOpen(true)
+          },
+          {
+            title: currentView === 'pms' ? "Guest Portal" : "Reception PMS",
+            icon: <ShieldCheck className="h-5 w-5" />,
+            onClick: () => setCurrentView(currentView === 'pms' ? 'guest' : 'pms')
+          }
+        ]}
       />
     </div>
   );

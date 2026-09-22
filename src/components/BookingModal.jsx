@@ -9,6 +9,7 @@ import { HOTEL_CONFIG, ROOM_TIERS, CORPORATE_PARTNERS } from '../data/hotelData'
 import { calculateRoomTax } from '../utils/taxUtils';
 import { maskAadhaar, hasDateCollision } from '../utils/security';
 import BookingCalendar from '@/components/ui/v-calendar-15';
+import { AnimatedStepper } from '@/components/ui/animated-stepper';
 
 export default function BookingModal({
   isOpen,
@@ -56,6 +57,7 @@ export default function BookingModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showVisualCalendar, setShowVisualCalendar] = useState(false);
+  const [activeBookingStep, setActiveBookingStep] = useState(1);
 
   useEffect(() => {
     if (initialTier) setSelectedTier(initialTier);
@@ -278,6 +280,25 @@ export default function BookingModal({
               <AlertCircle size={16} /> {errorMessage}
             </div>
           )}
+
+          {/* 21st.dev Animated Stepper Header */}
+          <div style={{
+            marginBottom: '1.75rem',
+            background: 'rgba(6, 14, 26, 0.75)',
+            padding: '0.85rem 1.5rem',
+            borderRadius: '12px',
+            border: '1px solid rgba(212, 175, 55, 0.25)'
+          }}>
+            <AnimatedStepper
+              steps={[
+                { id: 1, label: "Room & Schedule" },
+                { id: 2, label: "Guest Identity (DPDP)" },
+                { id: 3, label: "Settlement & Guarantee" }
+              ]}
+              currentStep={activeBookingStep}
+              onStepClick={(s) => setActiveBookingStep(s)}
+            />
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
             {/* Left Column: Room Selection & Stay Details */}

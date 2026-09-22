@@ -112,13 +112,15 @@ export default function SatvikDining({ onOpenOrderModal }) {
           {filteredMenu.map(item => (
             <div 
               key={item.id}
-              className="glass-panel"
+              className="glass-panel group transition-all duration-300 hover:scale-[1.02] hover:border-[rgba(245,158,11,0.6)] hover:shadow-[0_12px_35px_rgba(245,158,11,0.2)]"
               style={{
                 padding: '1.5rem',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                background: 'rgba(12, 24, 43, 0.7)'
+                background: 'rgba(12, 24, 43, 0.75)',
+                border: '1px solid rgba(212, 175, 55, 0.25)',
+                borderRadius: '14px'
               }}
             >
               <div>
@@ -131,11 +133,12 @@ export default function SatvikDining({ onOpenOrderModal }) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: 1
+                      padding: 1,
+                      borderRadius: 3
                     }}>
                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }}></span>
                     </span>
-                    <h3 style={{ fontSize: '1.15rem' }}>{item.name}</h3>
+                    <h3 style={{ fontSize: '1.15rem' }} className="font-serif group-hover:text-[#f3c64c] transition-colors">{item.name}</h3>
                   </div>
                   <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--gold-glow)' }}>
                     ₹{item.price}
@@ -178,10 +181,10 @@ export default function SatvikDining({ onOpenOrderModal }) {
 
               <button 
                 onClick={() => onOpenOrderModal(item)}
-                className="btn-outline-gold"
-                style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem', padding: '0.5rem' }}
+                className="btn-outline-gold group-hover:bg-[#d4af37] group-hover:text-[#060e1a] transition-all"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '0.82rem', padding: '0.55rem', fontWeight: 600 }}
               >
-                <Plus size={14} /> Add to In-Room Tray
+                <Plus size={15} /> Add to In-Room Tray
               </button>
             </div>
           ))}
