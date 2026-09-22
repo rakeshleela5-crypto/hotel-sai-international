@@ -772,7 +772,7 @@ export async function onRequestPost({ request, env }) {
           items_summary, total_amount, payment_status, received_by, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        purchaseId, p.vendorName, p.invoiceNo || null, p.date || date('now'), normCategory,
+        purchaseId, p.vendorName, p.invoiceNo || null, p.date || new Date().toISOString().slice(0, 10), normCategory,
         p.itemsSummary, parseFloat(p.totalAmount) || 0, normPayStatus, p.receivedBy || 'Store Incharge'
       ).run();
 
@@ -802,7 +802,7 @@ export async function onRequestPost({ request, env }) {
           running_balance, bank_ref, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        entryId, c.corporateId, c.date || date('now'), normEntryType, c.invoiceId || null,
+        entryId, c.corporateId, c.date || new Date().toISOString().slice(0, 10), normEntryType, c.invoiceId || null,
         c.description, parseFloat(c.debitAmount) || 0, parseFloat(c.creditAmount) || 0, c.tdsSection || null, parseFloat(c.tdsAmount) || 0,
         parseFloat(c.runningBalance) || 0, c.bankRef || null
       ).run();
@@ -820,7 +820,7 @@ export async function onRequestPost({ request, env }) {
           quantity_issued, unit, approx_cost, issued_to, issued_by, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        reqId, r.issueDate || date('now'), r.targetOutlet || 'Fenugreek Restaurant',
+        reqId, r.issueDate || new Date().toISOString().slice(0, 10), r.targetOutlet || 'Fenugreek Restaurant',
         r.itemName, parseFloat(r.quantityIssued) || 1, r.unit || 'kg',
         parseFloat(r.approxCost) || 0, r.issuedTo || 'Head Chef', r.issuedBy || 'Store Incharge'
       ).run();
