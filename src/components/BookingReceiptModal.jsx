@@ -410,9 +410,10 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
                 { memoId: 'REV-103', desc: 'Fenugreek Restaurant KOT #18346 duplicate punch credit memo', sac: '996331', amount: 294.00, operator: 'S. Patnaik (Auditor)' }
               ];
 
+              const upiLabel = tenders.upiProvider ? `${tenders.upiProvider} (UPI)` : 'UPI';
               const tenderSummaryText = [
                 tenders.cash > 0 && `Cash ₹${tenders.cash.toLocaleString('en-IN')}`,
-                tenders.upi > 0 && `UPI ₹${tenders.upi.toLocaleString('en-IN')}`,
+                tenders.upi > 0 && `${upiLabel} ₹${tenders.upi.toLocaleString('en-IN')}${tenders.upiRef ? ` [${tenders.upiRef}]` : ''}`,
                 tenders.card > 0 && `Card ₹${tenders.card.toLocaleString('en-IN')}`,
                 tenders.btc > 0 && `Billed to ${tenders.btcCompany} ₹${tenders.btc.toLocaleString('en-IN')}`
               ].filter(Boolean).join(' + ');
@@ -445,14 +446,17 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
                       <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Cash Tender</span>
                       <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.cash.toLocaleString('en-IN')}</strong>
+                      <span style={{ display: 'block', fontSize: '8px', color: '#94a3b8' }}>Front Desk Drawer</span>
                     </div>
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>UPI (Merchant QR)</span>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>{tenders.upiProvider || 'UPI'} (Merchant QR)</span>
                       <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.upi.toLocaleString('en-IN')}</strong>
+                      {tenders.upiRef && <span style={{ display: 'block', fontSize: '8px', color: '#0284c7', fontFamily: 'monospace' }}>{tenders.upiRef}</span>}
                     </div>
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
                       <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Card / POS Swipe</span>
                       <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.card.toLocaleString('en-IN')}</strong>
+                      {tenders.cardAuth && <span style={{ display: 'block', fontSize: '8px', color: '#9333ea', fontFamily: 'monospace' }}>{tenders.cardAuth}</span>}
                     </div>
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
                       <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Corporate BTC ({tenders.btcCompany})</span>

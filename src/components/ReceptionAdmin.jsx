@@ -11,6 +11,7 @@ import { maskAadhaar } from '../utils/security';
 import { calculateRoomTax } from '../utils/taxUtils';
 import FolioActionsModal from './FolioActionsModal';
 import BookingReceiptModal from './BookingReceiptModal';
+import CheckoutSplitModal from './CheckoutSplitModal';
 import InteractiveCalendar from '@/components/ui/visualize-booking';
 
 export default function ReceptionAdmin({
@@ -30,6 +31,66 @@ export default function ReceptionAdmin({
   const [selectedFolioRoom, setSelectedFolioRoom] = useState(null);
   const [selectedReceiptBooking, setSelectedReceiptBooking] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  // Checkout & Multi-Tender Split Settlement Modal (Owner Request: PhonePe + Cash Split)
+  const [checkoutRoom, setCheckoutRoom] = useState(null);
+  const [recentSettlements, setRecentSettlements] = useState([
+    {
+      roomNumber: '301',
+      guestName: 'MR. P ASHOK',
+      tier: 'Executive AC',
+      totalAmount: 962.00,
+      billTotal: 962.00,
+      settlementTime: '12:45 PM',
+      settlementDate: '22/09/2026',
+      billNo: 'FMBIL2627-00301',
+      tendersSummary: ['Cash: ₹500', 'PhonePe (UPI): ₹462 [Ref: UPI-849102]'],
+      tenders: { cash: 500, upi: 462, upiRef: 'UPI-849102', upiProvider: 'PhonePe', card: 0, btc: 0 }
+    }
+  ]);
+
+  const handleCheckoutConfirm = (payload) => {
+    // 1. Release room to Cleaning
+    onUpdateRoomStatus(payload.roomNumber, 'Cleaning', null, null);
+
+    // 2. Add cash to cashier drawer if cash tender was used
+    if (payload.tenders.cash > 0) {
+      setCashCollected(prev => prev + payload.tenders.cash);
+      setDenominations(prev => ({
+        ...prev,
+        500: (Number(prev[500]) || 0) + Math.floor(payload.tenders.cash / 500),
+        coins: (Number(prev.coins) || 0) + (payload.tenders.cash % 500)
+      }));
+    }
+
+    // 3. Add to recent settlements log
+    setRecentSettlements(prev => [payload, ...prev]);
+
+    // 4. Close checkout modal
+    setCheckoutRoom(null);
+
+    // 5. If requested, automatically open the official split tax invoice
+    if (payload.openReceiptAfter) {
+      const receiptBooking = {
+        bookingId: payload.billNo,
+        billNo: payload.billNo,
+        roomNumber: payload.roomNumber,
+        guestName: payload.guestName,
+        guestPhone: payload.guestPhone,
+        tier: payload.tier,
+        totalAmount: payload.totalAmount,
+        advancePaid: payload.advancePaid || 0,
+        paymentMode: 'Split Tender',
+        paymentStatus: 'Fully Settled & Checked Out',
+        tenders: payload.tenders,
+        tendersSummary: payload.tendersSummary,
+        foodAmount: payload.billTotal > 1500 ? 962 : payload.billTotal,
+        grcNo: '684'
+      };
+      setSelectedReceiptBooking(receiptBooking);
+      setIsReceiptModalOpen(true);
+    }
+  };
 
   // Walk-in Modal State (Enhanced with Screenshot 4 & 5 fields)
   const [walkInOpen, setWalkInOpen] = useState(false);
@@ -803,20 +864,22 @@ export default function ReceptionAdmin({
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onUpdateRoomStatus(room.roomNumber, 'Cleaning', null, null);
+                                      setCheckoutRoom(room);
                                     }}
+                                    title="Check Out & Multi-Tender Split Settlement (PhonePe + Cash)"
                                     style={{
-                                      padding: '2px 4px',
+                                      padding: '2px 6px',
                                       fontSize: '0.65rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(234, 179, 8, 0.2)',
-                                      color: '#facc15',
-                                      border: '1px solid rgba(234, 179, 8, 0.4)',
+                                      fontWeight: 800,
+                                      background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(245, 158, 11, 0.2))',
+                                      color: 'var(--gold-glow)',
+                                      border: '1px solid var(--gold-glow)',
                                       borderRadius: '3px',
-                                      cursor: 'pointer'
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    Out
+                                    ⚡ Settle/Out
                                   </button>
                                 </>
                               )}
@@ -946,7 +1009,26 @@ export default function ReceptionAdmin({
                                 Free
                               </button>
                             )}
-                            {room.status !== 'Cleaning' && (
+                            {room.status === 'Occupied' && (
+                              <button
+                                onClick={() => setCheckoutRoom(room)}
+                                title="Guest Checkout & Multi-Tender Split Settlement"
+                                style={{
+                                  flex: 1.2,
+                                  padding: '0.25rem',
+                                  background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(245, 158, 11, 0.2))',
+                                  color: 'var(--gold-glow)',
+                                  border: '1px solid var(--gold-glow)',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ⚡ Settle/Out
+                              </button>
+                            )}
+                            {room.status !== 'Cleaning' && room.status !== 'Occupied' && (
                               <button
                                 onClick={() => onUpdateRoomStatus(room.roomNumber, 'Cleaning', null, null)}
                                 style={{
@@ -1278,6 +1360,94 @@ export default function ReceptionAdmin({
               >
                 <RefreshCw size={16} /> Execute 09:00 PM Night Audit Run
               </button>
+            </div>
+          </div>
+
+          {/* Audited Multi-Tender Split Settlements Log */}
+          <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h4 style={{ fontSize: '1.05rem', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Receipt size={18} color="var(--gold-glow)" /> Audited Multi-Tender Split Settlements (Direct Checkout Log)
+                </h4>
+                <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                  Front desk checkout audit ledger showing exact split across PhonePe/UPI, Cash drawer, Card POS, and Corporate credit.
+                </p>
+              </div>
+              <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #10b981', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
+                ✓ {recentSettlements.length} Audited Settlements
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--gold-glow)', borderBottom: '1px solid rgba(212, 175, 55, 0.25)' }}>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Time</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Room</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Guest Name</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Bill #</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Total Settled</th>
+                    <th style={{ padding: '0.6rem 0.75rem' }}>Split Payment Breakdown</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentSettlements.map((s, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <td style={{ padding: '0.6rem 0.75rem', color: 'var(--text-muted)' }}>{s.settlementTime}</td>
+                      <td style={{ padding: '0.6rem 0.75rem' }}>
+                        <span style={{ fontWeight: 700, color: '#38bdf8' }}>Room {s.roomNumber}</span>
+                      </td>
+                      <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: '#fff' }}>{s.guestName}</td>
+                      <td style={{ padding: '0.6rem 0.75rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.78rem' }}>{s.billNo}</td>
+                      <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, color: 'var(--gold-glow)' }}>₹{Number(s.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '0.6rem 0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {s.tendersSummary?.map((t, i) => (
+                            <span key={i} style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              background: t.includes('Cash') ? 'rgba(52, 211, 153, 0.15)' : (t.includes('UPI') || t.includes('PhonePe')) ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.1)',
+                              color: t.includes('Cash') ? '#34d399' : (t.includes('UPI') || t.includes('PhonePe')) ? '#38bdf8' : '#cbd5e1',
+                              border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}>
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>
+                        <button
+                          onClick={() => {
+                            setSelectedReceiptBooking({
+                              bookingId: s.billNo,
+                              billNo: s.billNo,
+                              roomNumber: s.roomNumber,
+                              guestName: s.guestName,
+                              tier: s.tier || 'Executive AC',
+                              totalAmount: s.totalAmount,
+                              paymentMode: 'Split Tender',
+                              paymentStatus: 'Fully Settled & Checked Out',
+                              tenders: s.tenders,
+                              tendersSummary: s.tendersSummary,
+                              foodAmount: s.billTotal > 1500 ? 962 : s.billTotal,
+                              grcNo: '684'
+                            });
+                            setIsReceiptModalOpen(true);
+                          }}
+                          className="btn-outline-gold"
+                          style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                        >
+                          📄 View Bill
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -2119,6 +2289,16 @@ export default function ReceptionAdmin({
             onUpdateRoomStatus(toRoom, 'Occupied', selectedFolioRoom.currentGuestName, null);
             setSelectedFolioRoom(null);
           }}
+          onCheckoutRoom={(roomNumber, checkoutData) => {
+            onUpdateRoomStatus(roomNumber, 'Cleaning', null, null);
+            if (checkoutData?.transactions) {
+              const settleTx = checkoutData.transactions.find(t => t.type === 'SETTLEMENT');
+              if (settleTx?.tenders?.cash) {
+                setCashCollected(prev => prev + settleTx.tenders.cash);
+              }
+            }
+            setSelectedFolioRoom(null);
+          }}
           onOpenSplitInvoice={(type) => {
             const matchedBooking = bookings.find(b => b.roomNumber === selectedFolioRoom.roomNumber) || {
               bookingId: `FMBIL2627-${selectedFolioRoom.roomNumber}`,
@@ -2137,6 +2317,17 @@ export default function ReceptionAdmin({
             setIsReceiptModalOpen(true);
             setSelectedFolioRoom(null);
           }}
+        />
+      )}
+
+      {/* CHECKOUT & MULTI-TENDER SPLIT SETTLEMENT MODAL (Owner Video Requirement) */}
+      {checkoutRoom && (
+        <CheckoutSplitModal
+          isOpen={!!checkoutRoom}
+          onClose={() => setCheckoutRoom(null)}
+          room={checkoutRoom}
+          bookings={bookings}
+          onConfirmCheckout={handleCheckoutConfirm}
         />
       )}
 
