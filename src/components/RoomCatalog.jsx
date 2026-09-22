@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Check, Wifi, Tv, Coffee, Wind, Compass, Sparkles, 
-  ArrowRight, ShieldCheck, Users, Bed, Layers, Car, Briefcase
+  ArrowRight, ShieldCheck, Users, Bed, Layers, Car, Briefcase,
+  Zap, Clock, Utensils, MapPin, Building
 } from 'lucide-react';
 import { ROOM_TIERS } from '../data/hotelData';
 import { calculateRoomTax } from '../utils/taxUtils';
+import { CardSpotlight } from '@/components/ui/card-spotlight';
+import { BentoGrid, BentoCard } from '@/components/ui/bento-grid';
 
 export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = [], dynamicRates = null }) {
   const [selectedFloorFilter, setSelectedFloorFilter] = useState('all');
@@ -115,15 +118,10 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
             const stats = getTierStats(tier.name);
 
             return (
-              <div 
+              <CardSpotlight 
                 key={tier.id}
-                className={`glass-panel waterfall-item waterfall-delay-${(idx % 4) + 1}`}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
+                className="p-0 overflow-hidden border-[rgba(212,175,55,0.25)] bg-[rgba(12,24,43,0.75)] hover:border-[rgba(212,175,55,0.6)] flex flex-col"
+                color="rgba(212, 175, 55, 0.16)"
               >
                 {/* Room Image with Zoom on Hover */}
                 <div style={{ position: 'relative', height: 230, width: '100%', overflow: 'hidden' }}>
@@ -286,9 +284,76 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
                     </button>
                   </div>
                 </div>
-              </div>
+              </CardSpotlight>
             );
           })}
+        </div>
+
+        {/* Bento Grid: Signature Amenities & Industrial Connectivity */}
+        <div style={{ marginTop: '4.5rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: 'var(--gold-glow)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: '0.5rem'
+            }}>
+              <Sparkles size={14} /> The 5-Star Boutique Standard
+            </div>
+            <h3 style={{ fontSize: '2.2rem' }}>
+              Engineered for <span className="gold-gradient-text">Divine Pilgrims &amp; Corporate Pioneers</span>
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', maxWidth: 650, margin: '0.5rem auto 0 auto' }}>
+              From sacred rituals at Maa Majhighariani to multi-million corporate paper &amp; metallurgy corridors, experience uncompromising comfort.
+            </p>
+          </div>
+
+          <BentoGrid>
+            <BentoCard
+              name="Maa Majhighariani Sacred Sanctuary"
+              description="Located just 2.0 km from the sacred rock shrine. Enjoy dedicated early morning temple shuttle coordination and authentic ritual guidance."
+              Icon={Compass}
+              cta="Explore Pilgrimage Services"
+              className="md:col-span-2"
+              background={
+                <div className="absolute inset-0 bg-gradient-to-r from-[rgba(212,175,55,0.15)] to-transparent" />
+              }
+            />
+            <BentoCard
+              name="Corporate B2B High-Speed Corridor"
+              description="Tailored corporate invoicing (GSTIN 21AAACJ1288P1ZZ) for JK Paper, IMFA &amp; Utkal Alumina executives with ergonomic desks &amp; 100% DG backup."
+              Icon={Briefcase}
+              cta="Corporate Tariff Desk"
+            />
+            <BentoCard
+              name="Pure Vegetarian Satvik Kitchen"
+              description="Sattvic Odia delicacies, South Indian breakfast spreads, and tailored Jain dining prepared with pure ghee and mountain water."
+              Icon={Utensils}
+              cta="View Restaurant Menu"
+            />
+            <BentoCard
+              name="1.5 km RGDA Junction Fast Transit"
+              description="Seamless train transit assistance for Visakhapatnam, Bhubaneswar, and Raipur rail routes with 24/7 luggage concierge."
+              Icon={Car}
+              cta="Transit Information"
+              className="md:col-span-2"
+              background={
+                <div className="absolute inset-0 bg-gradient-to-l from-[rgba(56,189,248,0.15)] to-transparent" />
+              }
+            />
+            <BentoCard
+              name="Interactive 3D Isometric Navigation"
+              description="Tour all 4 dedicated floors and 40 room keys in real-time 3D rendered with Three.js web technology."
+              Icon={Layers}
+              onClick={onOpen3DExplorer}
+              cta="Launch 3D Explorer"
+            />
+          </BentoGrid>
         </div>
       </div>
     </section>

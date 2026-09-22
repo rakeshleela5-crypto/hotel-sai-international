@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { 
   X, Printer, CheckCircle2, Download, ShieldCheck, Hotel, 
   Calendar, User, FileText, Receipt, Sparkles, Building2,
-  CreditCard, Split, UtensilsCrossed, BedDouble, UserCheck
+  CreditCard, Split, UtensilsCrossed, BedDouble, UserCheck, Key
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
+import { DigitalKeycard } from '@/components/ui/digital-keycard';
 
 export default function BookingReceiptModal({ isOpen, onClose, booking }) {
   // View mode: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'pos' (Thermal)
@@ -148,17 +149,97 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
               >
                 80mm Slip
               </button>
+
+              <button
+                onClick={() => setInvoiceType('keycard')}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '4px',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: invoiceType === 'keycard' ? 'linear-gradient(135deg, #f3c64c, #d4af37)' : 'transparent',
+                  color: invoiceType === 'keycard' ? '#060e1a' : '#f3c64c',
+                  border: 'none',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Key size={13} /> 3D Smart Keycard
+              </button>
             </div>
 
-            <button onClick={handlePrint} className="btn-primary-gold" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-              <Printer size={15} /> Print
-            </button>
+            {invoiceType !== 'keycard' && (
+              <button onClick={handlePrint} className="btn-primary-gold" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                <Printer size={15} /> Print
+              </button>
+            )}
 
             <button onClick={onClose} className="modal-close-btn" style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '6px' }}>
               <X size={18} />
             </button>
           </div>
         </div>
+
+        {/* VIEW 0: 3D HOLOGRAPHIC DIGITAL SMART KEYCARD (Uiverse.io / 21st.dev) */}
+        {invoiceType === 'keycard' && (
+          <div style={{
+            padding: '3rem 2rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: 'rgba(6, 14, 26, 0.95)',
+            borderRadius: '16px',
+            border: '1px solid rgba(212, 175, 55, 0.3)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: 'var(--gold-glow)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: '0.4rem'
+              }}>
+                <Sparkles size={14} /> Interactive 3D Digital RFID Card
+              </div>
+              <h3 style={{ fontSize: '1.75rem', color: '#fff', margin: 0 }} className="font-serif">
+                Guest Room Access Key
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                Move your cursor to experience the dynamic holographic glare and realistic perspective tilt.
+              </p>
+            </div>
+
+            <DigitalKeycard 
+              guestName={booking.guestName || "Distinguished Guest"}
+              roomNumber={booking.roomNumber || "301"}
+              tierName={booking.tier || "Executive Room"}
+              checkInDate={booking.checkInDate || "2026-09-22"}
+              checkOutDate={booking.checkOutDate || "2026-09-24"}
+              bookingId={booking.bookingId || "HSI-202609-001"}
+            />
+
+            <div style={{
+              marginTop: '1.5rem',
+              display: 'flex',
+              gap: '1.5rem',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              fontSize: '0.8rem',
+              color: 'var(--text-secondary)'
+            }}>
+              <div>✓ Instant 24-Hr Check-In Token</div>
+              <div>✓ Active Wi-Fi SSID: <code>HotelSai_Executive</code></div>
+              <div>✓ In-Room Dining Extension: <code>Dial 9</code></div>
+            </div>
+          </div>
+        )}
 
         {/* VIEW 1: CONSOLIDATED A4 TAX INVOICE */}
         {invoiceType === 'a4' && (

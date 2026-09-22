@@ -1,9 +1,12 @@
 import React from 'react';
 import { 
   Calendar, Users, Sparkles, Layers, ShieldCheck, MapPin, 
-  ArrowRight, Compass, Phone, CheckCircle2, Star, Wifi, Coffee
+  ArrowRight, Compass, Phone, CheckCircle2, Star, Wifi, Coffee, Building2
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { NumberTicker } from '@/components/ui/number-ticker';
+import { Marquee } from '@/components/ui/marquee';
 
 export default function Hero({
   rooms = [],
@@ -66,7 +69,7 @@ export default function Hero({
               color: 'var(--gold-glow)'
             }}
           >
-            <Sparkles size={14} /> Rayagada's Premier 40-Room Hospitality Landmark
+            <Sparkles size={14} /> Rayagada's Premier <span style={{ color: '#fff', margin: '0 3px' }}><NumberTicker value={40} /></span>-Room Hospitality Landmark
           </div>
 
           <div style={{
@@ -91,7 +94,7 @@ export default function Hero({
             fontSize: '0.8rem'
           }}>
             <Star size={14} color="#f59e0b" fill="#f59e0b" />
-            <span style={{ color: '#fff', fontWeight: 600 }}>4.96/5</span> (2,850+ Verified Stays)
+            <span style={{ color: '#fff', fontWeight: 600 }}>4.96/5</span> (<span style={{ color: 'var(--gold-glow)' }}><NumberTicker value={2850} />+</span> Verified Stays)
             
             {/* Live Audio / Concierge Soundwave Indicator */}
             <div className="soundwave-container" style={{ marginLeft: '0.5rem' }} title="24/7 Live Guest Support Active">
@@ -311,13 +314,17 @@ export default function Hero({
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button 
+              <ShimmerButton 
                 onClick={() => onOpenBooking(ROOM_TIERS[0])}
-                className="btn-primary-gold"
-                style={{ flex: 1, justifyContent: 'center' }}
+                shimmerColor="#fceec5"
+                background="linear-gradient(135deg, #d4af37 0%, #aa831b 100%)"
+                className="font-bold text-[#060e1a] shadow-[0_4px_25px_rgba(212,175,55,0.4)]"
+                style={{ flex: 1, padding: '0.75rem 1.25rem' }}
               >
-                Instant Reserve <ArrowRight size={16} />
-              </button>
+                <span className="flex items-center gap-1.5 font-bold tracking-wide">
+                  Instant Reserve <ArrowRight size={16} />
+                </span>
+              </ShimmerButton>
               <button 
                 onClick={onOpen3DExplorer}
                 className="btn-secondary-sapphire"
@@ -328,6 +335,60 @@ export default function Hero({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Magic UI Infinite Marquee for Corporate & Regional Partners */}
+        <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(212, 175, 55, 0.15)' }}>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.1em', 
+            color: 'var(--gold-glow)', 
+            marginBottom: '0.75rem', 
+            textAlign: 'center',
+            fontWeight: 600
+          }}>
+            Trusted Corporate Corridors &amp; Pilgrimage Partners
+          </div>
+          <Marquee className="[--duration:28s]" pauseOnHover>
+            {[
+              { name: "JK Paper Ltd (Rayagada Mills)", badge: "Corporate B2B Rate Tie-up" },
+              { name: "IMFA Therubali", badge: "Preferred Executive Stay" },
+              { name: "Maa Majhighariani Temple Trust", badge: "Sacred Pilgrim Portal" },
+              { name: "Utkal Alumina (Aditya Birla)", badge: "Industrial Guest Corridor" },
+              { name: "East Coast Railways (RGDA)", badge: "1.5 km Station Pick-up" },
+              { name: "Odisha Tourism Dev Corp", badge: "Verified Heritage Partner" },
+            ].map((p, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  background: 'rgba(12, 24, 43, 0.65)',
+                  border: '1px solid rgba(212, 175, 55, 0.25)',
+                  padding: '0.45rem 1rem',
+                  borderRadius: '9999px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Building2 size={13} color="var(--gold-glow)" />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f8fafc' }}>
+                  {p.name}
+                </span>
+                <span style={{
+                  fontSize: '0.68rem',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  color: '#38bdf8',
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(56, 189, 248, 0.3)'
+                }}>
+                  {p.badge}
+                </span>
+              </div>
+            ))}
+          </Marquee>
         </div>
       </div>
     </section>

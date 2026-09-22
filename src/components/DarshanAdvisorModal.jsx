@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Compass, MapPin, Clock, Car, Phone, Sparkles, Calendar, CheckCircle2 } from 'lucide-react';
 import { SPIRITUAL_SIGHTS, HOTEL_CONFIG } from '../data/hotelData';
+import { LampContainer } from '@/components/ui/lamp';
 
 export default function DarshanAdvisorModal({ isOpen, onClose }) {
   const [shuttleRequested, setShuttleRequested] = useState(false);
@@ -41,23 +42,19 @@ export default function DarshanAdvisorModal({ isOpen, onClose }) {
         </div>
 
         <div className="modal-body" style={{ overflowY: 'auto' }}>
-          {/* Top Temple Highlight */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(12, 24, 43, 0.8) 100%)',
-            border: '1px solid rgba(212, 175, 55, 0.35)',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            marginBottom: '2rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--gold-glow)', fontWeight: 600, fontSize: '0.85rem' }}>
-              <Sparkles size={16} /> Presiding Deity of Rayagada
-            </div>
-            <h3 style={{ fontSize: '1.6rem', margin: '0.4rem 0 0.6rem 0' }}>
-              Maa Majhighariani Temple Darshan Guide
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: 800 }}>
-              The temple is celebrated throughout Odisha and Andhra Pradesh. Devotees offer prayers for safe journeys and health. Goddess Majhighariani is worshipped without a sculpted idol, represented by the sacred rock shrine. <strong>Wednesdays and Fridays</strong> witness profound Chandi Patha rituals with massive footfall.
-            </p>
+          {/* Top Temple Highlight with Aceternity Divine Lamp Container */}
+          <div style={{ marginBottom: '2rem' }}>
+            <LampContainer className="min-h-[220px] pt-4 pb-6 border border-[rgba(212,175,55,0.3)] shadow-[0_10px_35px_rgba(0,0,0,0.6)]">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--gold-glow)', fontWeight: 600, fontSize: '0.85rem' }}>
+                <Sparkles size={16} /> Presiding Deity of Rayagada
+              </div>
+              <h3 style={{ fontSize: '1.7rem', margin: '0.4rem 0 0.6rem 0', textAlign: 'center' }} className="font-serif gold-gradient-text">
+                Maa Majhighariani Temple Darshan Guide
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: 760, textAlign: 'center' }}>
+                The temple is celebrated throughout Odisha and Andhra Pradesh. Devotees offer prayers for safe journeys and health. Goddess Majhighariani is worshipped without a sculpted idol, represented by the sacred rock shrine. <strong>Wednesdays and Fridays</strong> witness profound Chandi Patha rituals with massive footfall.
+              </p>
+            </LampContainer>
           </div>
 
           {/* Spiritual Sites Cards */}
