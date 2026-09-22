@@ -11,6 +11,7 @@ import { maskAadhaar } from '../utils/security';
 import { calculateRoomTax } from '../utils/taxUtils';
 import FolioActionsModal from './FolioActionsModal';
 import BookingReceiptModal from './BookingReceiptModal';
+import InteractiveCalendar from '@/components/ui/visualize-booking';
 
 export default function ReceptionAdmin({
   rooms = [],
@@ -383,6 +384,7 @@ export default function ReceptionAdmin({
       }}>
         {[
           { id: 'tape-chart', label: '📊 39-Room Tape Chart Matrix' },
+          { id: 'visualize-bookings', label: '📅 Booking Visualizer & Calendar' },
           { id: 'cashier-audit', label: '💰 Cashier Shift Handover & Night Audit' },
           { id: 'housekeeping', label: '🧹 Housekeeping & Linen Tracker' },
           { id: 'police-register', label: '🚨 Sarai Act Police Register' },
@@ -405,6 +407,33 @@ export default function ReceptionAdmin({
           </button>
         ))}
       </div>
+
+      {/* TAB: INTERACTIVE BOOKING VISUALIZER (visualize-booking.tsx) */}
+      {activeTab === 'visualize-bookings' && (
+        <div style={{
+          background: 'rgba(12, 24, 43, 0.75)',
+          border: '1px solid rgba(212, 175, 55, 0.3)',
+          borderRadius: '14px',
+          padding: '2rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#fff', fontWeight: 700 }}>
+                Interactive Booking &amp; Conference Calendar Visualizer
+              </h3>
+              <p style={{ margin: '0.35rem 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Powered by Framer Motion, Tailwind CSS &amp; shadcn/ui. Interactive date hover and expandable booking details drawer.
+              </p>
+            </div>
+            <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid #38bdf8', padding: '0.4rem 0.8rem' }}>
+              ✓ shadcn / Tailwind Component
+            </span>
+          </div>
+
+          <InteractiveCalendar />
+        </div>
+      )}
 
       {/* TAB 1: 39-ROOM TAPE CHART MATRIX */}
       {activeTab === 'tape-chart' && (

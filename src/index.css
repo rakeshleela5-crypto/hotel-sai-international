@@ -1,7 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ==========================================================================
    HOTEL SAI INTERNATIONAL - IMPERIAL SAPPHIRE & REGAL GOLD DESIGN SYSTEM
    Location: Sai Priya Nagar, Rayagada, Odisha - 765001
-   Strictly Pure Vanilla CSS - Zero Tailwind CSS
    ========================================================================== */
 
 :root {
