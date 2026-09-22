@@ -395,7 +395,7 @@ export default function ReceptionAdmin({
   };
 
   return (
-    <section style={{ padding: '2rem 1.5rem 4rem 1.5rem', maxWidth: 1380, margin: '0 auto' }}>
+    <section style={{ padding: '2rem 1.5rem 4rem 1.5rem', maxWidth: 1580, margin: '0 auto' }}>
       {/* Front Desk Header */}
       <div style={{
         display: 'flex',
@@ -868,18 +868,19 @@ export default function ReceptionAdmin({
                                     }}
                                     title="Check Out & Multi-Tender Split Settlement (PhonePe + Cash)"
                                     style={{
-                                      padding: '2px 6px',
+                                      flex: 1,
+                                      padding: '2px 4px',
                                       fontSize: '0.65rem',
                                       fontWeight: 800,
-                                      background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(245, 158, 11, 0.2))',
-                                      color: 'var(--gold-glow)',
-                                      border: '1px solid var(--gold-glow)',
+                                      background: 'rgba(234, 179, 8, 0.25)',
+                                      color: '#facc15',
+                                      border: '1px solid rgba(234, 179, 8, 0.5)',
                                       borderRadius: '3px',
                                       cursor: 'pointer',
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    ⚡ Settle/Out
+                                    ⚡ Out
                                   </button>
                                 </>
                               )}
@@ -990,79 +991,161 @@ export default function ReceptionAdmin({
                             )}
                           </div>
 
-                          {/* Status Modifiers */}
-                          <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.4rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                            {room.status !== 'Available' && (
+                          {/* Status-Specific Action Buttons */}
+                          <div style={{ display: 'flex', gap: '0.4rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                            {room.status === 'Occupied' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setCheckoutRoom(room)}
+                                  title="Guest Checkout & Multi-Tender Split Settlement"
+                                  style={{
+                                    flex: 2,
+                                    padding: '0.35rem 0.5rem',
+                                    background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(245, 158, 11, 0.2))',
+                                    color: 'var(--gold-glow)',
+                                    border: '1px solid var(--gold-glow)',
+                                    borderRadius: '5px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  ⚡ Checkout &amp; Settle
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBlockSelectedRoom(room.roomNumber);
+                                    setBlockRoomOpen(true);
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.35rem 0.5rem',
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    borderRadius: '5px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Block
+                                </button>
+                              </>
+                            )}
+
+                            {room.status === 'Available' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setWalkInRoom(room.roomNumber);
+                                    setWalkInRate(room.tariff);
+                                    setWalkInDeposit(room.tariff);
+                                    setWalkInOpen(true);
+                                  }}
+                                  style={{
+                                    flex: 2,
+                                    padding: '0.35rem 0.5rem',
+                                    background: 'rgba(16, 185, 129, 0.2)',
+                                    color: '#34d399',
+                                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                                    borderRadius: '5px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  + Walk-In
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBlockSelectedRoom(room.roomNumber);
+                                    setBlockRoomOpen(true);
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.35rem 0.5rem',
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    borderRadius: '5px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Block
+                                </button>
+                              </>
+                            )}
+
+                            {room.status === 'Cleaning' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => onUpdateRoomStatus(room.roomNumber, 'Available', null, null)}
+                                  style={{
+                                    flex: 2,
+                                    padding: '0.35rem 0.5rem',
+                                    background: 'rgba(16, 185, 129, 0.25)',
+                                    color: '#34d399',
+                                    border: '1px solid #10b981',
+                                    borderRadius: '5px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  ✓ Mark Ready
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBlockSelectedRoom(room.roomNumber);
+                                    setBlockRoomOpen(true);
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.35rem 0.5rem',
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    borderRadius: '5px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Block
+                                </button>
+                              </>
+                            )}
+
+                            {room.status === 'Maintenance' && (
                               <button
+                                type="button"
                                 onClick={() => onUpdateRoomStatus(room.roomNumber, 'Available', null, null)}
                                 style={{
-                                  flex: 1,
-                                  padding: '0.25rem',
+                                  width: '100%',
+                                  padding: '0.35rem 0.5rem',
                                   background: 'rgba(16, 185, 129, 0.2)',
-                                  color: '#10b981',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600
-                                }}
-                              >
-                                Free
-                              </button>
-                            )}
-                            {room.status === 'Occupied' && (
-                              <button
-                                onClick={() => setCheckoutRoom(room)}
-                                title="Guest Checkout & Multi-Tender Split Settlement"
-                                style={{
-                                  flex: 1.2,
-                                  padding: '0.25rem',
-                                  background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(245, 158, 11, 0.2))',
-                                  color: 'var(--gold-glow)',
-                                  border: '1px solid var(--gold-glow)',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 800,
+                                  color: '#34d399',
+                                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                                  borderRadius: '5px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
                                   cursor: 'pointer'
                                 }}
                               >
-                                ⚡ Settle/Out
-                              </button>
-                            )}
-                            {room.status !== 'Cleaning' && room.status !== 'Occupied' && (
-                              <button
-                                onClick={() => onUpdateRoomStatus(room.roomNumber, 'Cleaning', null, null)}
-                                style={{
-                                  flex: 1,
-                                  padding: '0.25rem',
-                                  background: 'rgba(245, 158, 11, 0.2)',
-                                  color: '#f59e0b',
-                                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600
-                                }}
-                              >
-                                Clean
-                              </button>
-                            )}
-                            {room.status !== 'Maintenance' && (
-                              <button
-                                onClick={() => {
-                                  setBlockSelectedRoom(room.roomNumber);
-                                  setBlockRoomOpen(true);
-                                }}
-                                style={{
-                                  flex: 1,
-                                  padding: '0.25rem',
-                                  background: 'rgba(239, 68, 68, 0.2)',
-                                  color: '#f87171',
-                                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600
-                                }}
-                              >
-                                Block
+                                ✓ Release to Available
                               </button>
                             )}
                           </div>
