@@ -8,6 +8,7 @@ import {
 import { HOTEL_CONFIG, ROOM_TIERS, CORPORATE_PARTNERS } from '../data/hotelData';
 import { calculateRoomTax } from '../utils/taxUtils';
 import { maskAadhaar, hasDateCollision } from '../utils/security';
+import BookingCalendar from '@/components/ui/v-calendar-15';
 
 export default function BookingModal({
   isOpen,
@@ -54,6 +55,7 @@ export default function BookingModal({
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showVisualCalendar, setShowVisualCalendar] = useState(false);
 
   useEffect(() => {
     if (initialTier) setSelectedTier(initialTier);
@@ -366,6 +368,54 @@ export default function BookingModal({
                     required
                   />
                 </div>
+              </div>
+
+              {/* Visual Calendar Picker (shadcn v-calendar-15) */}
+              <div style={{ marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowVisualCalendar(!showVisualCalendar)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: showVisualCalendar ? 'rgba(212, 175, 55, 0.2)' : 'rgba(12, 24, 43, 0.7)',
+                    border: '1px solid var(--gold-border)',
+                    color: 'var(--gold-glow)',
+                    borderRadius: '6px',
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Sparkles size={13} />
+                  {showVisualCalendar ? 'Hide Visual Stay Calendar' : 'Select with Visual Calendar (v-calendar-15)'}
+                </button>
+                {showVisualCalendar && (
+                  <div style={{
+                    marginTop: '0.75rem',
+                    background: 'rgba(6, 14, 26, 0.95)',
+                    border: '1px solid var(--gold-border)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
+                  }}>
+                    <BookingCalendar
+                      onDateChange={(inD, outD) => {
+                        if (outD) {
+                          const yyyy = outD.getFullYear();
+                          const mm = String(outD.getMonth() + 1).padStart(2, '0');
+                          const dd = String(outD.getDate()).padStart(2, '0');
+                          setCheckOutDate(`${yyyy}-${mm}-${dd}`);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Guests */}

@@ -1,12 +1,9 @@
-import InteractiveCalendar from '@/components/ui/visualize-booking';
+import BookingCalendar from "@/components/ui/v-calendar-15";
 
-const InteractiveCalendarDemo = () => {
+export default function Default() {
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-start bg-black px-4 py-10 md:justify-center">
-      <InteractiveCalendar />
-    </main>
+    <div className="flex min-h-svh w-full items-center justify-center p-6">
+      <BookingCalendar />
+    </div>
   );
-};
-
-export { InteractiveCalendarDemo as DemoOne };
-export default InteractiveCalendarDemo;
+}
