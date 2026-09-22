@@ -31,6 +31,7 @@ export default function ReceptionAdmin({
   const [selectedFolioRoom, setSelectedFolioRoom] = useState(null);
   const [selectedReceiptBooking, setSelectedReceiptBooking] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receiptModalType, setReceiptModalType] = useState('a4'); // 'a4', 'grc', 'room-split', 'food-split', 'pos'
 
   // Checkout & Multi-Tender Split Settlement Modal (Owner Request: PhonePe + Cash Split)
   const [checkoutRoom, setCheckoutRoom] = useState(null);
@@ -87,6 +88,7 @@ export default function ReceptionAdmin({
         foodAmount: payload.billTotal > 1500 ? 962 : payload.billTotal,
         grcNo: '684'
       };
+      setReceiptModalType('a4');
       setSelectedReceiptBooking(receiptBooking);
       setIsReceiptModalOpen(true);
     }
@@ -829,31 +831,36 @@ export default function ReceptionAdmin({
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      setReceiptModalType('grc');
                                       const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
                                         bookingId: `FMBIL2627-${room.roomNumber}`,
                                         billNo: `FMBIL2627-${room.roomNumber}`,
                                         roomNumber: room.roomNumber,
-                                        guestName: room.currentGuestName || 'MR. P ASHOK',
-                                        guestPhone: '+91 6305202068',
-                                        company: 'LINDE INDIA LTD',
+                                        guestName: room.currentGuestName || 'SAHANAWAZ',
+                                        guestPhone: '+91 94370 22555',
+                                        company: room.currentGuestName?.includes('ASHOK') ? 'LINDE INDIA LTD' : 'Direct Guest',
                                         corporateGstin: '21AAACB2528H1ZA',
                                         tier: room.tier,
-                                        totalAmount: room.balanceDue || room.tariff || 13538,
-                                        nights: 4,
-                                        grcNo: '684'
+                                        tariff: room.tariff || 2199,
+                                        totalAmount: room.balanceDue || room.tariff || 2199,
+                                        nights: 1,
+                                        grcNo: `GRC-${room.roomNumber}`,
+                                        checkInDate: '22/09/2026',
+                                        checkInTime: '11:00 AM',
+                                        checkOutDate: '23/09/2026 (12:00 PM)'
                                       };
                                       setSelectedReceiptBooking(matchedBooking);
                                       setIsReceiptModalOpen(true);
                                     }}
-                                    title="Print GRC (Page 1) or Split Bill (Pages 2 & 3)"
+                                    title="Official Guest Registration Card (Page 1) - Print for Guest Signature"
                                     style={{
                                       flex: 1,
                                       padding: '2px 4px',
                                       fontSize: '0.65rem',
                                       fontWeight: 700,
-                                      background: 'rgba(212, 175, 55, 0.2)',
+                                      background: 'rgba(212, 175, 55, 0.25)',
                                       color: 'var(--gold-glow)',
-                                      border: '1px solid rgba(212, 175, 55, 0.4)',
+                                      border: '1px solid var(--gold-glow)',
                                       borderRadius: '3px',
                                       cursor: 'pointer',
                                       whiteSpace: 'nowrap'
@@ -2396,6 +2403,7 @@ export default function ReceptionAdmin({
               nights: 4,
               grcNo: '684'
             };
+            setReceiptModalType(type || 'a4');
             setSelectedReceiptBooking(matchedBooking);
             setIsReceiptModalOpen(true);
             setSelectedFolioRoom(null);
@@ -2610,6 +2618,7 @@ export default function ReceptionAdmin({
           isOpen={isReceiptModalOpen}
           onClose={() => setIsReceiptModalOpen(false)}
           booking={selectedReceiptBooking}
+          initialType={receiptModalType}
         />
       )}
 

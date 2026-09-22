@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, Printer, CheckCircle2, Download, ShieldCheck, Hotel, 
   Calendar, User, FileText, Receipt, Sparkles, Building2,
@@ -7,9 +7,15 @@ import {
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { DigitalKeycard } from '@/components/ui/digital-keycard';
 
-export default function BookingReceiptModal({ isOpen, onClose, booking }) {
+export default function BookingReceiptModal({ isOpen, onClose, booking, initialType = 'a4' }) {
   // View mode: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'pos' (Thermal)
-  const [invoiceType, setInvoiceType] = useState('a4');
+  const [invoiceType, setInvoiceType] = useState(initialType);
+
+  useEffect(() => {
+    if (initialType) {
+      setInvoiceType(initialType);
+    }
+  }, [initialType, isOpen, booking]);
 
   if (!isOpen || !booking) return null;
 
@@ -774,10 +780,10 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
 
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#dc2626' }}>
-                  G.Regn.No. {grcNo}
+                  G.Regn.No. {booking.grcNo || grcNo || `GRC-${booking.roomNumber}`}
                 </div>
                 <div style={{ fontSize: '11px', color: '#334155' }}>
-                  Bill No: <strong>FMBIL2627-01499</strong>
+                  Bill No: <strong>{billNo}</strong>
                 </div>
               </div>
             </div>
@@ -786,16 +792,16 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', borderBottom: '1px solid #0f172a', fontSize: '11px' }}>
               {/* Left Column: Guest Particulars */}
               <div style={{ padding: '10px', borderRight: '1px solid #0f172a', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div><strong>Name:</strong> MR. P ASHOK</div>
-                <div><strong>Designation:</strong> Mech Engineer</div>
-                <div><strong>Company / Organisation:</strong> Linde India Ltd</div>
-                <div><strong>Address:</strong> J.K. Paper mill site, Jaykaypur, Rayagada</div>
-                <div><strong>Phone No:</strong> +91 6305202068</div>
-                <div><strong>No. of Persons:</strong> 1 Male | 0 Female | 0 Children</div>
-                <div><strong>Arrived from:</strong> Delhi</div>
-                <div><strong>Arrived Date &amp; Time:</strong> 17/09/2026 &amp; Time: 9 PM</div>
-                <div><strong>Departure Date:</strong> 21/09/2026 (14:15)</div>
-                <div><strong>Purpose of visit:</strong> [ ✓ ] Company | [ ] Work Own Business | [ ] Conference | [ ] Holidays</div>
+                <div><strong>Name:</strong> <span style={{ textTransform: 'uppercase', fontWeight: 700 }}>{booking.guestName || 'GUEST'}</span></div>
+                <div><strong>Designation / Profession:</strong> {booking.designation || (booking.company ? 'Corporate Official' : 'Executive / Guest')}</div>
+                <div><strong>Company / Organisation:</strong> {booking.company || 'Direct Guest (Individual Stay)'}</div>
+                <div><strong>Address:</strong> {booking.address || booking.origin || 'Rayagada / Odisha Visitor'}</div>
+                <div><strong>Phone No:</strong> {booking.guestPhone || '+91 94370 22555'}</div>
+                <div><strong>No. of Persons:</strong> {booking.pax || 1} Person(s) | Adult Stay</div>
+                <div><strong>Arrived from:</strong> {booking.origin || 'Odisha / Direct'}</div>
+                <div><strong>Arrived Date &amp; Time:</strong> {booking.checkInDate || '22/09/2026'} &amp; Time: {booking.checkInTime || '11:00 AM'}</div>
+                <div><strong>Departure Date:</strong> {booking.checkOutDate || '23/09/2026 (12:00 PM)'}</div>
+                <div><strong>Purpose of visit:</strong> {booking.company ? '[ ✓ ] Company / Business  [ ] Tourism' : '[ ✓ ] Tourism / Personal  [ ] Business'}</div>
               </div>
 
               {/* Right Column: Office Use & Billing Instructions */}
@@ -803,13 +809,13 @@ export default function BookingReceiptModal({ isOpen, onClose, booking }) {
                 <div style={{ fontWeight: 800, textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: '3px' }}>
                   FOR OFFICE USE ONLY
                 </div>
-                <div><strong>ROOM NO.:</strong> 402</div>
-                <div><strong>ROOM TYPE:</strong> Executive (Exce)</div>
-                <div><strong>ROOM RATE:</strong> ₹2,999.00 / night</div>
-                <div><strong>BOOKED BY:</strong> Online / Corporate BTC</div>
-                <div><strong>BILLING INSTRUCTION:</strong> 4-night (Room to Company, Food Direct)</div>
+                <div><strong>ROOM NO.:</strong> <span style={{ color: '#0284c7', fontWeight: 800 }}>{booking.roomNumber}</span></div>
+                <div><strong>ROOM TYPE:</strong> {booking.tier || 'Executive Room'}</div>
+                <div><strong>ROOM RATE:</strong> ₹{Number(booking.tariff || booking.roomRate || booking.totalAmount || 2199).toLocaleString('en-IN')}.00 / night</div>
+                <div><strong>BOOKED BY:</strong> {booking.company ? 'Corporate BTC Ledger' : 'Front Desk Direct Walk-In'}</div>
+                <div><strong>BILLING INSTRUCTION:</strong> {booking.paymentMode || 'Cash / UPI Settlement'} ({booking.nights || 1} Night Stay)</div>
                 <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1' }}>
-                  <strong>Receptionist's Signature:</strong> <em>Sudhakar Reddy</em>
+                  <strong>Receptionist's Signature:</strong> <em>Sudhakar Reddy (Front Desk Lead)</em>
                 </div>
               </div>
             </div>
