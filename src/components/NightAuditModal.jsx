@@ -84,6 +84,27 @@ export default function NightAuditModal({
       notes: auditNotes
     };
 
+    // Dispatch to Cloudflare Edge D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'execute_night_audit',
+        payload: auditPayload
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          console.log(`✓ Night Audit for ${businessDate} stored in Cloudflare D1 (auditId: ${data.auditId})`);
+        }
+      })
+      .catch(err => console.warn('Offline night audit fallback:', err));
+
     if (onExecuteNightAudit) {
       onExecuteNightAudit(auditPayload);
     }

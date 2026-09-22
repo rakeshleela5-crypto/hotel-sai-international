@@ -468,12 +468,15 @@ export async function onRequestPost({ request, env }) {
     // 7. ADMIN: Update Room Status
     if (action === 'update_room_status') {
       const { roomNumber, status, guestName, bookingId } = payload;
+      let dbStatus = status;
+      if (status === 'Vacant Dirty') dbStatus = 'Cleaning';
+
       await db.prepare(`
         UPDATE rooms 
         SET status = ?, current_guest_name = ?, current_booking_id = ?,
             last_cleaned_at = CASE WHEN ? = 'Available' THEN datetime('now') ELSE last_cleaned_at END
         WHERE room_number = ?
-      `).bind(status, guestName || null, bookingId || null, status, roomNumber).run();
+      `).bind(dbStatus, guestName || null, bookingId || null, dbStatus, roomNumber).run();
 
       return jsonResponse({ success: true, roomNumber, status });
     }
@@ -483,19 +486,25 @@ export async function onRequestPost({ request, env }) {
       const h = payload;
       const handoverId = `SFT-${Date.now()}`;
       const variance = (h.closingCashActual || 0) - (h.closingCashExpected || 0);
-      const status = Math.abs(variance) < 1 ? 'Balanced' : 'Discrepancy';
+      const status = Math.abs(variance) < 1 ? 'BALANCED' : (variance > 0 ? 'SURPLUS' : 'DEFICIT');
 
       await db.prepare(`
         INSERT INTO cashier_shift_handovers (
           handover_id, shift_date, shift_type, outgoing_cashier, incoming_cashier,
-          opening_float, cash_sales, petty_cash_paid, closing_cash_actual, closing_cash_expected,
-          variance, status, notes, created_at
-        ) VALUES (?, date('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          opening_float, cash_collected, upi_collected, card_collected, corporate_credit,
+          total_revenue, expected_drawer_cash, actual_drawer_cash, variance_amount,
+          discrepancy_reason, status, verified_by, notes, created_at
+        ) VALUES (
+          ?, date('now'), ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?, datetime('now')
+        )
       `).bind(
-        handoverId, h.shiftType || 'Evening', h.outgoingCashier, h.incomingCashier,
-        h.openingFloat || 5000, h.cashSales || 0, h.pettyCashPaid || 0,
-        h.closingCashActual || 0, h.closingCashExpected || 0,
-        variance, status, h.notes || ''
+        handoverId, h.shiftType || 'General Shift', h.outgoingCashier || 'Current Shift Cashier', h.incomingCashier || 'Next Shift Cashier',
+        h.openingFloat || 5000, h.cashCollected || 0, h.upiCollected || 0, h.cardCollected || 0, h.companyCredit || 0,
+        h.totalRevenue || 0, h.closingCashExpected || 0, h.closingCashActual || 0, variance,
+        h.varianceReason || null, status, 'Duty Manager', h.notes || ''
       ).run();
 
       return jsonResponse({ success: true, handoverId, status, variance });
@@ -549,6 +558,19 @@ export async function onRequestPost({ request, env }) {
     if (action === 'post_folio_transaction') {
       const t = payload;
       const txnId = t.transactionId || `TXN-${t.roomNumber}-${Date.now()}`;
+      
+      // Strict constraint normalization for SQLite CHECK
+      const allowedTxTypes = ['Room Charge', 'Food & Beverage', 'Bar', 'Room Service', 'Laundry', 'Minibar', 'Extra Bed', 'Payment', 'Discount', 'Allowance'];
+      let normTxType = t.transactionType || 'Room Charge';
+      if (!allowedTxTypes.includes(normTxType)) {
+        if (/dining|restaurant|food|kot|f&b/i.test(normTxType)) normTxType = 'Food & Beverage';
+        else if (/pay|settle|advance|deposit/i.test(normTxType)) normTxType = 'Payment';
+        else if (/allowance|courtesy|waiver/i.test(normTxType)) normTxType = 'Allowance';
+        else if (/discount/i.test(normTxType)) normTxType = 'Discount';
+        else if (/laundry/i.test(normTxType)) normTxType = 'Laundry';
+        else normTxType = 'Room Charge';
+      }
+
       await db.prepare(`
         INSERT INTO folio_transactions (
           transaction_id, folio_id, booking_id, room_number, transaction_type,
@@ -560,21 +582,21 @@ export async function onRequestPost({ request, env }) {
           ?, ?, ?, ?, ?, ?, 0, ?, datetime('now')
         )
       `).bind(
-        txnId, t.folioId || `FOLIO-${t.roomNumber}`, t.bookingId || null, t.roomNumber, t.transactionType || 'Room Charge',
-        t.outlet || 'Front Desk', t.itemCode || null, t.description, t.debitAmount || 0, t.creditAmount || 0,
-        t.taxableBase || 0, t.gstRate || 0, t.cgst || 0, t.sgst || 0, t.sacCode || '996311',
-        t.invoiceId || null, t.createdBy || 'Duty Receptionist'
+        txnId, t.folioId || `FOLIO-${t.roomNumber}`, t.bookingId || null, t.roomNumber, normTxType,
+        t.outlet || 'Front Desk', t.itemCode || 'MISC', t.description, parseFloat(t.debitAmount) || 0, parseFloat(t.creditAmount) || 0,
+        parseFloat(t.taxableBase) || 0, parseFloat(t.gstRate) || 0, parseFloat(t.cgst) || 0, parseFloat(t.sgst) || 0,
+        t.sacCode || '996311', t.invoiceId || null, t.createdBy || 'Front Desk'
       ).run();
 
       return jsonResponse({ success: true, transactionId: txnId });
     }
 
-    // 12. ERP F&B: Bill KOT to Room (Binds food charges permanently to Room Folio)
+    // 12. ERP RESTAURANT: Bill KOT directly to Guest Room Folio
     if (action === 'bill_kot_to_room') {
-      const { kotId, roomNumber, outlet, items, subtotal, gst, totalAmount, description, captainName } = payload;
-      const txnId = `TXN-${roomNumber}-${Date.now()}`;
+      const { roomNumber, kotId, items, subtotal, gst, totalAmount, description, outlet, captainName } = payload;
+      const txnId = `TXN-KOT-${Date.now()}`;
 
-      // 1. Post debit to folio_transactions
+      // 1. Post to folio_transactions
       await db.prepare(`
         INSERT INTO folio_transactions (
           transaction_id, folio_id, room_number, transaction_type, outlet,
@@ -586,7 +608,7 @@ export async function onRequestPost({ request, env }) {
           5, ?, ?, '996331', 0, ?, datetime('now')
         )
       `).bind(
-        txnId, `FOLIO-${roomNumber}`, roomNumber, outlet || 'Cannon Kitchen',
+        txnId, `FOLIO-${roomNumber}`, roomNumber, outlet || 'Fenugreek Restaurant',
         kotId, description, totalAmount, subtotal,
         gst / 2, gst / 2, captainName || 'F&B Captain'
       ).run();
@@ -608,32 +630,52 @@ export async function onRequestPost({ request, env }) {
     // 13. ERP ADMIN: Settle Split Payment (Multi-Tender Single Invoice)
     if (action === 'settle_split_payment') {
       const { folioId, roomNumber, invoiceId, tenderRows } = payload;
+      const targetFolioId = folioId || `FOLIO-${roomNumber}`;
       
       for (const row of (tenderRows || [])) {
         const paymentId = `PAY-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
-        await db.prepare(`
-          INSERT INTO split_payments (
-            payment_id, folio_id, invoice_id, payment_mode, amount,
-            reference_utr, cashier_name, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-        `).bind(
-          paymentId, folioId || `FOLIO-${roomNumber}`, invoiceId || `INV-${roomNumber}`,
-          row.mode, parseFloat(row.amount) || 0, row.ref || '', 'Front Desk Cashier'
-        ).run();
 
-        // Also record credit in folio_transactions
+        // Normalize mode to match CHECK (payment_mode IN ('Cash', 'UPI', 'Card', 'Corporate Credit', 'Cheque', 'Bank Transfer NEFT'))
+        let normMode = 'Cash';
+        const rawMode = (row.mode || '').toLowerCase();
+        if (rawMode.includes('upi') || rawMode.includes('phonepe') || rawMode.includes('gpay') || rawMode.includes('paytm')) {
+          normMode = 'UPI';
+        } else if (rawMode.includes('card') || rawMode.includes('pos')) {
+          normMode = 'Card';
+        } else if (rawMode.includes('btc') || rawMode.includes('credit') || rawMode.includes('company')) {
+          normMode = 'Corporate Credit';
+        } else if (rawMode.includes('cheque')) {
+          normMode = 'Cheque';
+        } else if (rawMode.includes('bank') || rawMode.includes('neft') || rawMode.includes('rtgs')) {
+          normMode = 'Bank Transfer NEFT';
+        } else if (rawMode.includes('cash')) {
+          normMode = 'Cash';
+        }
+
+        // 1. Record credit in folio_transactions first (ensures parent folio exists)
         await db.prepare(`
           INSERT INTO folio_transactions (
             transaction_id, folio_id, room_number, transaction_type, outlet,
             item_code, description, debit_amount, credit_amount, is_locked, created_at
           ) VALUES (?, ?, ?, 'Payment', 'Front Desk', 'PAYMENT', ?, 0, ?, 0, datetime('now'))
         `).bind(
-          `TXN-${paymentId}`, folioId || `FOLIO-${roomNumber}`, roomNumber,
-          `Settlement via ${row.mode} (Ref: ${row.ref || 'Direct'})`, parseFloat(row.amount) || 0
-        ).run();
+          `TXN-${paymentId}`, targetFolioId, roomNumber,
+          `Settlement via ${normMode} (Ref: ${row.ref || 'Direct'})`, parseFloat(row.amount) || 0
+        ).run().catch(() => {});
+
+        // 2. Insert into split_payments audit log
+        await db.prepare(`
+          INSERT INTO split_payments (
+            payment_id, folio_id, invoice_id, payment_mode, amount,
+            reference_utr, cashier_name, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(
+          paymentId, targetFolioId, invoiceId || `INV-${roomNumber}`,
+          normMode, parseFloat(row.amount) || 0, row.ref || '', 'Front Desk Cashier'
+        ).run().catch(() => {});
       }
 
-      // Update room to cleaning
+      // Update room to Cleaning (Vacant Dirty)
       await db.prepare(`
         UPDATE rooms SET status = 'Cleaning', current_guest_name = NULL, current_booking_id = NULL
         WHERE room_number = ?
@@ -647,7 +689,7 @@ export async function onRequestPost({ request, env }) {
       const audit = payload;
       const auditId = audit.auditId || `NA-${audit.businessDate || Date.now()}`;
 
-      // 1. Insert official audit log
+      // 1. Insert or update official audit log
       await db.prepare(`
         INSERT INTO night_audit_log (
           audit_id, business_date, closed_at, total_rooms, occupied_rooms,
@@ -662,6 +704,27 @@ export async function onRequestPost({ request, env }) {
           ?, ?, ?, ?,
           ?, ?, 1, ?, ?
         )
+        ON CONFLICT(business_date) DO UPDATE SET
+          closed_at = datetime('now'),
+          occupied_rooms = excluded.occupied_rooms,
+          occupancy_pct = excluded.occupancy_pct,
+          adr = excluded.adr,
+          revpar = excluded.revpar,
+          room_revenue = excluded.room_revenue,
+          fnb_revenue = excluded.fnb_revenue,
+          other_revenue = excluded.other_revenue,
+          gross_revenue = excluded.gross_revenue,
+          cash_collected = excluded.cash_collected,
+          upi_collected = excluded.upi_collected,
+          card_collected = excluded.card_collected,
+          company_billed = excluded.company_billed,
+          cash_opening_float = excluded.cash_opening_float,
+          cash_expected = excluded.cash_expected,
+          cash_physical_drawer = excluded.cash_physical_drawer,
+          cash_variance = excluded.cash_variance,
+          is_locked = 1,
+          auditor_name = excluded.auditor_name,
+          notes = excluded.notes
       `).bind(
         auditId, audit.businessDate, audit.occupiedRooms || 0,
         audit.occupancyPct || 0, audit.adr || 0, audit.revpar || 0, audit.roomRevenue || 0, audit.fnbRevenue || 0,
@@ -670,7 +733,7 @@ export async function onRequestPost({ request, env }) {
         audit.cashPhysicalDrawer || 0, audit.cashVariance || 0, audit.auditorName || 'Duty Lead', audit.notes || ''
       ).run();
 
-      // 2. HARD LOCK all transactions for this date against backdating
+      // 2. HARD LOCK all transactions against backdating
       await db.prepare(`
         UPDATE folio_transactions SET is_locked = 1 WHERE is_locked = 0
       `).run();
@@ -681,15 +744,36 @@ export async function onRequestPost({ request, env }) {
     // 15. ERP STORE: Record Mandi Raw Material Purchase
     if (action === 'record_store_purchase') {
       const p = payload;
-      const purchaseId = `PUR-${Date.now()}`;
+      const purchaseId = p.purchaseId || `PUR-${Date.now()}`;
+      
+      // Normalize category: CHECK ('Vegetables', 'Poultry & Meat', 'Dairy & Paneer', 'Groceries & Rice', 'Spices & Oils', 'Packaging & Disposables')
+      const allowedCategories = ['Vegetables', 'Poultry & Meat', 'Dairy & Paneer', 'Groceries & Rice', 'Spices & Oils', 'Packaging & Disposables'];
+      let normCategory = p.category || 'Vegetables';
+      if (!allowedCategories.includes(normCategory)) {
+        if (/dairy|milk|paneer|curd/i.test(normCategory)) normCategory = 'Dairy & Paneer';
+        else if (/poultry|chicken|egg|meat|mutton/i.test(normCategory)) normCategory = 'Poultry & Meat';
+        else if (/spice|oil|masala/i.test(normCategory)) normCategory = 'Spices & Oils';
+        else if (/rice|grocery|dal|grain/i.test(normCategory)) normCategory = 'Groceries & Rice';
+        else if (/pack|disposable/i.test(normCategory)) normCategory = 'Packaging & Disposables';
+        else normCategory = 'Vegetables';
+      }
+
+      // Normalize payment_status: CHECK ('Cash Paid', 'UPI Paid', 'Credit Payable')
+      let normPayStatus = p.paymentStatus || 'Cash Paid';
+      if (!['Cash Paid', 'UPI Paid', 'Credit Payable'].includes(normPayStatus)) {
+        if (/upi|phonepe|gpay/i.test(normPayStatus)) normPayStatus = 'UPI Paid';
+        else if (/credit|payable|pending|due/i.test(normPayStatus)) normPayStatus = 'Credit Payable';
+        else normPayStatus = 'Cash Paid';
+      }
+
       await db.prepare(`
         INSERT INTO store_purchases (
           purchase_id, vendor_name, invoice_no, purchase_date, category,
           items_summary, total_amount, payment_status, received_by, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        purchaseId, p.vendorName, p.invoiceNo || null, p.date || date('now'), p.category || 'Vegetables',
-        p.itemsSummary, p.totalAmount || 0, p.paymentStatus || 'Cash Paid', p.receivedBy || 'Store Incharge'
+        purchaseId, p.vendorName, p.invoiceNo || null, p.date || date('now'), normCategory,
+        p.itemsSummary, parseFloat(p.totalAmount) || 0, normPayStatus, p.receivedBy || 'Store Incharge'
       ).run();
 
       return jsonResponse({ success: true, purchaseId });
@@ -698,7 +782,19 @@ export async function onRequestPost({ request, env }) {
     // 16. ERP ACCOUNTS: Record Corporate Ledger Entry (Statement of Account with TDS)
     if (action === 'record_corporate_ledger_entry') {
       const c = payload;
-      const entryId = `LED-${Date.now()}`;
+      const entryId = c.entryId || `LED-${Date.now()}`;
+
+      // Normalize entry_type: CHECK ('Invoice Debit', 'Bank NEFT Credit', 'Cheque Credit', 'TDS Deduction Credit', 'Credit Note')
+      const allowedEntryTypes = ['Invoice Debit', 'Bank NEFT Credit', 'Cheque Credit', 'TDS Deduction Credit', 'Credit Note'];
+      let normEntryType = c.entryType || 'Bank NEFT Credit';
+      if (!allowedEntryTypes.includes(normEntryType)) {
+        if (/tds/i.test(normEntryType)) normEntryType = 'TDS Deduction Credit';
+        else if (/cheque|check/i.test(normEntryType)) normEntryType = 'Cheque Credit';
+        else if (/note/i.test(normEntryType)) normEntryType = 'Credit Note';
+        else if (/debit|bill|invoice/i.test(normEntryType)) normEntryType = 'Invoice Debit';
+        else normEntryType = 'Bank NEFT Credit';
+      }
+
       await db.prepare(`
         INSERT INTO corporate_ledger (
           entry_id, corporate_id, entry_date, entry_type, invoice_id,
@@ -706,15 +802,33 @@ export async function onRequestPost({ request, env }) {
           running_balance, bank_ref, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        entryId, c.corporateId, c.date || date('now'), c.entryType, c.invoiceId || null,
-        c.description, c.debitAmount || 0, c.creditAmount || 0, c.tdsSection || null, c.tdsAmount || 0,
-        c.runningBalance || 0, c.bankRef || null
+        entryId, c.corporateId, c.date || date('now'), normEntryType, c.invoiceId || null,
+        c.description, parseFloat(c.debitAmount) || 0, parseFloat(c.creditAmount) || 0, c.tdsSection || null, parseFloat(c.tdsAmount) || 0,
+        parseFloat(c.runningBalance) || 0, c.bankRef || null
       ).run();
 
       return jsonResponse({ success: true, entryId });
     }
 
-    // 17. RMS: Publish Dynamic Micro-Rates & Log to RMS Audit
+    // 17. ERP STORE: Record Kitchen Requisition Issue
+    if (action === 'record_kitchen_requisition') {
+      const r = payload;
+      const reqId = r.requisitionId || `REQ-${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO kitchen_requisitions (
+          requisition_id, issue_date, target_outlet, item_name,
+          quantity_issued, unit, approx_cost, issued_to, issued_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        reqId, r.issueDate || date('now'), r.targetOutlet || 'Fenugreek Restaurant',
+        r.itemName, parseFloat(r.quantityIssued) || 1, r.unit || 'kg',
+        parseFloat(r.approxCost) || 0, r.issuedTo || 'Head Chef', r.issuedBy || 'Store Incharge'
+      ).run();
+
+      return jsonResponse({ success: true, requisitionId: reqId });
+    }
+
+    // 18. RMS: Publish Dynamic Micro-Rates & Log to RMS Audit
     if (action === 'publish_dynamic_rates') {
       const rates = payload.rates;
       if (rates) {

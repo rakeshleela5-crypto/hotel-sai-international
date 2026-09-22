@@ -70,6 +70,46 @@ export default function ReceptionAdmin({
       }));
     }
 
+    // 2b. Dispatch Multi-Tender Split Payment to Cloudflare D1
+    const tenderRows = [];
+    if (payload.tenders.cash > 0) {
+      tenderRows.push({ mode: 'Cash', amount: payload.tenders.cash, ref: 'Front Desk Cash Drawer' });
+    }
+    if (payload.tenders.upi > 0) {
+      tenderRows.push({ mode: 'UPI', amount: payload.tenders.upi, ref: `${payload.tenders.upiProvider || 'UPI'} Ref: ${payload.tenders.upiRef || 'DIRECT'}` });
+    }
+    if (payload.tenders.card > 0) {
+      tenderRows.push({ mode: 'Card', amount: payload.tenders.card, ref: `POS Auth: ${payload.tenders.cardAuth || 'AUTH'}` });
+    }
+    if (payload.tenders.btc > 0) {
+      tenderRows.push({ mode: 'Corporate Credit', amount: payload.tenders.btc, ref: `BTC: ${payload.tenders.btcCompany || 'Company Credit'}` });
+    }
+
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'settle_split_payment',
+        payload: {
+          folioId: `FOLIO-${payload.roomNumber}`,
+          roomNumber: payload.roomNumber,
+          invoiceId: payload.billNo || `INV-${payload.roomNumber}`,
+          tenderRows
+        }
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          console.log(`✓ Split payment settled in D1 for room ${payload.roomNumber}`);
+        }
+      })
+      .catch(err => console.warn('Offline split payment fallback:', err));
+
     // 3. Add to recent settlements log
     setRecentSettlements(prev => [payload, ...prev]);
 
@@ -2561,6 +2601,23 @@ export default function ReceptionAdmin({
               const settleTx = checkoutData.transactions.find(t => t.type === 'SETTLEMENT');
               if (settleTx?.tenders?.cash) {
                 setCashCollected(prev => prev + settleTx.tenders.cash);
+              }
+              if (settleTx?.tenders) {
+                const tenderRows = [];
+                if (settleTx.tenders.cash > 0) tenderRows.push({ mode: 'Cash', amount: settleTx.tenders.cash, ref: 'Front Desk Cash' });
+                if (settleTx.tenders.upi > 0) tenderRows.push({ mode: 'UPI', amount: settleTx.tenders.upi, ref: settleTx.tenders.upiRef || 'UPI' });
+                if (settleTx.tenders.card > 0) tenderRows.push({ mode: 'Card', amount: settleTx.tenders.card, ref: settleTx.tenders.cardRef || 'POS-Card' });
+                if (settleTx.tenders.btc > 0) tenderRows.push({ mode: 'Corporate Credit', amount: settleTx.tenders.btc, ref: settleTx.tenders.btcCompany || 'Company Credit' });
+
+                const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+                fetch('/api/sync', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+                  body: JSON.stringify({
+                    action: 'settle_split_payment',
+                    payload: { folioId: `FOLIO-${roomNumber}`, roomNumber, invoiceId: `INV-${roomNumber}`, tenderRows }
+                  })
+                }).catch(() => {});
               }
             }
             setSelectedFolioRoom(null);

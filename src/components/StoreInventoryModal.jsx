@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Package, ShoppingCart, Plus, CheckCircle2, Clock, 
   DollarSign, FileText, X, AlertTriangle, Truck
@@ -14,6 +14,49 @@ export default function StoreInventoryModal({
   const [activeTab, setActiveTab] = useState('purchases'); // 'purchases', 'requisitions', 'vendor-payables'
   const [purchases, setPurchases] = useState(INITIAL_STORE_PURCHASES);
   const [requisitions, setRequisitions] = useState(INITIAL_KITCHEN_REQUISITIONS);
+
+  // Sync live D1 store purchases and kitchen requisitions on open
+  useEffect(() => {
+    if (!isOpen) return;
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      headers: { 'X-Admin-Key': adminPin }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          if (data.data.storePurchases && data.data.storePurchases.length > 0) {
+            const mapped = data.data.storePurchases.map(p => ({
+              purchaseId: p.purchase_id || p.purchaseId,
+              vendorName: p.vendor_name || p.vendorName,
+              invoiceNo: p.invoice_no || p.invoiceNo,
+              date: p.purchase_date || p.date,
+              category: p.category,
+              itemsSummary: p.items_summary || p.itemsSummary,
+              totalAmount: p.total_amount !== undefined ? p.total_amount : p.totalAmount,
+              paymentStatus: p.payment_status || p.paymentStatus,
+              receivedBy: p.received_by || p.receivedBy
+            }));
+            setPurchases(mapped);
+          }
+          if (data.data.kitchenRequisitions && data.data.kitchenRequisitions.length > 0) {
+            const mappedReq = data.data.kitchenRequisitions.map(r => ({
+              requisitionId: r.requisition_id || r.requisitionId,
+              issueDate: r.issue_date || r.issueDate,
+              targetOutlet: r.target_outlet || r.targetOutlet,
+              itemName: r.item_name || r.itemName,
+              quantityIssued: r.quantity_issued !== undefined ? r.quantity_issued : r.quantityIssued,
+              unit: r.unit,
+              approxCost: r.approx_cost !== undefined ? r.approx_cost : r.approxCost,
+              issuedTo: r.issued_to || r.issuedTo,
+              issuedBy: r.issued_by || r.issuedBy
+            }));
+            setRequisitions(mappedReq);
+          }
+        }
+      })
+      .catch(err => console.warn('Store inventory sync error:', err));
+  }, [isOpen]);
 
   // New Purchase State
   const [newPurchaseOpen, setNewPurchaseOpen] = useState(false);
@@ -43,6 +86,38 @@ export default function StoreInventoryModal({
     };
 
     setPurchases([newP, ...purchases]);
+
+    // Dispatch to Cloudflare Edge D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'record_store_purchase',
+        payload: {
+          purchaseId: newP.purchaseId,
+          vendorName: newP.vendorName,
+          invoiceNo: newP.invoiceNo,
+          date: newP.date,
+          category: newP.category,
+          itemsSummary: newP.itemsSummary,
+          totalAmount: newP.totalAmount,
+          paymentStatus: newP.paymentStatus,
+          receivedBy: newP.receivedBy
+        }
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          console.log(`✓ Store purchase ${newP.purchaseId} recorded in Cloudflare D1`);
+        }
+      })
+      .catch(err => console.warn('Offline store purchase fallback:', err));
+
     setNewPurchaseOpen(false);
     setItemsSummary('');
     setAmount('');

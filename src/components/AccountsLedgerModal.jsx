@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, FileText, Download, Printer, DollarSign, 
   Calendar, ShieldCheck, CheckCircle2, ChevronRight, X, 
@@ -23,6 +23,36 @@ export default function AccountsLedgerModal({
   // Corporate partners and ledger state for dynamic editing & settlement
   const [corporatePartners, setCorporatePartners] = useState(CORPORATE_PARTNERS);
   const [corporateLedger, setCorporateLedger] = useState(INITIAL_CORPORATE_LEDGER);
+
+  // Sync corporate ledger from Cloudflare D1
+  useEffect(() => {
+    if (!isOpen) return;
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      headers: { 'X-Admin-Key': adminPin }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data && data.data.corporateLedger && data.data.corporateLedger.length > 0) {
+          const mapped = data.data.corporateLedger.map(l => ({
+            entryId: l.entry_id || l.entryId,
+            corporateId: l.corporate_id || l.corporateId,
+            date: l.entry_date || l.date,
+            invoiceNo: l.invoice_id || l.invoiceNo || '-',
+            bankRef: l.bank_ref || l.bankRef || '-',
+            type: l.entry_type || l.type || 'Bank NEFT Credit',
+            description: l.description,
+            debit: l.debit_amount !== undefined ? l.debit_amount : l.debit,
+            credit: l.credit_amount !== undefined ? l.credit_amount : l.credit,
+            tdsSection: l.tds_section || l.tdsSection,
+            tdsAmount: l.tds_amount !== undefined ? l.tds_amount : l.tdsAmount,
+            balance: l.running_balance !== undefined ? l.running_balance : l.balance
+          }));
+          setCorporateLedger(mapped);
+        }
+      })
+      .catch(err => console.warn('Corporate ledger sync error:', err));
+  }, [isOpen]);
 
   // Contract Master modal state
   const [showContractModal, setShowContractModal] = useState(false);
@@ -125,7 +155,7 @@ export default function AccountsLedgerModal({
       date: settleForm.date || '2026-09-22',
       invoiceNo: '-',
       bankRef: `${settleForm.paymentMode.split(' ')[0]} Ref: ${settleForm.bankUtrRef || 'UTR-UNSPECIFIED'}`,
-      type: 'Corporate Direct Remittance & TDS',
+      type: 'Bank NEFT Credit',
       description: `Settlement via ${settleForm.paymentMode}. Gross: ₹${grossVal.toLocaleString('en-IN')}, TDS: ₹${tdsVal.toLocaleString('en-IN')}, Net Credit: ₹${netBankReceived.toLocaleString('en-IN')}. ${settleForm.notes || ''}`,
       debit: 0,
       credit: grossVal,
@@ -135,6 +165,41 @@ export default function AccountsLedgerModal({
     };
 
     setCorporateLedger(prev => [...prev, newEntry]);
+
+    // Dispatch to Cloudflare Edge D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'record_corporate_ledger_entry',
+        payload: {
+          entryId: newEntry.entryId,
+          corporateId: currentCorp.id,
+          date: newEntry.date,
+          entryType: 'Bank NEFT Credit',
+          invoiceId: null,
+          description: newEntry.description,
+          debitAmount: 0,
+          creditAmount: grossVal,
+          tdsSection: newEntry.tdsSection,
+          tdsAmount: tdsVal,
+          runningBalance: newBalance,
+          bankRef: newEntry.bankRef
+        }
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          console.log(`✓ Corporate ledger entry recorded in Cloudflare D1 for ${currentCorp.name}`);
+        }
+      })
+      .catch(err => console.warn('Offline corporate ledger fallback:', err));
+
     setShowSettlementModal(false);
     setActionSuccessMsg(`Posted ₹${grossVal.toLocaleString('en-IN')} corporate settlement receipt for ${currentCorp.name}`);
     setTimeout(() => setActionSuccessMsg(''), 4000);

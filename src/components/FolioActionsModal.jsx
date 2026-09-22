@@ -97,6 +97,46 @@ export default function FolioActionsModal({
     setTimeout(() => setActionSuccess(''), 4000);
   };
 
+  // Dispatch folio transaction to Cloudflare Edge D1
+  const syncFolioTransactionToEdge = (tx) => {
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'post_folio_transaction',
+        payload: {
+          transactionId: tx.id || `TXN-${room.roomNumber}-${Date.now()}`,
+          folioId: `FOLIO-${room.roomNumber}`,
+          bookingId: room.currentBookingId || null,
+          roomNumber: room.roomNumber,
+          transactionType: tx.type || 'Room Charge',
+          outlet: tx.outlet || 'Front Desk',
+          itemCode: tx.sac || 'MISC',
+          description: tx.desc,
+          debitAmount: tx.debit || 0,
+          creditAmount: tx.credit || 0,
+          taxableBase: (tx.debit || 0) / 1.12,
+          gstRate: 12,
+          cgst: ((tx.debit || 0) / 1.12) * 0.06,
+          sgst: ((tx.debit || 0) / 1.12) * 0.06,
+          sacCode: tx.sac || '996311',
+          createdBy: tx.operator || 'Duty Manager'
+        }
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          console.log(`✓ Folio transaction synced to Cloudflare D1:`, data.transactionId);
+        }
+      })
+      .catch(err => console.warn('Offline folio transaction fallback:', err));
+  };
+
   // 1. Post Charge
   const handlePostCharge = (e) => {
     e.preventDefault();
@@ -116,6 +156,7 @@ export default function FolioActionsModal({
     };
 
     setFolioTransactions([newTx, ...folioTransactions]);
+    syncFolioTransactionToEdge(newTx);
     showFeedback(`✓ Posted ₹${amount.toFixed(2)} [${cat?.name || chargeCategory}] to Room ${room.roomNumber} folio!`);
     setChargeAmount('');
     setChargeRemarks('');
@@ -145,6 +186,7 @@ export default function FolioActionsModal({
     ];
 
     setFolioTransactions(updatedTxs);
+    syncFolioTransactionToEdge(balancingCreditMemo);
     if (onUpdateFolio) {
       onUpdateFolio(room.roomNumber, { transactions: updatedTxs });
     }

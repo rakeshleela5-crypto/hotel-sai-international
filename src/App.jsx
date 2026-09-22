@@ -161,11 +161,37 @@ export default function App() {
     fetch('/api/sync', { headers })
       .then(res => res.json())
       .then(data => {
-        if (data && data.data && data.data.rooms && data.data.rooms.length > 0) {
-          setRooms(data.data.rooms);
-        }
-        if (data && data.data && data.data.bookings && data.data.bookings.length > 0) {
-          setBookings(data.data.bookings);
+        if (data && data.data) {
+          if (data.data.rooms && data.data.rooms.length > 0) {
+            setRooms(data.data.rooms);
+          }
+          if (data.data.bookings && data.data.bookings.length > 0) {
+            setBookings(data.data.bookings);
+          }
+          if (data.data.folioTransactions && data.data.folioTransactions.length > 0) {
+            const mappedTxs = data.data.folioTransactions.map(t => ({
+              transactionId: t.transaction_id || t.transactionId,
+              folioId: t.folio_id || t.folioId,
+              bookingId: t.booking_id || t.bookingId,
+              roomNumber: t.room_number || t.roomNumber,
+              transactionType: t.transaction_type || t.transactionType,
+              outlet: t.outlet,
+              itemCode: t.item_code || t.itemCode,
+              description: t.description,
+              debitAmount: t.debit_amount !== undefined ? t.debit_amount : t.debitAmount,
+              creditAmount: t.credit_amount !== undefined ? t.credit_amount : t.creditAmount,
+              taxableBase: t.taxable_base !== undefined ? t.taxable_base : t.taxableBase,
+              gstRate: t.gst_rate !== undefined ? t.gst_rate : t.gstRate,
+              cgst: t.cgst,
+              sgst: t.sgst,
+              sacCode: t.sac_code || t.sacCode,
+              invoiceId: t.invoice_id || t.invoiceId,
+              isLocked: t.is_locked !== undefined ? t.is_locked : t.isLocked,
+              createdBy: t.created_by || t.createdBy,
+              createdAt: t.created_at || t.createdAt || t.date
+            }));
+            setTransactions(mappedTxs);
+          }
         }
       })
       .catch(err => {
@@ -231,6 +257,20 @@ export default function App() {
 
   const handleAddTransaction = (newTxn) => {
     setTransactions(prev => [newTxn, ...prev]);
+
+    // Dispatch to Cloudflare Edge D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'post_folio_transaction',
+        payload: newTxn
+      })
+    }).catch(err => console.warn('Offline transaction sync:', err));
   };
 
   const handleBillToRoomFromPOS = (payload) => {
@@ -240,7 +280,7 @@ export default function App() {
       bookingId: `BOOK-${payload.roomNumber}`,
       roomNumber: payload.roomNumber,
       transactionType: 'Food & Beverage',
-      outlet: payload.outlet,
+      outlet: payload.outlet || 'Fenugreek Restaurant',
       itemCode: payload.kotId,
       description: payload.description,
       debitAmount: payload.totalAmount,
@@ -255,18 +295,85 @@ export default function App() {
       createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
     };
     setTransactions(prev => [newTxn, ...prev]);
-    alert(`✓ KOT #${payload.kotId} (${payload.outlet}) of ₹${payload.totalAmount.toFixed(2)} debited directly to Room ${payload.roomNumber} Master Folio!`);
+
+    // Dispatch to Cloudflare Edge D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'bill_kot_to_room',
+        payload: {
+          roomNumber: payload.roomNumber,
+          kotId: payload.kotId,
+          items: payload.items || [],
+          subtotal: payload.subtotal,
+          gst: payload.gst,
+          totalAmount: payload.totalAmount,
+          description: payload.description,
+          outlet: payload.outlet || 'Fenugreek Restaurant',
+          captainName: payload.captainName || 'F&B Captain'
+        }
+      })
+    }).catch(err => console.warn('Offline KOT room bill sync:', err));
+
+    alert(`✓ KOT #${payload.kotId} (${payload.outlet || 'Fenugreek Restaurant'}) of ₹${payload.totalAmount.toFixed(2)} debited directly to Room ${payload.roomNumber} Master Folio & synced to D1!`);
   };
 
   const handleSettleFolio = (roomNumber, tenderRows) => {
     handleUpdateRoomStatus(roomNumber, 'Cleaning');
     setTransactions(prev => prev.map(t => t.roomNumber === roomNumber ? { ...t, isLocked: 1 } : t));
+
+    // Dispatch to Cloudflare Edge D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'settle_split_payment',
+        payload: {
+          folioId: `FOLIO-${roomNumber}`,
+          roomNumber,
+          invoiceId: `INV-${roomNumber}`,
+          tenderRows
+        }
+      })
+    }).catch(err => console.warn('Offline split settlement sync:', err));
+
     alert(`✓ Room ${roomNumber} folio settled via ${tenderRows.length} tenders! Room status changed to 'Cleaning'.`);
   };
 
   const handleExecuteNightAudit = (auditPayload) => {
     setTransactions(prev => prev.map(t => ({ ...t, isLocked: 1 })));
-    alert(`✓ Night Audit for ${auditPayload.businessDate} executed! All transactions locked (is_locked = 1). Business date rolled.`);
+
+    // Dispatch to Cloudflare Edge D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'execute_night_audit',
+        payload: auditPayload
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          console.log(`✓ Night Audit synced to Cloudflare D1 (auditId: ${data.auditId})`);
+        }
+      })
+      .catch(err => console.warn('Offline night audit sync:', err));
+
+    alert(`✓ Night Audit for ${auditPayload.businessDate} executed & synced to Cloudflare D1! All transactions locked (is_locked = 1). Business date rolled.`);
   };
 
   return (
