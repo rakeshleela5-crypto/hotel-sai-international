@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Printer, CheckCircle2, Download, ShieldCheck, Hotel, 
   Calendar, User, FileText, Receipt, Sparkles, Building2,
@@ -8,14 +8,17 @@ import { HOTEL_CONFIG } from '../data/hotelData';
 import { DigitalKeycard } from '@/components/ui/digital-keycard';
 
 export default function BookingReceiptModal({ isOpen, onClose, booking, initialType = 'a4' }) {
-  // View mode: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'pos' (Thermal)
-  const [invoiceType, setInvoiceType] = useState(initialType);
+  // View modes: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'money-receipt' (Page 5), 'pos' (Thermal), 'keycard' (3D RFID)
+  const [invoiceType, setInvoiceType] = useState(initialType || 'a4');
+  const prevIsOpenRef = useRef(false);
 
   useEffect(() => {
-    if (initialType) {
-      setInvoiceType(initialType);
+    // Only set initial type when the modal transitions from closed to open
+    if (isOpen && !prevIsOpenRef.current) {
+      setInvoiceType(initialType || 'a4');
     }
-  }, [initialType, isOpen, booking]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, initialType]);
 
   if (!isOpen || !booking) return null;
 
@@ -40,151 +43,229 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
   const planCode = booking.mealPlan || booking.plan || 'CP';
   const grcNo = booking.grcNo || '684';
 
-  // Calculations for Split Views (Pages 2 & 3 from hotel_documents.pdf)
-  const roomTariffBase = 11996.00; // 4 nights @ ₹2,999.00
-  const roomCgst = 299.92;
-  const roomSgst = 299.92;
-  const roomTotal = 12595.84;
+  // Calculations for Split Views (Pages 2 & 3 from hotel_documents.pdf & Owner Demo)
+  const roomTariffBase = booking.roomTariffBase || (booking.tariff ? Number(booking.tariff) * (booking.nights || 1) : 11996.00);
+  const roomCgst = Number((roomTariffBase * 0.025).toFixed(2));
+  const roomSgst = Number((roomTariffBase * 0.025).toFixed(2));
+  const roomTotal = Number((roomTariffBase + roomCgst + roomSgst).toFixed(2));
 
-  const foodBase = 900.00; // 3 meals from Fenugreek Restaurant
-  const foodCgst = 21.00;
-  const foodSgst = 21.00;
-  const foodTotal = 962.00;
+  const foodTotal = booking.foodAmount || 962.00;
+  const foodBase = Number((foodTotal / 1.05).toFixed(2));
+  const foodCgst = Number((foodBase * 0.025).toFixed(2));
+  const foodSgst = Number((foodBase * 0.025).toFixed(2));
 
   return (
     <div className="official-invoice-overlay">
-      <div className="official-invoice-modal-content" style={{ maxWidth: 1040 }}>
+      <div className="official-invoice-modal-content" style={{ maxWidth: 1040, width: '100%' }}>
         {/* Modal Action Bar (Hidden in Print) */}
-        <div className="invoice-action-bar no-print" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div className="action-bar-title">
-            <FileText size={18} color="var(--gold-glow)" />
-            <span>Corporate Documents &amp; Split Folio Suite (hotel_documents.pdf)</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            {/* View Mode Toggle Buttons */}
-            <div style={{
-              display: 'inline-flex',
-              background: 'rgba(6, 14, 26, 0.8)',
-              padding: '3px',
-              borderRadius: '6px',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
-              overflowX: 'auto'
-            }}>
-              <button
-                onClick={() => setInvoiceType('a4')}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: invoiceType === 'a4' ? 'var(--gold-glow)' : 'transparent',
-                  color: invoiceType === 'a4' ? '#060e1a' : '#94a3b8',
-                  border: 'none',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Consolidated Tax Invoice
-              </button>
-
-              <button
-                onClick={() => setInvoiceType('room-split')}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: invoiceType === 'room-split' ? '#38bdf8' : 'transparent',
-                  color: invoiceType === 'room-split' ? '#060e1a' : '#94a3b8',
-                  border: 'none',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Room Bill #01499 (Page 3)
-              </button>
-
-              <button
-                onClick={() => setInvoiceType('food-split')}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: invoiceType === 'food-split' ? '#34d399' : 'transparent',
-                  color: invoiceType === 'food-split' ? '#060e1a' : '#94a3b8',
-                  border: 'none',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Fenugreek Food Bill #01500 (Page 2)
-              </button>
-
-              <button
-                onClick={() => setInvoiceType('grc')}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: invoiceType === 'grc' ? '#fbbf24' : 'transparent',
-                  color: invoiceType === 'grc' ? '#060e1a' : '#94a3b8',
-                  border: 'none',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Official GRC Form (Page 1)
-              </button>
-
-              <button
-                onClick={() => setInvoiceType('pos')}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: invoiceType === 'pos' ? '#a78bfa' : 'transparent',
-                  color: invoiceType === 'pos' ? '#060e1a' : '#94a3b8',
-                  border: 'none',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                80mm Slip
-              </button>
-
-              <button
-                onClick={() => setInvoiceType('keycard')}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: invoiceType === 'keycard' ? 'linear-gradient(135deg, #f3c64c, #d4af37)' : 'transparent',
-                  color: invoiceType === 'keycard' ? '#060e1a' : '#f3c64c',
-                  border: 'none',
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <Key size={13} /> 3D Smart Keycard
-              </button>
+        <div className="invoice-action-bar no-print" style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '8px', 
+          background: 'rgba(10, 20, 38, 0.96)',
+          border: '1px solid rgba(212, 175, 55, 0.4)',
+          borderRadius: '10px',
+          padding: '10px 14px',
+          marginBottom: '14px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+        }}>
+          {/* Row 1: Header Title on Left, Print & Close Buttons Pinned on Right */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+            <div className="action-bar-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={18} color="var(--gold-glow)" />
+              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--gold-glow)' }}>
+                Corporate Documents &amp; Split Folio Suite (hotel_documents.pdf)
+              </span>
+              <span style={{ 
+                fontSize: '0.72rem', 
+                background: 'rgba(212, 175, 55, 0.15)', 
+                color: 'var(--gold-glow)', 
+                padding: '2px 8px', 
+                borderRadius: '12px',
+                border: '1px solid rgba(212, 175, 55, 0.3)'
+              }}>
+                Room {booking.roomNumber || '301'} • {booking.guestName || 'MR. P ASHOK'}
+              </span>
             </div>
 
-            {invoiceType !== 'keycard' && (
-              <button onClick={handlePrint} className="btn-primary-gold" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                <Printer size={15} /> Print
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {invoiceType !== 'keycard' && (
+                <button 
+                  type="button"
+                  onClick={handlePrint} 
+                  className="btn-primary-gold" 
+                  style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Printer size={15} /> Print Document
+                </button>
+              )}
 
-            <button onClick={onClose} className="modal-close-btn" style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '6px' }}>
-              <X size={18} />
+              <button 
+                type="button"
+                onClick={onClose} 
+                className="modal-close-btn" 
+                title="Close Modal"
+                style={{ 
+                  background: 'rgba(255,255,255,0.1)', 
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '6px', 
+                  padding: '6px', 
+                  color: '#f1f5f9',
+                  cursor: 'pointer' 
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: Document Switcher Tabs (Independent row, cannot displace the close button) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            background: 'rgba(6, 14, 26, 0.9)',
+            padding: '4px',
+            borderRadius: '8px',
+            border: '1px solid rgba(212, 175, 55, 0.25)',
+            overflowX: 'auto',
+            width: '100%',
+            WebkitOverflowScrolling: 'touch'
+          }}>
+            <button
+              type="button"
+              onClick={() => setInvoiceType('a4')}
+              style={{
+                padding: '6px 11px',
+                borderRadius: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: invoiceType === 'a4' ? 'var(--gold-glow)' : 'transparent',
+                color: invoiceType === 'a4' ? '#060e1a' : '#cbd5e1',
+                border: invoiceType === 'a4' ? '1px solid var(--gold-glow)' : '1px solid transparent',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Consolidated Tax Invoice
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInvoiceType('room-split')}
+              style={{
+                padding: '6px 11px',
+                borderRadius: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: invoiceType === 'room-split' ? '#38bdf8' : 'transparent',
+                color: invoiceType === 'room-split' ? '#060e1a' : '#cbd5e1',
+                border: invoiceType === 'room-split' ? '1px solid #38bdf8' : '1px solid transparent',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Room Bill #01499 (Page 3)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInvoiceType('food-split')}
+              style={{
+                padding: '6px 11px',
+                borderRadius: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: invoiceType === 'food-split' ? '#34d399' : 'transparent',
+                color: invoiceType === 'food-split' ? '#060e1a' : '#cbd5e1',
+                border: invoiceType === 'food-split' ? '1px solid #34d399' : '1px solid transparent',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Fenugreek Food Bill #01500 (Page 2)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInvoiceType('grc')}
+              style={{
+                padding: '6px 11px',
+                borderRadius: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: invoiceType === 'grc' ? '#fbbf24' : 'transparent',
+                color: invoiceType === 'grc' ? '#060e1a' : '#cbd5e1',
+                border: invoiceType === 'grc' ? '1px solid #fbbf24' : '1px solid transparent',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Official GRC Form (Page 1)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInvoiceType('money-receipt')}
+              style={{
+                padding: '6px 11px',
+                borderRadius: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: invoiceType === 'money-receipt' ? '#f43f5e' : 'transparent',
+                color: invoiceType === 'money-receipt' ? '#ffffff' : '#cbd5e1',
+                border: invoiceType === 'money-receipt' ? '1px solid #f43f5e' : '1px solid transparent',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Money Receipt Voucher (Page 5)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInvoiceType('pos')}
+              style={{
+                padding: '6px 11px',
+                borderRadius: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: invoiceType === 'pos' ? '#a78bfa' : 'transparent',
+                color: invoiceType === 'pos' ? '#060e1a' : '#cbd5e1',
+                border: invoiceType === 'pos' ? '1px solid #a78bfa' : '1px solid transparent',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              80mm Slip
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInvoiceType('keycard')}
+              style={{
+                padding: '6px 11px',
+                borderRadius: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                background: invoiceType === 'keycard' ? 'linear-gradient(135deg, #f3c64c, #d4af37)' : 'transparent',
+                color: invoiceType === 'keycard' ? '#060e1a' : '#f3c64c',
+                border: invoiceType === 'keycard' ? '1px solid #f3c64c' : '1px solid transparent',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Key size={13} /> 3D Smart Keycard
             </button>
           </div>
         </div>
@@ -838,6 +919,141 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                 <div>
                   <div style={{ borderBottom: '1px solid #0f172a', width: '200px', marginBottom: '4px' }}></div>
                   <strong>Authorized Duty Manager</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 4B: OFFICIAL CASH / UPI MONEY RECEIPT VOUCHER (Page 5 & Owner Video Demo) */}
+        {invoiceType === 'money-receipt' && (
+          <div className="tax-invoice-sheet" style={{ 
+            background: '#ffffff', 
+            color: '#0f172a', 
+            border: '2px solid #b91c1c', 
+            padding: '24px 28px',
+            maxWidth: '820px',
+            margin: '0 auto',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #b91c1c', paddingBottom: '12px' }}>
+              <div>
+                <span style={{ 
+                  background: '#b91c1c', 
+                  color: '#fff', 
+                  fontSize: '9px', 
+                  fontWeight: 900, 
+                  padding: '2px 6px', 
+                  borderRadius: '3px',
+                  letterSpacing: '0.05em' 
+                }}>
+                  OFFICIAL PAYMENT VOUCHER • GUEST ORIGINAL
+                </span>
+                <h1 style={{ margin: '6px 0 2px 0', fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.5px' }}>
+                  HOTEL SAI INTERNATIONAL (PVT.) LTD.
+                </h1>
+                <div style={{ fontSize: '11px', color: '#334155' }}>
+                  J.K. Road, RAYAGADA - 765 001. Odisha
+                </div>
+                <div style={{ fontSize: '10px', color: '#475569' }}>
+                  GSTIN: <strong>21AABCH7663L1ZG</strong> | State: 21 (Odisha)
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#b91c1c' }}>
+                  MONEY RECEIPT
+                </div>
+                <div style={{ fontSize: '11px', color: '#0f172a', marginTop: '2px' }}>
+                  Receipt No: <strong>HSI/MR/26-27/{booking.roomNumber || '301'}</strong>
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                  Date: <strong>{new Date().toLocaleDateString('en-IN')}</strong> ({new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })})
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '20px 0', fontSize: '12px', lineHeight: 2.2 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', borderBottom: '1px dotted #94a3b8' }}>
+                <span style={{ minWidth: '180px', color: '#475569', fontWeight: 600 }}>Received with thanks from :</span>
+                <strong style={{ fontSize: '13px', color: '#0f172a', textTransform: 'uppercase', flex: 1 }}>
+                  {booking.guestName || 'MR. P ASHOK'}
+                </strong>
+                <span style={{ color: '#64748b' }}>Room No: <strong>{booking.roomNumber || '301'}</strong> ({booking.tier || 'Executive AC'})</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', borderBottom: '1px dotted #94a3b8' }}>
+                <span style={{ minWidth: '180px', color: '#475569', fontWeight: 600 }}>Company Name / Account :</span>
+                <span style={{ flex: 1, color: '#0f172a', fontWeight: 600 }}>
+                  {booking.company || 'LINDE INDIA LTD (Direct Guest Settlement)'}
+                </span>
+                <span style={{ color: '#64748b' }}>Folio / Bill: <strong>{billNo}</strong></span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', borderBottom: '1px dotted #94a3b8' }}>
+                <span style={{ minWidth: '180px', color: '#475569', fontWeight: 600 }}>The Sum of Rupees :</span>
+                <strong style={{ color: '#059669', flex: 1, fontSize: '13px' }}>
+                  INR Nine hundred sixty-two only (₹{foodTotal.toFixed(2)})
+                </strong>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', borderBottom: '1px dotted #94a3b8' }}>
+                <span style={{ minWidth: '180px', color: '#475569', fontWeight: 600 }}>By Tender / Mode of Payment :</span>
+                <div style={{ flex: 1, display: 'flex', gap: '15px', alignItems: 'center' }}>
+                  <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #bfdbfe' }}>
+                    ✓ PhonePe (UPI) • Ref: UPI-849102 / SBI Merchant QR
+                  </span>
+                  <span style={{ color: '#64748b', fontSize: '11px' }}>
+                    Status: <strong style={{ color: '#059669' }}>SETTLED &amp; CLEARED</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', borderBottom: '1px dotted #94a3b8' }}>
+                <span style={{ minWidth: '180px', color: '#475569', fontWeight: 600 }}>Towards Settlement Of :</span>
+                <span style={{ flex: 1, color: '#0f172a' }}>
+                  Fenugreek Restaurant Dining &amp; Room Service Meals (SAC 996331)
+                </span>
+                <span style={{ color: '#b45309', fontWeight: 600, fontSize: '11px' }}>
+                  * Room Tariff (₹{roomTotal.toFixed(2)}) transferred to Corporate BTC Credit
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Signatures and Stamp */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '30px', paddingTop: '10px' }}>
+              <div style={{ 
+                border: '1px dashed #cbd5e1', 
+                padding: '10px 14px', 
+                borderRadius: '6px', 
+                background: '#f8fafc',
+                fontSize: '10px',
+                color: '#64748b',
+                maxWidth: '300px'
+              }}>
+                <div>• Valid subject to realization of UPI/Bank transfer</div>
+                <div>• Computer generated cash/tender voucher</div>
+                <div>• All disputes subject to Rayagada, Odisha jurisdiction</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '40px', textAlign: 'center', fontSize: '11px' }}>
+                <div>
+                  <div style={{ height: '40px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <span style={{ fontFamily: 'cursive', fontSize: '13px', color: '#334155' }}>{booking.guestName ? booking.guestName.split(' ')[0] : 'Guest'}</span>
+                  </div>
+                  <div style={{ borderBottom: '1px solid #0f172a', width: '130px', marginBottom: '4px' }}></div>
+                  <span style={{ color: '#475569', fontWeight: 600 }}>Guest Signature</span>
+                </div>
+
+                <div>
+                  <div style={{ height: '40px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <span style={{ fontWeight: 800, color: '#1e3a8a', fontSize: '12px' }}>K. Simhachalam</span>
+                  </div>
+                  <div style={{ borderBottom: '1px solid #0f172a', width: '150px', marginBottom: '4px' }}></div>
+                  <span style={{ color: '#475569', fontWeight: 700 }}>Authorized Cashier / MD</span>
                 </div>
               </div>
             </div>

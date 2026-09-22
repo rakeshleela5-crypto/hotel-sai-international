@@ -76,9 +76,30 @@ export default function CheckoutSplitModal({
   // Apply quick presets
   const applyPreset = (type) => {
     setErrorMsg('');
-    if (type === 'owner-demo') {
-      // The exact example from owner's video: Total 962 -> 462 PhonePe + 500 Cash
+    if (type === 'owner-split-btc') {
+      // The exact corporate lodging + dining split from the owner's video:
+      // ₹962 Fenugreek Restaurant Dining -> PhonePe (UPI)
+      // ₹12,596 Room Lodging Tariff -> Linde India Ltd (BTC Credit)
+      setBillTotal(13558);
+      setBillBreakdown({
+        roomTariff: 12596,
+        foodCharges: 962,
+        advancePaid: 0
+      });
+      setUpiAmount('962');
+      setUpiProvider('PhonePe');
+      setBtcAmount('12596');
+      setBtcCompany('Linde India Ltd');
+      setCashAmount('');
+      setCardAmount('');
+    } else if (type === 'owner-demo') {
+      // The cash + UPI split example from owner's demo: Total 962 -> 462 PhonePe + 500 Cash
       setBillTotal(962);
+      setBillBreakdown({
+        roomTariff: 0,
+        foodCharges: 962,
+        advancePaid: 0
+      });
       setUpiAmount('462');
       setUpiProvider('PhonePe');
       setCashAmount('500');
@@ -347,6 +368,28 @@ export default function CheckoutSplitModal({
             </div>
 
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {/* OWNER'S EXACT VIDEO SPLIT: PhonePe Food + Linde BTC Lodging */}
+              <button
+                type="button"
+                onClick={() => applyPreset('owner-split-btc')}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(52, 211, 153, 0.2))',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 10px rgba(56, 189, 248, 0.2)'
+                }}
+              >
+                <Sparkles size={14} color="#34d399" /> 🏢 Owner Video Split (₹962 PhonePe + ₹12,596 Linde BTC)
+              </button>
+
               {/* OWNER'S EXACT VIDEO DEMO PRESET */}
               <button
                 type="button"
@@ -366,7 +409,7 @@ export default function CheckoutSplitModal({
                   boxShadow: '0 2px 10px rgba(212, 175, 55, 0.2)'
                 }}
               >
-                <Sparkles size={14} /> Owner Video Demo (₹462 PhonePe + ₹500 Cash)
+                <Sparkles size={14} /> Owner Demo (₹462 PhonePe + ₹500 Cash)
               </button>
 
               <button
