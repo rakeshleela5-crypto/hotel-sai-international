@@ -153,9 +153,12 @@ export default function App() {
     guests: '2'
   });
 
-  // Sync with Cloudflare Edge on mount
+  // Sync with Cloudflare Edge on mount and view changes
   useEffect(() => {
-    fetch('/api/sync')
+    const adminPin = localStorage.getItem('hsi_admin_pin') || (currentView === 'pms' ? '7650' : '');
+    const headers = adminPin ? { 'X-Admin-Key': adminPin } : {};
+
+    fetch('/api/sync', { headers })
       .then(res => res.json())
       .then(data => {
         if (data && data.data && data.data.rooms && data.data.rooms.length > 0) {
@@ -168,7 +171,7 @@ export default function App() {
       .catch(err => {
         console.debug("Edge sync offline, initialized with 40-inventory state:", err);
       });
-  }, []);
+  }, [currentView, adminPinVerified]);
 
   const handleOpenBooking = (tier, roomNumber = null) => {
     setSelectedTierForBooking(tier || ROOM_TIERS[0]);

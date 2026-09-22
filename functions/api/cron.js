@@ -30,6 +30,30 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ error: "D1 database binding 'DB' not configured" }, 500);
     }
 
+    // SECURITY: Strictly verify Cron secret or Administrator Key before executing maintenance actions
+    const authHeader = request.headers.get("Authorization");
+    const adminKey = request.headers.get("X-Admin-Key");
+    let isAuthorized = false;
+
+    if (env.CRON_SECRET && authHeader === `Bearer ${env.CRON_SECRET}`) {
+      isAuthorized = true;
+    } else if (env.ADMIN_SECRET && adminKey === env.ADMIN_SECRET) {
+      isAuthorized = true;
+    } else if (adminKey) {
+      try {
+        const pinRow = await db.prepare("SELECT value FROM hotel_config WHERE key = 'ownerPin'").first();
+        if (pinRow && pinRow.value && adminKey === pinRow.value) {
+          isAuthorized = true;
+        }
+      } catch (err) {
+        console.error("Cron auth check failed:", err);
+      }
+    }
+
+    if (!isAuthorized) {
+      return jsonResponse({ error: "Unauthorized. Scheduled bot execution requires valid administrative credentials or CRON_SECRET." }, 401);
+    }
+
     const body = await request.json().catch(() => ({}));
     const botId = body.botId || 'fleet_maintenance';
 

@@ -56,9 +56,13 @@ export default function AutonomousBotFleetModal({ isOpen, onClose }) {
     setExecutionOutput(null);
 
     try {
+      const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
       const res = await fetch('/api/cron', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Key': adminPin
+        },
         body: JSON.stringify({ botId: bot.code.toLowerCase() })
       });
       const data = await res.json().catch(() => ({}));

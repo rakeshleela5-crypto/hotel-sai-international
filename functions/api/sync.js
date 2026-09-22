@@ -80,15 +80,63 @@ async function verifyAdminAuth(request, env, db) {
   return false;
 }
 
-// GET: Synchronize all operational tables
-export async function onRequestGet({ env }) {
+// GET: Synchronize operational tables (Strict Role Separation)
+export async function onRequestGet({ request, env }) {
   try {
     const db = env.DB;
     if (!db) {
       return jsonResponse({ error: "D1 database binding 'DB' not configured" }, 500);
     }
 
-    // Parallel fetch of core operational tables
+    const isAdmin = await verifyAdminAuth(request, env, db);
+
+    // If caller is NOT an authenticated administrator, return ONLY public catalog & menu
+    if (!isAdmin) {
+      const [roomsRes, menuRes, configRes] = await Promise.all([
+        db.prepare("SELECT id, room_number, tier, floor, base_price, amenities, status FROM rooms ORDER BY floor ASC, room_number ASC").all(),
+        db.prepare("SELECT * FROM menu_items ORDER BY category ASC").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT key, value FROM hotel_config").all().catch(() => ({ results: [] }))
+      ]);
+
+      const rooms = (roomsRes.results || []).map(r => {
+        let amenities = [];
+        try {
+          amenities = JSON.parse(r.amenities || "[]");
+        } catch {
+          amenities = [];
+        }
+        return {
+          id: r.id,
+          roomNumber: r.room_number,
+          tier: r.tier,
+          floor: r.floor,
+          basePrice: r.base_price,
+          amenities,
+          status: r.status
+          // Notice: current_guest_name and current_booking_id are intentionally omitted for privacy
+        };
+      });
+
+      const configObj = {};
+      const publicKeys = new Set(['hotel_name', 'hotel_address', 'phone', 'landline', 'email', 'gstin', 'check_in_time', 'check_out_time', 'upi_id', 'maintenance_mode']);
+      (configRes.results || []).forEach(r => {
+        if (publicKeys.has(r.key)) {
+          configObj[r.key] = r.value;
+        }
+      });
+
+      return jsonResponse({
+        success: true,
+        isAdmin: false,
+        data: {
+          rooms,
+          menuItems: menuRes.results || [],
+          hotelConfig: configObj
+        }
+      });
+    }
+
+    // Authenticated Admin / Reception Session: Parallel fetch of all operational tables
     const [
       roomsRes,
       bookingsRes,
@@ -107,7 +155,13 @@ export async function onRequestGet({ env }) {
       roomServicesRes,
       corporatesRes,
       menuRes,
-      handoversRes
+      handoversRes,
+      folioTxnsRes,
+      splitPaymentsRes,
+      corporateLedgerRes,
+      nightAuditLogRes,
+      storePurchasesRes,
+      requisitionsRes
     ] = await Promise.all([
       db.prepare("SELECT * FROM rooms ORDER BY floor ASC, room_number ASC").all(),
       db.prepare("SELECT * FROM bookings ORDER BY created_at DESC LIMIT 100").all(),
@@ -160,7 +214,7 @@ export async function onRequestGet({ env }) {
     const configRows = configRes.results || [];
     const configObj = {};
     configRows.forEach(r => {
-      // Never expose raw ownerPin over public sync GET
+      // Never expose raw ownerPin over sync GET
       if (r.key !== 'ownerPin') {
         configObj[r.key] = r.value;
       }
@@ -168,6 +222,7 @@ export async function onRequestGet({ env }) {
 
     return jsonResponse({
       success: true,
+      isAdmin: true,
       data: {
         rooms,
         bookings: bookingsRes.results || [],

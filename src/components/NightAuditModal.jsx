@@ -52,8 +52,9 @@ export default function NightAuditModal({
   const cashVariance = physicalCashNum - expectedDrawerCash;
 
   const handleExecuteAudit = () => {
-    if (managerPin !== '7650') {
-      alert("Invalid Manager Authorization PIN! Default PIN is 7650.");
+    const validPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    if (managerPin !== validPin) {
+      alert("Invalid Manager Authorization PIN! Please enter your active security PIN.");
       return;
     }
 
