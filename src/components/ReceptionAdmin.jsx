@@ -441,7 +441,31 @@ export default function ReceptionAdmin({
             </span>
           </div>
 
-          <InteractiveCalendar />
+          <InteractiveCalendar 
+            rooms={rooms}
+            bookings={bookings}
+            onSelectBooking={(evt) => {
+              const roomMatch = evt.venue?.match(/Room\s*(\d+)/i);
+              const roomNum = roomMatch ? roomMatch[1] : null;
+              const foundRoom = roomNum ? rooms.find(r => r.roomNumber === roomNum) : null;
+              if (foundRoom) {
+                setSelectedFolioRoom(foundRoom);
+              } else {
+                const foundBooking = bookings.find(b => 
+                  (evt.contactPerson && b.guestName?.toLowerCase().includes(evt.contactPerson.toLowerCase())) || 
+                  b.id === evt.id ||
+                  (b.roomNumber && evt.venue?.includes(b.roomNumber))
+                );
+                if (foundBooking) {
+                  setSelectedReceiptBooking(foundBooking);
+                  setIsReceiptModalOpen(true);
+                } else {
+                  const fallbackRoom = rooms.find(r => r.status === 'Occupied') || rooms[0];
+                  if (fallbackRoom) setSelectedFolioRoom(fallbackRoom);
+                }
+              }
+            }}
+          />
         </div>
       )}
 
