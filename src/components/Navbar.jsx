@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Scale, Hotel, Phone, Clock, Layers, Utensils, Compass, Bot, 
   ShieldCheck, Lock, Sparkles, Building2, Menu, X, ShoppingBag, 
-  MapPin, CheckCircle2
+  MapPin, CheckCircle2, FileText
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 
