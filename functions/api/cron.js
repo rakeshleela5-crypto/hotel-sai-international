@@ -14,6 +14,7 @@ function getSecurityHeaders(originHeader = null) {
   return {
     "Content-Type": "application/json",
     "X-Content-Type-Options": "nosniff",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",

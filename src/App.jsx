@@ -25,6 +25,7 @@ import Footer from './components/Footer';
 import LegalPoliciesModal from './components/LegalPoliciesModal';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import DpdpDataRightsModal from './components/DpdpDataRightsModal';
+import FaqSection from './components/FaqSection';
 
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
@@ -446,6 +447,10 @@ export default function App() {
                 setSelectedFoodItem(item);
                 setDiningModalOpen(true);
               }}
+            />
+
+            <FaqSection 
+              onOpenBooking={() => handleOpenBooking(ROOM_TIERS[0])}
             />
 
             <FinancialAnalytics bookings={bookings} />
