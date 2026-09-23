@@ -1,21 +1,34 @@
 // Cloudflare Pages Function: /api/sync
 // Connected to Cloudflare D1 Database binding "DB"
 
-const SECURITY_HEADERS = {
-  "Content-Type": "application/json",
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "SAMEORIGIN",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Cache-Control": "no-store, no-cache, must-revalidate",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key"
-};
+const ALLOWED_ORIGINS = [
+  "https://hotel-sai-international.pages.dev",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173"
+];
 
-function jsonResponse(data, status = 200) {
+function getSecurityHeaders(originHeader = null) {
+  const isAllowed = originHeader && (ALLOWED_ORIGINS.includes(originHeader) || originHeader.endsWith(".hotel-sai-international.pages.dev"));
+  const allowOrigin = isAllowed ? originHeader : "https://hotel-sai-international.pages.dev";
+
+  return {
+    "Content-Type": "application/json",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
+    "Vary": "Origin"
+  };
+}
+
+function jsonResponse(data, status = 200, request = null) {
+  const origin = request?.headers?.get("Origin") || null;
   return new Response(JSON.stringify(data), {
     status,
-    headers: SECURITY_HEADERS
+    headers: getSecurityHeaders(origin)
   });
 }
 
@@ -45,13 +58,12 @@ const ALLOWED_CONFIG_KEYS = new Set([
   'maintenance_mode'
 ]);
 
-export async function onRequestOptions() {
+export async function onRequestOptions({ request }) {
+  const origin = request?.headers?.get("Origin") || null;
   return new Response(null, {
     status: 204,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
+      ...getSecurityHeaders(origin),
       "Access-Control-Max-Age": "86400"
     }
   });

@@ -22,6 +22,9 @@ import StoreInventoryModal from './components/StoreInventoryModal';
 import DirectorPortal from './components/DirectorPortal';
 import RevenueManagementModal from './components/RevenueManagementModal';
 import Footer from './components/Footer';
+import LegalPoliciesModal from './components/LegalPoliciesModal';
+import CookieConsentBanner from './components/CookieConsentBanner';
+import DpdpDataRightsModal from './components/DpdpDataRightsModal';
 
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
@@ -119,6 +122,14 @@ export default function App() {
   ]);
 
   const [adminPinVerified, setAdminPinVerified] = useState(false);
+  const [showPinPrompt, setShowPinPrompt] = useState(false);
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState('privacy');
+  const [dataRightsModalOpen, setDataRightsModalOpen] = useState(false);
+
+  const getVerifiedAdminPin = () => {
+    return sessionStorage.getItem('hsi_admin_pin') || localStorage.getItem('hsi_admin_pin') || '';
+  };
 
   // Core Modals state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -155,7 +166,7 @@ export default function App() {
 
   // Sync with Cloudflare Edge on mount and view changes
   useEffect(() => {
-    const adminPin = localStorage.getItem('hsi_admin_pin') || (currentView === 'pms' ? '7650' : '');
+    const adminPin = adminPinVerified ? getVerifiedAdminPin() : '';
     const headers = adminPin ? { 'X-Admin-Key': adminPin } : {};
 
     fetch('/api/sync', { headers })
@@ -237,7 +248,8 @@ export default function App() {
     }));
 
     // Send update to Edge
-    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    const adminPin = getVerifiedAdminPin();
+    if (!adminPin) return;
     fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -259,7 +271,8 @@ export default function App() {
     setTransactions(prev => [newTxn, ...prev]);
 
     // Dispatch to Cloudflare Edge D1
-    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    const adminPin = getVerifiedAdminPin();
+    if (!adminPin) return;
     fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -297,7 +310,8 @@ export default function App() {
     setTransactions(prev => [newTxn, ...prev]);
 
     // Dispatch to Cloudflare Edge D1
-    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    const adminPin = getVerifiedAdminPin();
+    if (!adminPin) return;
     fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -328,7 +342,8 @@ export default function App() {
     setTransactions(prev => prev.map(t => t.roomNumber === roomNumber ? { ...t, isLocked: 1 } : t));
 
     // Dispatch to Cloudflare Edge D1
-    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    const adminPin = getVerifiedAdminPin();
+    if (!adminPin) return;
     fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -353,7 +368,8 @@ export default function App() {
     setTransactions(prev => prev.map(t => ({ ...t, isLocked: 1 })));
 
     // Dispatch to Cloudflare Edge D1
-    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    const adminPin = getVerifiedAdminPin();
+    if (!adminPin) return;
     fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -399,6 +415,8 @@ export default function App() {
         rooms={rooms}
         adminPinVerified={adminPinVerified}
         setAdminPinVerified={setAdminPinVerified}
+        showPinPrompt={showPinPrompt}
+        setShowPinPrompt={setShowPinPrompt}
       />
 
       {/* Main View Router */}
@@ -585,6 +603,30 @@ export default function App() {
         onOpenDining={() => setDiningModalOpen(true)}
         onOpenCorporate={() => setCorporateModalOpen(true)}
         onOpenBotFleet={() => setBotFleetOpen(true)}
+        onOpenLegal={(tab) => {
+          setLegalModalTab(tab);
+          setLegalModalOpen(true);
+        }}
+        onOpenDataRights={() => setDataRightsModalOpen(true)}
+      />
+
+      {/* Statutory Legal & Compliance Modals */}
+      <LegalPoliciesModal 
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
+
+      <CookieConsentBanner 
+        onOpenPolicy={() => {
+          setLegalModalTab('cookies');
+          setLegalModalOpen(true);
+        }}
+      />
+
+      <DpdpDataRightsModal 
+        isOpen={dataRightsModalOpen}
+        onClose={() => setDataRightsModalOpen(false)}
       />
 
       {/* 21st.dev / Magic UI Floating Luxury Navigation Dock */}
@@ -618,7 +660,15 @@ export default function App() {
           {
             title: currentView === 'pms' ? "Guest Portal" : "Reception PMS",
             icon: <ShieldCheck className="h-5 w-5" />,
-            onClick: () => setCurrentView(currentView === 'pms' ? 'guest' : 'pms')
+            onClick: () => {
+              if (currentView === 'pms') {
+                setCurrentView('guest');
+              } else if (adminPinVerified) {
+                setCurrentView('pms');
+              } else {
+                setShowPinPrompt(true);
+              }
+            }
           }
         ]}
       />

@@ -64,6 +64,16 @@ export default function BookingModal({
     if (initialRoomNumber) setSelectedRoomNumber(initialRoomNumber);
   }, [initialTier, initialRoomNumber]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Compute available rooms for selected tier
   const tierRooms = rooms.filter(r => r.tier === selectedTier.name);
   const availableTierRooms = tierRooms.filter(r => {
@@ -706,6 +716,25 @@ export default function BookingModal({
                     <strong>Statutory DPDP Act 2023 Consent</strong>: I explicitly consent to Hotel Sai International collecting and processing my identification strictly for hotel accommodation registration, Sarai Act 1867 police register compliance, and tax invoice generation. Records will be automatically scheduled for purge after 30 days.
                   </span>
                 </label>
+              </div>
+
+              {/* Age Verification & Statutory Mandate */}
+              <div style={{
+                background: 'rgba(6, 14, 26, 0.7)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '0.6rem 0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                color: '#94a3b8',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <Shield size={14} color="#d4af37" style={{ flexShrink: 0 }} />
+                <span>
+                  <strong>Age & ID Requirement:</strong> Primary guest must be 18+ years with valid original government photo ID at check-in (Sarai Act 1867).
+                </span>
               </div>
 
               {/* Submit Buttons */}

@@ -26,11 +26,15 @@ export default function Navbar({
   cartCount = 0,
   rooms = [],
   adminPinVerified,
-  setAdminPinVerified
+  setAdminPinVerified,
+  showPinPrompt: propShowPinPrompt,
+  setShowPinPrompt: propSetShowPinPrompt
 }) {
   const [timeString, setTimeString] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showPinPrompt, setShowPinPrompt] = useState(false);
+  const [internalShowPinPrompt, setInternalShowPinPrompt] = useState(false);
+  const showPinPrompt = propShowPinPrompt !== undefined ? propShowPinPrompt : internalShowPinPrompt;
+  const setShowPinPrompt = propSetShowPinPrompt !== undefined ? propSetShowPinPrompt : setInternalShowPinPrompt;
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState('');
   const [scrollPercent, setScrollPercent] = useState(0);
@@ -64,16 +68,48 @@ export default function Navbar({
     }
   };
 
-  const verifyPin = (e) => {
+  const handleLogout = () => {
+    sessionStorage.removeItem('hsi_admin_pin');
+    localStorage.removeItem('hsi_admin_pin');
+    setAdminPinVerified(false);
+    setCurrentView('guest');
+  };
+
+  const verifyPin = async (e) => {
     e.preventDefault();
-    const validPin = localStorage.getItem('hsi_admin_pin') || '7650';
-    if (enteredPin === validPin) {
-      setAdminPinVerified(true);
-      setShowPinPrompt(false);
-      setPinError('');
-      setCurrentView('pms');
-    } else {
-      setPinError('Invalid Security PIN. Access Denied.');
+    const pin = enteredPin.trim();
+    if (!pin) {
+      setPinError('Please enter the administrative security PIN.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/sync', {
+        headers: { 'X-Admin-Key': pin }
+      });
+      const data = await res.json();
+      if (data && data.isAdmin) {
+        sessionStorage.setItem('hsi_admin_pin', pin);
+        localStorage.setItem('hsi_admin_pin', pin);
+        setAdminPinVerified(true);
+        setShowPinPrompt(false);
+        setPinError('');
+        setEnteredPin('');
+        setCurrentView('pms');
+      } else {
+        setPinError('Invalid Security PIN. Authorization Denied.');
+      }
+    } catch {
+      const validPin = sessionStorage.getItem('hsi_admin_pin') || localStorage.getItem('hsi_admin_pin');
+      if (validPin && pin === validPin) {
+        setAdminPinVerified(true);
+        setShowPinPrompt(false);
+        setPinError('');
+        setEnteredPin('');
+        setCurrentView('pms');
+      } else {
+        setPinError('Invalid Security PIN. Access Denied.');
+      }
     }
   };
 
@@ -585,7 +621,7 @@ export default function Navbar({
                     className="form-input"
                     value={enteredPin}
                     onChange={(e) => setEnteredPin(e.target.value)}
-                    placeholder="Enter 4-digit PIN (Default: 7650)"
+                    placeholder="Enter 4-digit PIN"
                     maxLength={6}
                     autoFocus
                     required

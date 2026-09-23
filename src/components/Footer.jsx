@@ -2,7 +2,14 @@ import React from 'react';
 import { Hotel, MapPin, Phone, Mail, Clock, ShieldCheck, Sparkles, Heart } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 
-export default function Footer({ onOpenDarshan, onOpenDining, onOpenCorporate, onOpenBotFleet }) {
+export default function Footer({ 
+  onOpenDarshan, 
+  onOpenDining, 
+  onOpenCorporate, 
+  onOpenBotFleet,
+  onOpenLegal,
+  onOpenDataRights
+}) {
   return (
     <footer style={{
       background: 'linear-gradient(180deg, #0c182b 0%, #060e1a 100%)',
@@ -51,27 +58,27 @@ export default function Footer({ onOpenDarshan, onOpenDining, onOpenCorporate, o
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.88rem' }}>
               <li>
-                <a href="#inventory" style={{ color: 'inherit', transition: 'color 0.2s' }}>
+                <a href="#inventory" style={{ color: 'inherit', transition: 'color 0.2s', textDecoration: 'none' }}>
                   40-Room Inventory Catalog
                 </a>
               </li>
               <li>
-                <button onClick={onOpenDining} style={{ color: 'inherit', textAlign: 'left' }}>
+                <button onClick={onOpenDining} style={{ background: 'none', border: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', padding: 0, font: 'inherit' }}>
                   Odia Delicacies & Satvik Dining
                 </button>
               </li>
               <li>
-                <button onClick={onOpenDarshan} style={{ color: 'inherit', textAlign: 'left' }}>
+                <button onClick={onOpenDarshan} style={{ background: 'none', border: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', padding: 0, font: 'inherit' }}>
                   Maa Majhighariani Darshan Advisor
                 </button>
               </li>
               <li>
-                <button onClick={onOpenCorporate} style={{ color: 'inherit', textAlign: 'left' }}>
+                <button onClick={onOpenCorporate} style={{ background: 'none', border: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', padding: 0, font: 'inherit' }}>
                   Corporate B2B Invoicing (JK/IMFA/Utkal)
                 </button>
               </li>
               <li>
-                <button onClick={onOpenBotFleet} style={{ color: 'inherit', textAlign: 'left' }}>
+                <button onClick={onOpenBotFleet} style={{ background: 'none', border: 'none', color: '#38bdf8', textAlign: 'left', cursor: 'pointer', padding: 0, font: 'inherit' }}>
                   20-Bot Autonomous Hotel Fleet
                 </button>
               </li>
@@ -141,15 +148,52 @@ export default function Footer({ onOpenDarshan, onOpenDining, onOpenCorporate, o
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          fontSize: '0.75rem'
+          fontSize: '0.78rem'
         }}>
           <div>
             © {new Date().getFullYear()} Hotel Sai International. All Rights Reserved. Sai Priya Nagar, Rayagada, Odisha - 765001.
           </div>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            <span>Privacy Notice (DPDP)</span>
-            <span>Sarai Act Disclosures</span>
-            <span>Terms of Service</span>
+          <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => onOpenLegal && onOpenLegal('privacy')}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}
+            >
+              Privacy Policy (DPDP)
+            </button>
+            <button
+              onClick={() => onOpenLegal && onOpenLegal('terms')}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}
+            >
+              Terms of Service & Sarai Act
+            </button>
+            <button
+              onClick={() => onOpenLegal && onOpenLegal('refund')}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}
+            >
+              Refund & Cancellation
+            </button>
+            <button
+              onClick={() => onOpenLegal && onOpenLegal('cookies')}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}
+            >
+              Cookie Policy
+            </button>
+            <button
+              onClick={onOpenDataRights}
+              style={{
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                color: '#34d399',
+                cursor: 'pointer',
+                padding: '0.25rem 0.6rem',
+                borderRadius: '4px',
+                font: 'inherit',
+                fontSize: '0.72rem',
+                fontWeight: 600
+              }}
+            >
+              🛡 Exercise DPDP Rights
+            </button>
           </div>
         </div>
       </div>
