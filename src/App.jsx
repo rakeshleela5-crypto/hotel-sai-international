@@ -27,6 +27,7 @@ const DirectorPortal = lazy(() => import('./components/DirectorPortal'));
 const RevenueManagementModal = lazy(() => import('./components/RevenueManagementModal'));
 const LegalPoliciesModal = lazy(() => import('./components/LegalPoliciesModal'));
 const DpdpDataRightsModal = lazy(() => import('./components/DpdpDataRightsModal'));
+const InRoomGuestPortal = lazy(() => import('./components/InRoomGuestPortal'));
 
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS, CORPORATE_PARTNERS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
@@ -37,6 +38,47 @@ export default function App() {
   const [currentView, setCurrentView] = useState('guest'); // 'guest' or 'pms'
   const [rooms, setRooms] = useState(INITIAL_ROOMS_INVENTORY);
   const [transactions, setTransactions] = useState(INITIAL_FOLIO_TRANSACTIONS);
+
+  // Dedicated In-Room Guest Portal State (Triggered when room QR code is scanned)
+  const [inRoomPortalState, setInRoomPortalState] = useState(() => {
+    if (typeof window === 'undefined') return { active: false, roomNumber: '204' };
+    const params = new URLSearchParams(window.location.search);
+    const room = params.get('room');
+    const source = params.get('source');
+    const action = params.get('action');
+    const mode = params.get('mode');
+    const portal = params.get('portal');
+
+    // Trigger dedicated in-room guest portal when QR is scanned
+    if (source === 'room_qr' || mode === 'in_room' || portal === 'inroom' || (action === 'dining' && room) || (room && (source || mode))) {
+      return { active: true, roomNumber: room || '204' };
+    }
+    return { active: false, roomNumber: '204' };
+  });
+
+  // Dedicated Room Services state (Towels, Extra Water, Housekeeping, Toiletries, Maintenance)
+  const [roomServices, setRoomServices] = useState([
+    {
+      requestId: 'REQ-1092',
+      roomNumber: '105',
+      serviceType: 'Extra Water',
+      description: 'Guest requested 2 extra Kinley water bottles and clean glasses',
+      priority: 'Normal',
+      status: 'Pending',
+      assignedStaff: 'Babula Sahu',
+      requestedAt: new Date(Date.now() - 15 * 60000).toISOString()
+    },
+    {
+      requestId: 'REQ-1093',
+      roomNumber: '202',
+      serviceType: 'Linen Change',
+      description: 'Replace king bedsheet and 2 fresh terry bath towels',
+      priority: 'Normal',
+      status: 'Pending',
+      assignedStaff: 'Anita Majhi',
+      requestedAt: new Date(Date.now() - 25 * 60000).toISOString()
+    }
+  ]);
   const [bookings, setBookings] = useState([
     {
       bookingId: 'HSI-202609-0001',
@@ -253,6 +295,83 @@ export default function App() {
 
   const handleAddFoodOrder = (newOrder) => {
     setFoodOrders(prev => [newOrder, ...prev]);
+  };
+
+  // Dedicated In-Room Guest Portal Handlers
+  const handlePlaceFoodOrderFromGuestPortal = (newOrder) => {
+    handleAddFoodOrder(newOrder);
+
+    // Auto-debit into Master Folio transaction ledger for that room
+    const kotTx = {
+      transactionId: `TXN-KOT-${newOrder.roomNumber}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${newOrder.roomNumber}`,
+      bookingId: bookings.find(b => b.roomNumber === newOrder.roomNumber && b.bookingStatus === 'Checked In')?.bookingId || `HSI-FOLIO-${newOrder.roomNumber}`,
+      roomNumber: newOrder.roomNumber,
+      transactionType: 'F&B POS',
+      outlet: newOrder.outlet || 'Cannon Kitchen (Room Service)',
+      itemCode: 'KOT-FOOD',
+      description: `In-Room Food Order (${newOrder.orderId}) - ${newOrder.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}`,
+      debitAmount: Number(newOrder.totalAmount),
+      creditAmount: 0,
+      taxableBase: Math.round((newOrder.totalAmount / 1.05) * 100) / 100,
+      gstRate: 5,
+      cgst: Math.round(((newOrder.totalAmount / 1.05) * 0.025) * 100) / 100,
+      sgst: Math.round(((newOrder.totalAmount / 1.05) * 0.025) * 100) / 100,
+      sacCode: '996331',
+      isLocked: 0,
+      createdBy: `In-Room QR (Room ${newOrder.roomNumber})`,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+
+    setTransactions(prev => [kotTx, ...prev]);
+
+    // Update room outstanding balance
+    setRooms(prev => prev.map(r => {
+      if (r.roomNumber === newOrder.roomNumber) {
+        return {
+          ...r,
+          outstandingBalance: (r.outstandingBalance || 0) + Number(newOrder.totalAmount)
+        };
+      }
+      return r;
+    }));
+
+    // Post to Cloudflare D1 via public guest action
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'place_food_order',
+        payload: {
+          roomNumber: newOrder.roomNumber,
+          guestName: `Room ${newOrder.roomNumber} In-House Guest`,
+          items: newOrder.items,
+          subtotal: Math.round((newOrder.totalAmount / 1.05) * 100) / 100,
+          gst: Math.round((newOrder.totalAmount - (newOrder.totalAmount / 1.05)) * 100) / 100,
+          totalAmount: newOrder.totalAmount,
+          isJain: newOrder.is_jain_satvik === 1
+        }
+      })
+    }).catch(err => console.warn('Offline in-room food order sync:', err));
+  };
+
+  const handleRequestRoomServiceFromGuestPortal = (newReq) => {
+    setRoomServices(prev => [newReq, ...prev]);
+
+    // Post to Cloudflare D1 via public guest action
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'place_room_service',
+        payload: {
+          roomNumber: newReq.roomNumber,
+          serviceType: newReq.serviceType,
+          description: newReq.description,
+          priority: newReq.priority || 'Normal'
+        }
+      })
+    }).catch(err => console.warn('Offline room service sync:', err));
   };
 
   const [searchDates, setSearchDates] = useState({
@@ -638,6 +757,42 @@ export default function App() {
     alert(`✓ Night Audit for ${auditPayload.businessDate} executed & synced to Cloudflare D1! All transactions locked (is_locked = 1). Business date rolled.`);
   };
 
+  // Dedicated In-Room Guest Portal View (When QR Code is scanned in a guest room)
+  // Shows ONLY: 1. Food Menu (Cannon Kitchen) | 2. Room Services Care | 3. High-Speed Wi-Fi QR
+  if (inRoomPortalState.active) {
+    return (
+      <Suspense fallback={
+        <div style={{
+          minHeight: '100vh',
+          background: '#0a192f',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--gold-glow, #d4af37)',
+          fontWeight: 800,
+          fontSize: '1.2rem',
+          letterSpacing: '0.5px'
+        }}>
+          Loading Hotel Sai In-Room Companion...
+        </div>
+      }>
+        <InRoomGuestPortal 
+          roomNumber={inRoomPortalState.roomNumber}
+          onPlaceFoodOrder={handlePlaceFoodOrderFromGuestPortal}
+          onRequestRoomService={handleRequestRoomServiceFromGuestPortal}
+          onExitToFullWebsite={() => {
+            setInRoomPortalState({ active: false, roomNumber: inRoomPortalState.roomNumber });
+            if (typeof window !== 'undefined' && window.history) {
+              window.history.pushState({}, '', window.location.pathname);
+            }
+          }}
+          activeFoodOrders={foodOrders}
+          activeRoomServices={roomServices}
+        />
+      </Suspense>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Navbar with 40-room counter & view switcher */}
@@ -716,6 +871,8 @@ export default function App() {
               onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
               foodOrders={foodOrders}
               onUpdateOrderStatus={handleUpdateOrderStatus}
+              roomServices={roomServices}
+              onAddRoomService={handleRequestRoomServiceFromGuestPortal}
             />
 
             <FinancialAnalytics bookings={bookings} />

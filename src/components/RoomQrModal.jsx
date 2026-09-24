@@ -41,7 +41,7 @@ export default function RoomQrModal({
     
     switch (qrType) {
       case 'dining':
-        return `${origin}/?action=dining&room=${selectedRoom}&source=room_qr`;
+        return `${origin}/?room=${selectedRoom}&source=room_qr`;
       case 'keycard':
         return `${origin}/?action=keycard&room=${selectedRoom}&pin=${guestPin}&t=${Date.now()}`;
       case 'standee':
@@ -49,7 +49,7 @@ export default function RoomQrModal({
       case 'wifi':
         return `WIFI:S:Hotel_Sai_Guest;T:WPA;P:SaiRayagada765;H:false;;`;
       default:
-        return `${origin}/?room=${selectedRoom}`;
+        return `${origin}/?room=${selectedRoom}&source=room_qr`;
     }
   };
 
@@ -163,13 +163,13 @@ export default function RoomQrModal({
             </div>
 
             <div class="instruction">
-              ${qrType === 'dining' ? 'Scan for In-Room Dining & Cannon Kitchen Menu' : 
+              ${qrType === 'dining' ? 'Scan for In-Room Dining, Room Services & Wi-Fi' : 
                 qrType === 'keycard' ? 'Scan for Digital Smart Key & Guest Pass' :
                 qrType === 'wifi' ? 'Scan to Connect to High-Speed Wi-Fi' :
                 'Scan to Pay via UPI & Fast Digital Registration'}
             </div>
             <p class="details">
-              ${qrType === 'dining' ? 'Enjoy hot vegetarian delicacies, Satvik Odia cuisine & beverages delivered to your room.' :
+              ${qrType === 'dining' ? '🍽️ Cannon Kitchen Menu • 🛎️ Fresh Towels & Housekeeping Care • 📶 High-Speed Wi-Fi' :
                 qrType === 'keycard' ? `Guest: ${guestName} • PIN: ${guestPin} • Authorized Room Access` :
                 qrType === 'wifi' ? 'Network: Hotel_Sai_Guest • Password: SaiRayagada765' :
                 `UPI ID: ${HOTEL_CONFIG.upiId || 'hotelsai@sbi'} • Verified GST Billing`}
@@ -320,7 +320,7 @@ export default function RoomQrModal({
               </label>
               <div style={{ display: 'flex', gap: '0.35rem' }}>
                 {[
-                  { id: 'dining', label: 'Dining', icon: Utensils },
+                  { id: 'dining', label: 'In-Room Portal', icon: Utensils },
                   { id: 'keycard', label: 'Keycard', icon: Key },
                   { id: 'wifi', label: 'Wi-Fi', icon: Wifi },
                   { id: 'standee', label: 'UPI / Desk', icon: Building2 }
@@ -467,14 +467,14 @@ export default function RoomQrModal({
             </div>
 
             <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', margin: '0.3rem 0 0.15rem 0' }}>
-              {qrType === 'dining' ? 'Scan for In-Room Dining Menu' :
+              {qrType === 'dining' ? 'Scan for In-Room Dining, Services & Wi-Fi' :
                 qrType === 'keycard' ? 'Scan for Digital Smart Key' :
                 qrType === 'wifi' ? 'Scan to Connect to Wi-Fi' :
                 'Scan to Pay via UPI & Fast Registration'}
             </div>
 
             <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>
-              {qrType === 'dining' ? 'Delivering Pure Veg, Satvik Odia dishes & Beverages directly to your room.' :
+              {qrType === 'dining' ? '🍽️ Cannon Kitchen Menu • 🛎️ Fresh Towels & Care • 📶 High-Speed Wi-Fi' :
                 qrType === 'keycard' ? `Guest: ${guestName} • PIN: ${guestPin} • Valid for stay duration` :
                 qrType === 'wifi' ? 'Network: Hotel_Sai_Guest • Pass: SaiRayagada765' :
                 `UPI: ${HOTEL_CONFIG.upiId || 'hotelsai@sbi'} • Verified GST Check-In`}
