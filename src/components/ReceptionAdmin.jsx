@@ -628,6 +628,29 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       notes: workOrderForm.notes || 'Logged from Front Desk Maintenance Console'
     };
 
+    // Dispatch to Cloudflare D1 maintenance_work_orders table
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'save_work_order',
+        payload: {
+          id: newTicket.id,
+          roomNumber: newTicket.roomNumber,
+          issue: newTicket.issue,
+          category: newTicket.category,
+          priority: newTicket.priority,
+          technician: newTicket.technician,
+          targetEta: newTicket.targetEta,
+          notes: newTicket.notes
+        }
+      })
+    }).catch(err => console.warn('Offline work order save:', err));
+
     setWorkOrders([newTicket, ...workOrders]);
     onUpdateRoomStatus(workOrderForm.roomNumber, 'Maintenance', `OOO: ${workOrderForm.issue}`, null);
     setIsWorkOrderModalOpen(false);
@@ -643,6 +666,22 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
   };
 
   const handleResolveWorkOrder = (ticketId, roomNumber) => {
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'resolve_work_order',
+        payload: {
+          ticketId,
+          roomNumber
+        }
+      })
+    }).catch(err => console.warn('Offline work order resolution:', err));
+
     setWorkOrders(workOrders.map(wo => wo.id === ticketId ? { ...wo, status: 'Resolved' } : wo));
     // Move room to Vacant Dirty so housekeeping inspects after maintenance repair
     onUpdateRoomStatus(roomNumber, 'Vacant Dirty', null, null);

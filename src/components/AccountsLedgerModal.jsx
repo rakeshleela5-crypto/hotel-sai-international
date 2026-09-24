@@ -15,6 +15,7 @@ export default function AccountsLedgerModal({
   bookings = [],
   rooms = [],
   transactions = [],
+  corporatePartners: propCorporatePartners = null,
   onAddTransaction
 }) {
   if (!isOpen) return null;
@@ -28,8 +29,14 @@ export default function AccountsLedgerModal({
   const [selectedYear, setSelectedYear] = useState('2026');
 
   // Corporate partners and ledger state for dynamic editing & settlement
-  const [corporatePartners, setCorporatePartners] = useState(CORPORATE_PARTNERS);
+  const [corporatePartners, setCorporatePartners] = useState(propCorporatePartners || CORPORATE_PARTNERS);
   const [corporateLedger, setCorporateLedger] = useState(INITIAL_CORPORATE_LEDGER);
+
+  useEffect(() => {
+    if (propCorporatePartners && propCorporatePartners.length > 0) {
+      setCorporatePartners(propCorporatePartners);
+    }
+  }, [propCorporatePartners]);
 
   // Sheet 1 & Sheet 3 Requirements: Outstanding View Mode ('in-house' vs 'corporate')
   const [outstandingViewType, setOutstandingViewType] = useState('in-house');

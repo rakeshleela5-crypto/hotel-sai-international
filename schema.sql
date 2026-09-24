@@ -7,11 +7,14 @@
 CREATE TABLE IF NOT EXISTS rooms (
   room_number TEXT PRIMARY KEY,
   tier TEXT NOT NULL CHECK (tier IN ('Standard Deluxe', 'Deluxe Room', 'Executive Room', 'Premium Suite')),
+  room_type TEXT NOT NULL DEFAULT 'EXEDEL',
   floor INTEGER NOT NULL CHECK (floor BETWEEN 1 AND 4),
   tariff REAL NOT NULL,
+  outstanding_balance REAL NOT NULL DEFAULT 0,
   capacity_adults INTEGER NOT NULL,
   capacity_children INTEGER NOT NULL DEFAULT 1,
   bed_type TEXT NOT NULL,
+  pax TEXT NOT NULL DEFAULT '1 Pax',
   amenities TEXT NOT NULL, -- JSON array string
   status TEXT NOT NULL CHECK (status IN ('Available', 'Occupied', 'Cleaning', 'Maintenance', 'VIP Hold')) DEFAULT 'Available',
   current_guest_name TEXT,
@@ -49,6 +52,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   is_b2b INTEGER NOT NULL DEFAULT 0,
   corporate_id TEXT,
   corporate_gstin TEXT,
+  company_name TEXT,
+  bill_no TEXT,
   consent_dpdp INTEGER NOT NULL DEFAULT 1,
   special_requests TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -61,10 +66,16 @@ CREATE TABLE IF NOT EXISTS food_orders (
   order_id TEXT PRIMARY KEY,
   room_number TEXT NOT NULL,
   guest_name TEXT NOT NULL,
+  outlet TEXT NOT NULL DEFAULT 'Cannon Kitchen',
   items_json TEXT NOT NULL, -- JSON array of items
   subtotal REAL NOT NULL,
+  discount REAL NOT NULL DEFAULT 0,
+  discount_reason TEXT,
   gst REAL NOT NULL,
   total_amount REAL NOT NULL,
+  is_non_commercial INTEGER NOT NULL DEFAULT 0,
+  nc_reason TEXT,
+  captain_name TEXT,
   is_jain_satvik INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'Received', -- Received, Preparing, Out for Delivery, Delivered, Billed to Room
   payment_status TEXT NOT NULL DEFAULT 'Pending',
@@ -380,7 +391,10 @@ CREATE TABLE IF NOT EXISTS corporate_partners (
   contact_email TEXT NOT NULL,
   contact_phone TEXT NOT NULL,
   contracted_discount_percent REAL NOT NULL DEFAULT 15,
+  preferred_tier TEXT NOT NULL DEFAULT 'Executive Room',
   credit_days INTEGER NOT NULL DEFAULT 30,
+  credit_limit REAL NOT NULL DEFAULT 200000,
+  opening_balance REAL NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'Active'
 );
 
@@ -695,19 +709,23 @@ INSERT OR IGNORE INTO rooms (room_number, tier, floor, tariff, capacity_adults, 
 ('410', 'Premium Suite', 4, 3999.00, 4, 2, 'Imperial King + Sofa Bed', '["Living Area","Master Bedroom","Fruit Basket","Priority Room Service","Free Local Shuttle"]', 'VIP Hold');
 
 -- CORPORATE PARTNERS (RAYAGADA MAJOR INDUSTRIAL HUBS - 12 REGISTERED CLIENTS)
-INSERT OR IGNORE INTO corporate_partners (corporate_id, company_name, gstin, location, contact_person, contact_email, contact_phone, contracted_discount_percent, credit_days, status) VALUES
-('CORP-01', 'JK Paper Mills Ltd.', '21AAACJ1288P1ZZ', 'Jaykaypur, Rayagada', 'Subrat Panda (Admin GM)', 'admin.jk@jkpaper.com', '+91 6856 222000', 15, 30, 'Active'),
-('CORP-02', 'GAIL (India) Limited', '07AAACG1509J1ZQ', 'Pipeline Regional Office, Rayagada', 'Rajeshwar Rao', 'travel.gail@gail.co.in', '+91 6856 228811', 15, 30, 'Active'),
-('CORP-03', 'Mahindra & Mahindra Ltd.', '27AAACM1545A1Z4', 'Automotive Logistics, Rayagada', 'Sunil K. Verma', 'verma.sunil@mahindra.com', '+91 6856 229944', 12, 30, 'Active'),
-('CORP-04', 'Hindustan Coca-Cola Beverages', '21AAACH1123P1Z9', 'South Odisha Distribution Hub', 'Amitabh Sen', 'traveldesk@hccb.co.in', '+91 6856 231122', 10, 30, 'Active'),
-('CORP-05', 'IMFA (Indian Metals & Ferro Alloys)', '21AAACI0981M1Z5', 'Therubali, Rayagada', 'D. K. Mohapatra (VP HR)', 'traveldesk@imfa.in', '+91 6856 233444', 15, 30, 'Active'),
-('CORP-06', 'Utkal Alumina International Ltd.', '21AABCU5544N1ZV', 'Doraguda, Rayagada', 'Manish Agrawal (Corporate Logistics)', 'logistics@utkalalumina.adityabirla.com', '+91 6856 244555', 20, 45, 'Active'),
-('CORP-07', 'East Coast Railway (ECoR) Rayagada Div.', '21AAAGR0022E1Z8', 'Station Road, Rayagada', 'P. K. Nayak (Sr. DSTE)', 'travel.rgda@ecor.railnet.gov.in', '+91 6856 223311', 12, 30, 'Active'),
-('CORP-08', 'PRADAN', '21AAATP0912K1Z3', 'J K Pur, Rayagada', 'Bijay Paswan', 'rayagada@pradan.net', '+91 7209347755', 15, 30, 'Active'),
-('CORP-09', 'Ashok Leyland Limited', '33AAACA0779M1ZT', 'Commercial Vehicle Service Division, Rayagada', 'Malay Panda', 'service.odisha@ashokleyland.com', '+91 6856 226688', 18, 45, 'Active'),
-('CORP-10', 'Easy Note Stationary Pvt Ltd', '21AABCE9876R1Z2', 'Rayagada Industrial Area', 'Mriganka Dasgupta', 'accounts@easynote.in', '+91 94370 55441', 10, 30, 'Active'),
-('CORP-11', 'Incredible Dreams Hotels & Resorts', '21AACCI7788P1Z5', 'Regional Hospitality Partner', 'Prabhu Prasad Padhy', 'travel@incredibledreams.co.in', '+91 98610 33221', 15, 30, 'Active'),
-('CORP-12', 'Linde India Ltd', '21AAACB2528H1ZA', 'J.K. Paper Mill Plant Site, Jaykaypur, Rayagada', 'P. Ashok', 'p.ashok@linde.com', '+91 6305202068', 15, 30, 'Active');
+INSERT OR IGNORE INTO corporate_partners (
+  corporate_id, company_name, gstin, location, contact_person,
+  contact_email, contact_phone, contracted_discount_percent, preferred_tier,
+  credit_days, credit_limit, opening_balance, status
+) VALUES
+('CORP-01', 'JK Paper Mills Ltd.', '21AAACJ1288P1ZZ', 'Jaykaypur, Rayagada', 'Subrat Panda (Admin GM)', 'admin.jk@jkpaper.com', '+91 6856 222000', 15, 'Executive Room', 30, 500000, 142500, 'Active'),
+('CORP-02', 'GAIL (India) Limited', '07AAACG1509J1ZQ', 'Pipeline Regional Office, Rayagada', 'Rajeshwar Rao', 'travel.gail@gail.co.in', '+91 6856 228811', 15, 'Executive Room', 30, 400000, 86400, 'Active'),
+('CORP-03', 'Mahindra & Mahindra Ltd.', '27AAACM1545A1Z4', 'Automotive Logistics, Rayagada', 'Sunil K. Verma', 'verma.sunil@mahindra.com', '+91 6856 229944', 12, 'Deluxe Room', 30, 300000, 48200, 'Active'),
+('CORP-04', 'Hindustan Coca-Cola Beverages', '21AAACH1123P1Z9', 'South Odisha Distribution Hub', 'Amitabh Sen', 'traveldesk@hccb.co.in', '+91 6856 231122', 10, 'Executive Room', 30, 250000, 32000, 'Active'),
+('CORP-05', 'IMFA (Indian Metals & Ferro Alloys)', '21AAACI0981M1Z5', 'Therubali, Rayagada', 'D. K. Mohapatra (VP HR)', 'traveldesk@imfa.in', '+91 6856 233444', 15, 'Executive Room', 30, 600000, 118000, 'Active'),
+('CORP-06', 'Utkal Alumina International Ltd.', '21AABCU5544N1ZV', 'Doraguda, Rayagada', 'Manish Agrawal (Corporate Logistics)', 'logistics@utkalalumina.adityabirla.com', '+91 6856 244555', 20, 'Premium Suite', 45, 800000, 215000, 'Active'),
+('CORP-07', 'East Coast Railway (ECoR) Rayagada Div.', '21AAAGR0022E1Z8', 'Station Road, Rayagada', 'P. K. Nayak (Sr. DSTE)', 'travel.rgda@ecor.railnet.gov.in', '+91 6856 223311', 12, 'Executive Room', 30, 450000, 65400, 'Active'),
+('CORP-08', 'PRADAN', '21AAATP0912K1Z3', 'J K Pur, Rayagada', 'Bijay Paswan', 'rayagada@pradan.net', '+91 7209347755', 15, 'Executive Room', 30, 350000, 48900, 'Active'),
+('CORP-09', 'Ashok Leyland Limited', '33AAACA0779M1ZT', 'Commercial Vehicle Service Division, Rayagada', 'Malay Panda', 'service.odisha@ashokleyland.com', '+91 6856 226688', 18, 'Executive Room', 45, 500000, 214487, 'Active'),
+('CORP-10', 'Easy Note Stationary Pvt Ltd', '21AABCE9876R1Z2', 'Rayagada Industrial Area', 'Mriganka Dasgupta', 'accounts@easynote.in', '+91 94370 55441', 10, 'Executive Room', 30, 200000, 28400, 'Active'),
+('CORP-11', 'Incredible Dreams Hotels & Resorts', '21AACCI7788P1Z5', 'Regional Hospitality Partner', 'Prabhu Prasad Padhy', 'travel@incredibledreams.co.in', '+91 98610 33221', 15, 'Executive Room', 30, 250000, 36200, 'Active'),
+('CORP-12', 'Linde India Ltd', '21AAACB2528H1ZA', 'J.K. Paper Mill Plant Site, Jaykaypur, Rayagada', 'P. Ashok', 'p.ashok@linde.com', '+91 6305202068', 15, 'Executive Room', 30, 400000, 13558, 'Active');
 
 -- SPIRITUAL & REGIONAL SERVICES
 INSERT OR IGNORE INTO spiritual_services (service_id, title, destination, distance_km, timing_info, description, transport_tariff) VALUES
@@ -874,6 +892,24 @@ CREATE TABLE IF NOT EXISTS digital_keycards (
   valid_until TEXT NOT NULL,
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (room_number) REFERENCES rooms(room_number)
+);
+
+-- ============================================================================
+-- 55. MAINTENANCE WORK ORDERS (FRONT DESK & ENGINEERING TICKETS)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS maintenance_work_orders (
+  ticket_id TEXT PRIMARY KEY,
+  room_number TEXT NOT NULL,
+  issue TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('AC & HVAC', 'Plumbing & Geyser', 'Electrical & TV', 'Carpentry', 'Painting', 'General Maintenance')),
+  priority TEXT NOT NULL CHECK (priority IN ('Low', 'Normal', 'High', 'Urgent')) DEFAULT 'Normal',
+  technician TEXT NOT NULL,
+  target_eta TEXT NOT NULL DEFAULT 'Within 2 Hours',
+  status TEXT NOT NULL CHECK (status IN ('Open', 'In Progress', 'Resolved', 'Cancelled')) DEFAULT 'Open',
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at TEXT,
   FOREIGN KEY (room_number) REFERENCES rooms(room_number)
 );
 

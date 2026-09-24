@@ -176,7 +176,16 @@ export async function onRequestGet({ request, env }) {
       corporateLedgerRes,
       nightAuditLogRes,
       storePurchasesRes,
-      requisitionsRes
+      requisitionsRes,
+      guestProfilesRes,
+      restaurantTablesRes,
+      restaurantKotVoidsRes,
+      corporateInquiriesRes,
+      rmsRateGuardrailsRes,
+      digitalKeycardsRes,
+      maintenanceWorkOrdersRes,
+      policeDispatchesRes,
+      lostAndFoundRes
     ] = await Promise.all([
       db.prepare("SELECT * FROM rooms ORDER BY floor ASC, room_number ASC").all(),
       db.prepare("SELECT * FROM bookings ORDER BY created_at DESC LIMIT 100").all(),
@@ -201,7 +210,16 @@ export async function onRequestGet({ request, env }) {
       db.prepare("SELECT * FROM corporate_ledger ORDER BY entry_date DESC, created_at DESC LIMIT 100").all().catch(() => ({ results: [] })),
       db.prepare("SELECT * FROM night_audit_log ORDER BY business_date DESC LIMIT 30").all().catch(() => ({ results: [] })),
       db.prepare("SELECT * FROM store_purchases ORDER BY purchase_date DESC LIMIT 50").all().catch(() => ({ results: [] })),
-      db.prepare("SELECT * FROM kitchen_requisitions ORDER BY issue_date DESC LIMIT 50").all().catch(() => ({ results: [] }))
+      db.prepare("SELECT * FROM kitchen_requisitions ORDER BY issue_date DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM guest_profiles ORDER BY total_visits DESC LIMIT 100").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM restaurant_tables ORDER BY table_number ASC").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM restaurant_kot_voids ORDER BY voided_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM corporate_inquiries ORDER BY created_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM rms_rate_guardrails").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM digital_keycards WHERE is_active = 1 ORDER BY created_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM maintenance_work_orders ORDER BY created_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM police_register_dispatches ORDER BY dispatch_date DESC LIMIT 30").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM lost_and_found ORDER BY found_date DESC LIMIT 50").all().catch(() => ({ results: [] }))
     ]);
 
     // Parse food order items JSON
@@ -215,7 +233,7 @@ export async function onRequestGet({ request, env }) {
       return { ...o, items };
     });
 
-    // Parse rooms amenities JSON
+    // Parse rooms amenities JSON and normalize properties for front desk
     const rooms = (roomsRes.results || []).map(r => {
       let amenities = [];
       try {
@@ -226,13 +244,67 @@ export async function onRequestGet({ request, env }) {
       return {
         ...r,
         roomNumber: r.room_number,
+        tier: r.tier,
+        roomType: r.room_type || 'EXEDEL',
+        floor: r.floor,
         tariff: r.tariff,
         basePrice: r.tariff,
+        outstandingBalance: r.outstanding_balance !== undefined ? r.outstanding_balance : 0,
+        balanceDue: r.outstanding_balance !== undefined ? r.outstanding_balance : 0,
+        pax: r.pax || '1 Pax',
         currentGuestName: r.current_guest_name,
         currentBookingId: r.current_booking_id,
+        status: r.status,
         amenities
       };
     });
+
+    // Bidirectional normalizer for bookings (supports both camelCase and snake_case lookups)
+    const bookings = (bookingsRes.results || []).map(b => ({
+      ...b,
+      bookingId: b.booking_id,
+      roomNumber: b.room_number,
+      guestName: b.guest_name,
+      guestPhone: b.guest_phone,
+      guestEmail: b.guest_email,
+      checkInDate: b.check_in_date,
+      checkOutDate: b.check_out_date,
+      nights: b.nights,
+      adults: b.adults,
+      children: b.children,
+      tariffPerNight: b.tariff_per_night,
+      baseTotal: b.base_total,
+      cgst: b.cgst,
+      sgst: b.sgst,
+      totalAmount: b.total_amount,
+      advanceDeposit: b.advance_deposit,
+      balanceDue: b.balance_due,
+      paymentMode: b.payment_mode,
+      paymentStatus: b.payment_status,
+      bookingStatus: b.booking_status,
+      isB2b: b.is_b2b,
+      corporateId: b.corporate_id,
+      corporateGstin: b.corporate_gstin,
+      companyName: b.company_name || '',
+      billNo: b.bill_no || `INV-${b.room_number}-${(b.booking_id || '').slice(-4)}`
+    }));
+
+    // Bidirectional normalizer for corporate partners
+    const corporatePartners = (corporatesRes.results || []).map(c => ({
+      ...c,
+      id: c.corporate_id,
+      name: c.company_name,
+      location: c.location,
+      gstin: c.gstin,
+      contactPerson: c.contact_person,
+      contactPhone: c.contact_phone,
+      contactEmail: c.contact_email,
+      contractDiscount: c.contracted_discount_percent,
+      preferredTier: c.preferred_tier || 'Executive Room',
+      creditDays: c.credit_days || 30,
+      creditLimit: c.credit_limit || 200000,
+      openingBalance: c.opening_balance || 0
+    }));
 
     const configRows = configRes.results || [];
     const configObj = {};
@@ -248,7 +320,7 @@ export async function onRequestGet({ request, env }) {
       isAdmin: true,
       data: {
         rooms,
-        bookings: bookingsRes.results || [],
+        bookings,
         foodOrders,
         staff: staffRes.results || [],
         salaryAdvances: advancesRes.results || [],
@@ -262,7 +334,7 @@ export async function onRequestGet({ request, env }) {
         consentRecords: consentRes.results || [],
         dataRightsRequests: dataRightsRes.results || [],
         roomServiceRequests: roomServicesRes.results || [],
-        corporatePartners: corporatesRes.results || [],
+        corporatePartners,
         menuItems: menuRes.results || [],
         cashierHandovers: handoversRes.results || [],
         folioTransactions: folioTxnsRes?.results || [],
@@ -270,7 +342,16 @@ export async function onRequestGet({ request, env }) {
         corporateLedger: corporateLedgerRes?.results || [],
         nightAuditLog: nightAuditLogRes?.results || [],
         storePurchases: storePurchasesRes?.results || [],
-        kitchenRequisitions: requisitionsRes?.results || []
+        kitchenRequisitions: requisitionsRes?.results || [],
+        guestProfiles: guestProfilesRes?.results || [],
+        restaurantTables: restaurantTablesRes?.results || [],
+        restaurantKotVoids: restaurantKotVoidsRes?.results || [],
+        corporateInquiries: corporateInquiriesRes?.results || [],
+        rmsRateGuardrails: rmsRateGuardrailsRes?.results || [],
+        digitalKeycards: digitalKeycardsRes?.results || [],
+        maintenanceWorkOrders: maintenanceWorkOrdersRes?.results || [],
+        policeDispatches: policeDispatchesRes?.results || [],
+        lostAndFound: lostAndFoundRes?.results || []
       }
     });
   } catch (error) {
@@ -328,6 +409,9 @@ export async function onRequestPost({ request, env }) {
       // Interstate classification for Sarai Act
       const isInterstate = (b.stateOfOrigin && b.stateOfOrigin.toLowerCase() !== 'odisha') ? 1 : 0;
 
+      const billNo = b.billNo || `INV-${b.roomNumber}-${Date.now().toString().slice(-4)}`;
+      const companyName = b.companyName || '';
+
       await db.prepare(`
         INSERT INTO bookings (
           booking_id, room_number, guest_name, guest_phone, guest_email,
@@ -336,6 +420,7 @@ export async function onRequestPost({ request, env }) {
           tariff_per_night, base_total, cgst, sgst, total_amount,
           advance_deposit, balance_due, payment_mode, payment_status,
           booking_status, is_b2b, corporate_id, corporate_gstin,
+          company_name, bill_no,
           consent_dpdp, special_requests, created_at, updated_at
         ) VALUES (
           ?, ?, ?, ?, ?,
@@ -344,6 +429,7 @@ export async function onRequestPost({ request, env }) {
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?,
+          ?, ?,
           ?, ?, datetime('now'), datetime('now')
         )
       `).bind(
@@ -351,11 +437,41 @@ export async function onRequestPost({ request, env }) {
         b.idProofType || 'Aadhaar', maskedId, b.stateOfOrigin || 'Odisha', isInterstate,
         b.checkInDate, b.checkOutDate, b.nights || 1, b.adults || 1, b.children || 0,
         b.tariffPerNight || 1699, b.baseTotal || 1699, b.cgst || 42.48, b.sgst || 42.48, b.totalAmount || 1783.96,
-        b.advanceDeposit || 0, b.balanceDue || (b.totalAmount || 1783.96), b.paymentMode || 'UPI',
+        b.advanceDeposit || 0, b.balanceDue !== undefined ? b.balanceDue : (b.totalAmount || 1783.96), b.paymentMode || 'UPI',
         calculatedPaymentStatus, b.bookingStatus || 'Confirmed',
         b.isB2b ? 1 : 0, b.corporateId || '', b.corporateGstin || '',
+        companyName, billNo,
         b.consentDpdp ? 1 : 1, b.specialRequests || ''
       ).run();
+
+      // Update room status and outstanding balance on front desk matrix
+      const activeBalance = b.balanceDue !== undefined ? b.balanceDue : (b.totalAmount || 1783.96);
+      await db.prepare(`
+        UPDATE rooms 
+        SET status = 'Occupied',
+            current_guest_name = ?,
+            current_booking_id = ?,
+            outstanding_balance = ?
+        WHERE room_number = ?
+      `).bind(b.guestName, bookingId, activeBalance, b.roomNumber).run().catch(e => console.warn("Room status update non-fatal:", e));
+
+      // Upsert into central guest CRM profiles (Table 50)
+      await db.prepare(`
+        INSERT INTO guest_profiles (
+          guest_id, phone, name, email, id_proof_type, id_proof_masked,
+          state_of_origin, total_visits, lifetime_spend, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, datetime('now'))
+        ON CONFLICT(phone) DO UPDATE SET
+          name = excluded.name,
+          email = CASE WHEN excluded.email != '' THEN excluded.email ELSE guest_profiles.email END,
+          total_visits = total_visits + 1,
+          lifetime_spend = lifetime_spend + excluded.lifetime_spend,
+          updated_at = datetime('now')
+      `).bind(
+        `GUEST-${Date.now()}`, b.guestPhone, b.guestName, b.guestEmail || '',
+        b.idProofType || 'Aadhaar', maskedId, b.stateOfOrigin || 'Odisha',
+        b.totalAmount || 0
+      ).run().catch(e => console.warn("Guest profile CRM upsert non-fatal:", e));
 
       // Also record DPDP consent
       await db.prepare(`
@@ -369,7 +485,7 @@ export async function onRequestPost({ request, env }) {
         request.headers.get("cf-connecting-ip") || '127.0.0.1'
       ).run().catch(e => console.error("DPDP consent record error:", e));
 
-      return jsonResponse({ success: true, bookingId, paymentStatus: calculatedPaymentStatus });
+      return jsonResponse({ success: true, bookingId, billNo, paymentStatus: calculatedPaymentStatus });
     }
 
     // 2. PUBLIC GUEST ACTION: Create Room Hold (Rate-limited, Max 2 per IP, 10 min TTL)
@@ -607,7 +723,11 @@ export async function onRequestPost({ request, env }) {
 
     // 12. ERP RESTAURANT: Bill KOT directly to Guest Room Folio
     if (action === 'bill_kot_to_room') {
-      const { roomNumber, kotId, items, subtotal, gst, totalAmount, description, outlet, captainName } = payload;
+      const { 
+        roomNumber, kotId, items, grossSubtotal, discount, discountReason,
+        subtotal, gst, totalAmount, description, outlet, captainName,
+        isNonCommercial, ncReason 
+      } = payload;
       const txnId = `TXN-KOT-${Date.now()}`;
 
       // 1. Post to folio_transactions
@@ -622,20 +742,22 @@ export async function onRequestPost({ request, env }) {
           5, ?, ?, '996331', 0, ?, datetime('now')
         )
       `).bind(
-        txnId, `FOLIO-${roomNumber}`, roomNumber, outlet || 'Fenugreek Restaurant',
-        kotId, description, totalAmount, subtotal,
-        gst / 2, gst / 2, captainName || 'F&B Captain'
+        txnId, `FOLIO-${roomNumber}`, roomNumber, outlet || 'Cannon Kitchen',
+        kotId, description, totalAmount, subtotal || grossSubtotal || totalAmount,
+        (gst || 0) / 2, (gst || 0) / 2, captainName || 'F&B Captain'
       ).run();
 
-      // 2. Also log to food_orders table for kitchen display
+      // 2. Also log to food_orders table for kitchen display & revenue auditing
       await db.prepare(`
         INSERT INTO food_orders (
-          order_id, room_number, guest_name, items_json, subtotal,
-          gst, total_amount, status, payment_status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Billed to Room', 'Charged to Master Folio', datetime('now'))
+          order_id, room_number, guest_name, outlet, items_json, subtotal,
+          discount, discount_reason, gst, total_amount, is_non_commercial,
+          nc_reason, captain_name, status, payment_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Billed to Room', 'Charged to Master Folio', datetime('now'))
       `).bind(
-        kotId, roomNumber, `Room ${roomNumber} Guest`, JSON.stringify(items || []),
-        subtotal, gst, totalAmount
+        kotId, roomNumber, `Room ${roomNumber} Guest`, outlet || 'Cannon Kitchen', JSON.stringify(items || []),
+        subtotal || grossSubtotal || totalAmount, discount || 0, discountReason || '', gst || 0, totalAmount,
+        isNonCommercial ? 1 : 0, ncReason || '', captainName || 'Captain'
       ).run().catch(() => {});
 
       // 3. Update bookings balance_due in Cloudflare D1 database
@@ -644,6 +766,13 @@ export async function onRequestPost({ request, env }) {
         SET balance_due = balance_due + ?, updated_at = datetime('now')
         WHERE room_number = ? AND booking_status NOT IN ('Cancelled', 'Checked Out')
       `).bind(totalAmount, roomNumber).run().catch(err => console.warn('D1 balance_due update non-fatal:', err));
+
+      // 4. Update rooms outstanding_balance on front desk matrix
+      await db.prepare(`
+        UPDATE rooms
+        SET outstanding_balance = outstanding_balance + ?
+        WHERE room_number = ?
+      `).bind(totalAmount, roomNumber).run().catch(err => console.warn('D1 room outstanding_balance update non-fatal:', err));
 
       return jsonResponse({ success: true, transactionId: txnId, kotId, billedToRoom: roomNumber });
     }
@@ -899,21 +1028,147 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ success: true, mode });
     }
 
-    // 20. ERP PUBLIC: Corporate B2B Account Onboarding Application
+    // 20. ERP PUBLIC: Corporate B2B Account Onboarding Application & Lead Capture
     if (action === 'apply_corporate_account') {
       const p = payload;
       const corpId = p.corporateId || `CORP-${Date.now().toString().slice(-4)}`;
+      const inqId = `INQ-${Date.now().toString().slice(-4)}`;
+
+      // 1. Register corporate partner in pending status
       await db.prepare(`
         INSERT OR IGNORE INTO corporate_partners (
           corporate_id, company_name, gstin, location, contact_person,
-          contact_email, contact_phone, contracted_discount_percent, credit_days, status
-        ) VALUES (?, ?, ?, 'Rayagada Industrial Area', ?, ?, ?, 10, 30, 'Pending Verification')
+          contact_email, contact_phone, contracted_discount_percent, preferred_tier,
+          credit_days, credit_limit, opening_balance, status
+        ) VALUES (?, ?, ?, 'Rayagada Industrial Area', ?, ?, ?, 10, 'Executive Room', 30, 200000, 0, 'Pending Verification')
       `).bind(
         corpId, p.companyName, p.gstin, p.contactPerson || 'Logistics Lead',
         p.contactEmail || '', p.contactPhone || ''
       ).run().catch(e => console.warn("Corporate partner application insert error:", e));
 
-      return jsonResponse({ success: true, corporateId: corpId });
+      // 2. Also log to corporate_inquiries table for sales CRM
+      await db.prepare(`
+        INSERT INTO corporate_inquiries (
+          inquiry_id, company_name, gstin, contact_person, contact_email,
+          phone, estimated_monthly_rooms, status, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', 'Submitted via B2B Corporate Portal', datetime('now'))
+      `).bind(
+        inqId, p.companyName, p.gstin || '', p.contactPerson || '',
+        p.contactEmail || '', p.contactPhone || '', p.estimatedRooms || '5-10 rooms/month'
+      ).run().catch(e => console.warn("Corporate inquiry insert error:", e));
+
+      return jsonResponse({ success: true, corporateId: corpId, inquiryId: inqId });
+    }
+
+    // 21. POS RESTAURANT: Anti-Theft KOT Item Void Audit Log
+    if (action === 'log_kot_void') {
+      const v = payload;
+      const voidId = v.voidId || `VOID-${Date.now().toString().slice(-4)}`;
+      await db.prepare(`
+        INSERT INTO restaurant_kot_voids (
+          void_id, kot_id, room_or_table, item_code, item_name,
+          quantity, item_amount, reason, custom_note, voided_by, authorized_by, voided_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        voidId, v.kotId || 'KOT-POS', v.roomOrTable || 'Table', v.itemCode || '0',
+        v.itemName, v.quantity || 1, v.amount || 0, v.reason || 'Guest Changed Mind',
+        v.notes || '', v.captain || 'Captain', v.authorizedBy || 'F&B Manager'
+      ).run();
+
+      return jsonResponse({ success: true, voidId });
+    }
+
+    // 22. FRONT DESK / HOUSEKEEPING: Create Maintenance Work Order
+    if (action === 'save_work_order') {
+      const wo = payload;
+      const ticketId = wo.id || `WO-${Date.now().toString().slice(-4)}`;
+      await db.prepare(`
+        INSERT INTO maintenance_work_orders (
+          ticket_id, room_number, issue, category, priority,
+          technician, target_eta, status, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Open', ?, datetime('now'))
+      `).bind(
+        ticketId, wo.roomNumber, wo.issue, wo.category || 'General Maintenance',
+        wo.priority || 'Normal', wo.technician || 'Engineering Lead',
+        wo.targetEta || 'Within 2 Hours', wo.notes || 'Front Desk Maintenance Ticket'
+      ).run();
+
+      // If urgent or specified, flag room as Maintenance (OOO)
+      if (wo.roomNumber && wo.status !== 'Resolved') {
+        await db.prepare(`
+          UPDATE rooms SET status = 'Maintenance', current_guest_name = ? WHERE room_number = ?
+        `).bind(`OOO: ${wo.issue}`, wo.roomNumber).run().catch(() => {});
+      }
+
+      return jsonResponse({ success: true, ticketId });
+    }
+
+    // 23. FRONT DESK: Resolve Maintenance Work Order
+    if (action === 'resolve_work_order') {
+      const { ticketId, roomNumber } = payload;
+      await db.prepare(`
+        UPDATE maintenance_work_orders 
+        SET status = 'Resolved', resolved_at = datetime('now')
+        WHERE ticket_id = ?
+      `).bind(ticketId).run();
+
+      if (roomNumber) {
+        await db.prepare(`
+          UPDATE rooms 
+          SET status = 'Available', current_guest_name = NULL, last_cleaned_at = datetime('now')
+          WHERE room_number = ? AND status = 'Maintenance'
+        `).bind(roomNumber).run().catch(() => {});
+      }
+
+      return jsonResponse({ success: true, ticketId });
+    }
+
+    // 24. HOUSEKEEPING: Save Checkout Inspection Log
+    if (action === 'save_checkout_inspection') {
+      const insp = payload;
+      const inspectionId = insp.inspectionId || `INSP-${Date.now().toString().slice(-4)}`;
+      await db.prepare(`
+        INSERT INTO checkout_inspections (
+          inspection_id, booking_id, room_number, inspector_name,
+          key_returned, minibar_consumed, linen_damage, room_damage,
+          notes, cleared_for_cleaning, inspected_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        inspectionId, insp.bookingId || '', insp.roomNumber, insp.inspectorName || 'Housekeeping Lead',
+        insp.keyReturned ? 1 : 1, insp.minibarConsumed || 0, insp.linenDamage || 0,
+        insp.roomDamage || 0, insp.notes || '', insp.clearedForCleaning ? 1 : 1
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, inspectionId });
+    }
+
+    // 25. RESTAURANT: Update Table Status on Cannon Kitchen Floor
+    if (action === 'update_table_status') {
+      const { tableNumber, status, currentKotId, captainName } = payload;
+      await db.prepare(`
+        UPDATE restaurant_tables 
+        SET status = ?, current_kot_id = ?, captain_name = ?, last_updated_at = datetime('now')
+        WHERE table_number = ?
+      `).bind(status || 'Vacant', currentKotId || null, captainName || null, tableNumber).run().catch(() => {});
+
+      return jsonResponse({ success: true, tableNumber, status });
+    }
+
+    // 26. FRONT DESK: Generate Digital Keycard Web Pass
+    if (action === 'save_digital_keycard') {
+      const k = payload;
+      const cardId = k.cardId || `NFC-${Date.now().toString().slice(-4)}`;
+      await db.prepare(`
+        INSERT INTO digital_keycards (
+          card_id, booking_id, room_number, guest_name, access_pin,
+          valid_from, valid_until, is_active, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+      `).bind(
+        cardId, k.bookingId || '', k.roomNumber, k.guestName, k.accessPin || '7650',
+        k.validFrom || new Date().toISOString(), k.validUntil || new Date(Date.now() + 86400000).toISOString()
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, cardId });
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);

@@ -28,7 +28,7 @@ const RevenueManagementModal = lazy(() => import('./components/RevenueManagement
 const LegalPoliciesModal = lazy(() => import('./components/LegalPoliciesModal'));
 const DpdpDataRightsModal = lazy(() => import('./components/DpdpDataRightsModal'));
 
-import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
+import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS, CORPORATE_PARTNERS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
 import { FloatingDock } from '@/components/ui/floating-dock';
 import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale } from 'lucide-react';
@@ -123,6 +123,7 @@ export default function App() {
     }
   ]);
 
+  const [corporatePartners, setCorporatePartners] = useState(CORPORATE_PARTNERS);
   const [adminPinVerified, setAdminPinVerified] = useState(false);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [legalModalOpen, setLegalModalOpen] = useState(false);
@@ -176,10 +177,52 @@ export default function App() {
       .then(data => {
         if (data && data.data) {
           if (data.data.rooms && data.data.rooms.length > 0) {
-            setRooms(data.data.rooms);
+            const mappedRooms = data.data.rooms.map(r => ({
+              ...r,
+              roomNumber: r.roomNumber || r.room_number,
+              roomType: r.roomType || r.room_type || 'EXEDEL',
+              floor: r.floor,
+              tariff: r.tariff,
+              basePrice: r.basePrice || r.tariff,
+              outstandingBalance: r.outstandingBalance !== undefined ? r.outstandingBalance : (r.outstanding_balance !== undefined ? r.outstanding_balance : 0),
+              balanceDue: r.balanceDue !== undefined ? r.balanceDue : (r.outstanding_balance !== undefined ? r.outstanding_balance : 0),
+              pax: r.pax || '1 Pax',
+              currentGuestName: r.currentGuestName || r.current_guest_name,
+              currentBookingId: r.currentBookingId || r.current_booking_id,
+              status: r.status
+            }));
+            setRooms(mappedRooms);
           }
           if (data.data.bookings && data.data.bookings.length > 0) {
-            setBookings(data.data.bookings);
+            const mappedBookings = data.data.bookings.map(b => ({
+              ...b,
+              bookingId: b.booking_id || b.bookingId,
+              roomNumber: b.room_number || b.roomNumber,
+              guestName: b.guest_name || b.guestName,
+              guestPhone: b.guest_phone || b.guestPhone,
+              guestEmail: b.guest_email || b.guestEmail,
+              checkInDate: b.check_in_date || b.checkInDate,
+              checkOutDate: b.check_out_date || b.checkOutDate,
+              tariffPerNight: b.tariff_per_night !== undefined ? b.tariff_per_night : b.tariffPerNight,
+              baseTotal: b.base_total !== undefined ? b.base_total : b.baseTotal,
+              cgst: b.cgst,
+              sgst: b.sgst,
+              totalAmount: b.total_amount !== undefined ? b.total_amount : b.totalAmount,
+              advanceDeposit: b.advance_deposit !== undefined ? b.advance_deposit : b.advanceDeposit,
+              balanceDue: b.balance_due !== undefined ? b.balance_due : b.balanceDue,
+              paymentMode: b.payment_mode || b.paymentMode,
+              paymentStatus: b.payment_status || b.paymentStatus,
+              bookingStatus: b.booking_status || b.bookingStatus,
+              isB2b: b.is_b2b !== undefined ? b.is_b2b : b.isB2b,
+              corporateId: b.corporate_id || b.corporateId,
+              corporateGstin: b.corporate_gstin || b.corporateGstin,
+              companyName: b.company_name || b.companyName || '',
+              billNo: b.bill_no || b.billNo || `INV-${b.room_number || b.roomNumber}-${(b.booking_id || b.bookingId || '').slice(-4)}`
+            }));
+            setBookings(mappedBookings);
+          }
+          if (data.data.corporatePartners && data.data.corporatePartners.length > 0) {
+            setCorporatePartners(data.data.corporatePartners);
           }
           if (data.data.folioTransactions && data.data.folioTransactions.length > 0) {
             const mappedTxs = data.data.folioTransactions.map(t => ({
@@ -645,6 +688,7 @@ export default function App() {
           bookings={bookings}
           rooms={rooms}
           transactions={transactions}
+          corporatePartners={corporatePartners}
           onAddTransaction={handleAddTransaction}
         />
 

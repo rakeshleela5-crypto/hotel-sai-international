@@ -190,6 +190,7 @@ export default function CannonKitchenPOS({
     const voidRecord = {
       id: `VOID-${Date.now().toString().slice(-4)}`,
       itemName: target.item.name,
+      itemCode: target.item.itemCode || '0',
       quantity: target.quantity,
       amount: getItemPrice(target.item) * target.quantity,
       reason: voidReason,
@@ -197,6 +198,27 @@ export default function CannonKitchenPOS({
       captain: captainName,
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
+
+    // Dispatch to Cloudflare D1 restaurant_kot_voids table
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'log_kot_void',
+        payload: {
+          voidId: voidRecord.id,
+          roomOrTable: orderType === 'room' ? `Room ${targetRoom}` : `Table ${tableNumber}`,
+          itemCode: voidRecord.itemCode,
+          itemName: voidRecord.itemName,
+          quantity: voidRecord.quantity,
+          amount: voidRecord.amount,
+          reason: voidRecord.reason,
+          notes: voidRecord.notes,
+          captain: voidRecord.captain
+        }
+      })
+    }).catch(err => console.warn('Offline void logging:', err));
+
     setVoidAuditLogs([voidRecord, ...voidAuditLogs]);
     setCart(cart.filter((_, idx) => idx !== voidTargetIndex));
     setVoidTargetIndex(null);
