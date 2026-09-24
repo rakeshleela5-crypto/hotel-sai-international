@@ -1609,154 +1609,199 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               paddingTop: '0.35rem'
                             }}>
                               {isOccupied && (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px', width: '100%' }}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedFolioRoom(room);
-                                    }}
-                                    title="Open 12 Folio Edit Options (hotel_documents.pdf Page 5)"
-                                    style={{
-                                      padding: '3px 2px',
-                                      fontSize: '0.62rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(56, 189, 248, 0.2)',
-                                      color: '#38bdf8',
-                                      border: '1px solid rgba(56, 189, 248, 0.4)',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    ⚙️ Folio
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setReceiptModalType('grc');
-                                      const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
-                                        bookingId: `FMBIL2627-${room.roomNumber}`,
-                                        billNo: `FMBIL2627-${room.roomNumber}`,
-                                        roomNumber: room.roomNumber,
-                                        guestName: room.currentGuestName || 'SAHANAWAZ',
-                                        guestPhone: '+91 94370 22555',
-                                        company: room.currentGuestName?.includes('ASHOK') ? 'LINDE INDIA LTD' : 'Direct Guest',
-                                        corporateGstin: '21AAACB2528H1ZA',
-                                        tier: room.tier,
-                                        tariff: room.tariff || 2199,
-                                        totalAmount: room.balanceDue || room.tariff || 2199,
-                                        nights: 1,
-                                        grcNo: `GRC-${room.roomNumber}`,
-                                        checkInDate: '22/09/2026',
-                                        checkInTime: '11:00 AM',
-                                        checkOutDate: '23/09/2026 (12:00 PM)'
-                                      };
-                                      setSelectedReceiptBooking(matchedBooking);
-                                      setIsReceiptModalOpen(true);
-                                    }}
-                                    title="Official Guest Registration Card (Page 1) - Print for Guest Signature"
-                                    style={{
-                                      padding: '3px 2px',
-                                      fontSize: '0.62rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(212, 175, 55, 0.25)',
-                                      color: 'var(--gold-glow)',
-                                      border: '1px solid var(--gold-glow)',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    📄 GRC
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCheckoutRoom(room);
-                                    }}
-                                    title="Check Out & Multi-Tender Split Settlement (PhonePe + Cash)"
-                                    style={{
-                                      padding: '3px 2px',
-                                      fontSize: '0.62rem',
-                                      fontWeight: 800,
-                                      background: 'rgba(234, 179, 8, 0.25)',
-                                      color: '#facc15',
-                                      border: '1px solid rgba(234, 179, 8, 0.5)',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    ⚡ Out
-                                  </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
+                                  {/* Row 1: Folio, Tax Bill, GRC, Quick Checkout */}
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '3px', width: '100%' }}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedFolioRoom(room);
+                                      }}
+                                      title="Open 12 Folio Edit Options (hotel_documents.pdf Page 5)"
+                                      style={{
+                                        padding: '3px 2px',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        background: 'rgba(56, 189, 248, 0.2)',
+                                        color: '#38bdf8',
+                                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      ⚙️ Folio
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setReceiptModalType('a4');
+                                        const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
+                                          bookingId: `FMBIL2627-${room.roomNumber}`,
+                                          billNo: `FMBIL2627-${room.roomNumber}`,
+                                          roomNumber: room.roomNumber,
+                                          guestName: room.currentGuestName || 'SAHANAWAZ',
+                                          guestPhone: '+91 94370 22555',
+                                          company: room.currentGuestName?.includes('ASHOK') ? 'LINDE INDIA LTD' : 'Direct Guest',
+                                          corporateGstin: '21AAACB2528H1ZA',
+                                          tier: room.tier,
+                                          tariff: room.tariff || 2199,
+                                          totalAmount: room.balanceDue || room.tariff || 2199,
+                                          nights: 1,
+                                          grcNo: `GRC-${room.roomNumber}`,
+                                          checkInDate: '22/09/2026',
+                                          checkInTime: '11:00 AM',
+                                          checkOutDate: '23/09/2026 (12:00 PM)'
+                                        };
+                                        setSelectedReceiptBooking(matchedBooking);
+                                        setIsReceiptModalOpen(true);
+                                      }}
+                                      title="Consolidated Tax Invoice / Non-GST Bill (GST / Non-GST Toggle, Taxable Breakdown)"
+                                      style={{
+                                        padding: '3px 2px',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        background: 'rgba(16, 185, 129, 0.25)',
+                                        color: '#34d399',
+                                        border: '1px solid rgba(16, 185, 129, 0.5)',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      🧾 Bill
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setReceiptModalType('grc');
+                                        const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
+                                          bookingId: `FMBIL2627-${room.roomNumber}`,
+                                          billNo: `FMBIL2627-${room.roomNumber}`,
+                                          roomNumber: room.roomNumber,
+                                          guestName: room.currentGuestName || 'SAHANAWAZ',
+                                          guestPhone: '+91 94370 22555',
+                                          company: room.currentGuestName?.includes('ASHOK') ? 'LINDE INDIA LTD' : 'Direct Guest',
+                                          corporateGstin: '21AAACB2528H1ZA',
+                                          tier: room.tier,
+                                          tariff: room.tariff || 2199,
+                                          totalAmount: room.balanceDue || room.tariff || 2199,
+                                          nights: 1,
+                                          grcNo: `GRC-${room.roomNumber}`,
+                                          checkInDate: '22/09/2026',
+                                          checkInTime: '11:00 AM',
+                                          checkOutDate: '23/09/2026 (12:00 PM)'
+                                        };
+                                        setSelectedReceiptBooking(matchedBooking);
+                                        setIsReceiptModalOpen(true);
+                                      }}
+                                      title="Official Guest Registration Card (Page 1) - Print for Guest Signature"
+                                      style={{
+                                        padding: '3px 2px',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        background: 'rgba(212, 175, 55, 0.25)',
+                                        color: 'var(--gold-glow)',
+                                        border: '1px solid var(--gold-glow)',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      📄 GRC
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCheckoutRoom(room);
+                                      }}
+                                      title="Check Out & Multi-Tender Split Settlement (PhonePe + Cash)"
+                                      style={{
+                                        padding: '3px 2px',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 800,
+                                        background: 'rgba(234, 179, 8, 0.25)',
+                                        color: '#facc15',
+                                        border: '1px solid rgba(234, 179, 8, 0.5)',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      ⚡ Out
+                                    </button>
+                                  </div>
 
                                   {/* Row 2: Shift Room, Edit Stay, WhatsApp Pass */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleOpenShiftModal(room);
-                                    }}
-                                    title="Shift Room to another Vacant room"
-                                    style={{
-                                      padding: '3px 2px',
-                                      fontSize: '0.62rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(168, 85, 247, 0.2)',
-                                      color: '#c084fc',
-                                      border: '1px solid rgba(168, 85, 247, 0.4)',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    ⇄ Shift
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleOpenEditStay(room);
-                                    }}
-                                    title="Edit Stay & Guest Details: extend dates, extra bed, info"
-                                    style={{
-                                      padding: '3px 2px',
-                                      fontSize: '0.62rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(59, 130, 246, 0.2)',
-                                      color: '#60a5fa',
-                                      border: '1px solid rgba(59, 130, 246, 0.4)',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    ✏️ Stay
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSendWelcomePass(room);
-                                    }}
-                                    title="Send WhatsApp Digital Keycard & Welcome Pass"
-                                    style={{
-                                      padding: '3px 2px',
-                                      fontSize: '0.62rem',
-                                      fontWeight: 700,
-                                      background: 'rgba(34, 197, 94, 0.2)',
-                                      color: '#4ade80',
-                                      border: '1px solid rgba(34, 197, 94, 0.4)',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    💬 Pass
-                                  </button>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px', width: '100%' }}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenShiftModal(room);
+                                      }}
+                                      title="Shift Room to another Vacant room"
+                                      style={{
+                                        padding: '3px 2px',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        background: 'rgba(168, 85, 247, 0.2)',
+                                        color: '#c084fc',
+                                        border: '1px solid rgba(168, 85, 247, 0.4)',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      ⇄ Shift
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenEditStay(room);
+                                      }}
+                                      title="Edit Stay & Guest Details: extend dates, extra bed, info"
+                                      style={{
+                                        padding: '3px 2px',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        background: 'rgba(59, 130, 246, 0.2)',
+                                        color: '#60a5fa',
+                                        border: '1px solid rgba(59, 130, 246, 0.4)',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      ✏️ Stay
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSendWelcomePass(room);
+                                      }}
+                                      title="Send WhatsApp Digital Keycard & Welcome Pass"
+                                      style={{
+                                        padding: '3px 2px',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        background: 'rgba(34, 197, 94, 0.2)',
+                                        color: '#4ade80',
+                                        border: '1px solid rgba(34, 197, 94, 0.4)',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      💬 Pass
+                                    </button>
+                                  </div>
                                 </div>
                               )}
                               {isVacant && (

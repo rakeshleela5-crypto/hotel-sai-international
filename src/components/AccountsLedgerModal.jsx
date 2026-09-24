@@ -7,6 +7,7 @@ import {
   Briefcase, Percent, Scale, UtensilsCrossed, Award, CheckCheck, FileSpreadsheet
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER } from '../data/hotelData';
+import BookingReceiptModal from './BookingReceiptModal';
 
 export default function AccountsLedgerModal({
   isOpen,
@@ -14,6 +15,9 @@ export default function AccountsLedgerModal({
   bookings = []
 }) {
   if (!isOpen) return null;
+
+  const [selectedBillBooking, setSelectedBillBooking] = useState(null);
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState('reconciliation-audit'); // 'flash-report', 'sales-summary', 'day-book', 'corp-gst', 'corp-ledger', 'outstanding'
   const [selectedCorporate, setSelectedCorporate] = useState('CORP-05'); // Ashok Leyland Limited by default
@@ -1873,6 +1877,7 @@ export default function AccountsLedgerModal({
                         <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#f87171' }}>Today's Outstanding</th>
                         <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: 'var(--gold-glow)' }}>Cumulative Outstanding</th>
                         <th style={{ padding: '0.75rem 0.85rem', textAlign: 'center' }}>Billing Status</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'center' }}>Tax Bill</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1918,6 +1923,48 @@ export default function AccountsLedgerModal({
                               {row.status}
                             </span>
                           </td>
+                          <td style={{ padding: '0.7rem 0.85rem', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedBillBooking({
+                                  bookingId: `FMBIL2627-${row.roomNumber}`,
+                                  billNo: `FMBIL2627-${row.roomNumber}`,
+                                  roomNumber: row.roomNumber,
+                                  guestName: row.guestName,
+                                  guestPhone: row.phone,
+                                  company: row.guestName.includes('Ashok') ? 'LINDE INDIA LTD' : 'Direct Corporate',
+                                  corporateGstin: '21AAACB2528H1ZA',
+                                  totalAmount: row.totalCharges,
+                                  advancePaid: row.advanceDeposit,
+                                  balanceDue: row.cumulativeOutstanding,
+                                  tier: 'Executive Standard Room',
+                                  tariff: Math.round(row.totalCharges / 4) || 2999,
+                                  nights: 4,
+                                  grcNo: `68${row.roomNumber.slice(-1)}`,
+                                  checkInDate: '17/09/2026',
+                                  checkOutDate: '21/09/2026'
+                                });
+                                setIsBillModalOpen(true);
+                              }}
+                              style={{
+                                padding: '3px 8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                background: 'rgba(16, 185, 129, 0.2)',
+                                color: '#34d399',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}
+                              title="Preview Consolidated Tax Invoice / Non-GST Bill"
+                            >
+                              🧾 Bill
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1931,6 +1978,7 @@ export default function AccountsLedgerModal({
                         <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#fff' }}>₹15,860.00</td>
                         <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#f87171', fontSize: '0.9rem' }}>₹6,530.00</td>
                         <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#fbbf24', fontSize: '0.95rem' }}>₹28,990.00</td>
+                        <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', color: '#94a3b8' }}>-</td>
                         <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', color: '#94a3b8' }}>-</td>
                       </tr>
                     </tfoot>
@@ -2327,6 +2375,16 @@ export default function AccountsLedgerModal({
               </form>
             </div>
           </div>
+        )}
+
+        {/* STATUTORY TAX INVOICE & NON-GST BILL MODAL */}
+        {isBillModalOpen && selectedBillBooking && (
+          <BookingReceiptModal
+            isOpen={isBillModalOpen}
+            onClose={() => setIsBillModalOpen(false)}
+            booking={selectedBillBooking}
+            initialType="a4"
+          />
         )}
       </div>
     </div>

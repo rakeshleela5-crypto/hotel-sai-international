@@ -13,11 +13,9 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
   const prevIsOpenRef = useRef(false);
 
   useEffect(() => {
-    // Only set initial type when the modal transitions from closed to open
-    if (isOpen && !prevIsOpenRef.current) {
+    if (isOpen) {
       setInvoiceType(initialType || 'a4');
     }
-    prevIsOpenRef.current = isOpen;
   }, [isOpen, initialType]);
 
   if (!isOpen || !booking) return null;

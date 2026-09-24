@@ -430,23 +430,52 @@ export default function FolioActionsModal({
             </p>
           </div>
 
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: 'none',
-              color: '#fff',
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <X size={18} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenSplitInvoice) {
+                  onOpenSplitInvoice('a4');
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.45) 100%)',
+                color: '#34d399',
+                border: '1px solid rgba(52, 211, 153, 0.5)',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.25)',
+                transition: 'all 0.15s ease'
+              }}
+              title="Preview & Print Official Consolidated Tax Invoice / Non-GST Bill (FMBIL / NGST Series with Taxable Breakdown)"
+            >
+              <FileText size={16} /> 🧾 Tax / Non-GST Bill
+            </button>
+
+            <button
+              onClick={onClose}
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: 'none',
+                color: '#fff',
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Action Feedback Banner */}
@@ -1712,7 +1741,28 @@ export default function FolioActionsModal({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => {
+                      if (onOpenSplitInvoice) onOpenSplitInvoice('a4');
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 10px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    🧾 Consolidated Tax / Non-GST Bill
+                  </button>
                   <button
                     onClick={() => {
                       if (onOpenSplitInvoice) onOpenSplitInvoice('room');
