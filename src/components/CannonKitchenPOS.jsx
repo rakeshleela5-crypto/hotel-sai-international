@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   UtensilsCrossed, Plus, Minus, Trash2, Printer, CheckCircle2, 
   Search, Hash, DollarSign, Smartphone, Bed, ShieldCheck, X, 
-  Send, Sparkles, Clock, AlertCircle
+  Send, Sparkles, Clock, AlertCircle, ArrowRightLeft, MessageCircle, FilePlus
 } from 'lucide-react';
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
 
@@ -62,6 +62,22 @@ export default function CannonKitchenPOS({
 
   const [kotSentSuccess, setKotSentSuccess] = useState(false);
   const [lastOrderDetails, setLastOrderDetails] = useState(null);
+
+  // Custom / Off-Menu Dish State (Open Item Punch)
+  const [customDishModalOpen, setCustomDishModalOpen] = useState(false);
+  const [customDishName, setCustomDishName] = useState('');
+  const [customDishPrice, setCustomDishPrice] = useState('');
+  const [customDishCategory, setCustomDishCategory] = useState('Chef Special / Custom Prep');
+
+  // Table Shift & Merge Modal State
+  const [tableShiftModalOpen, setTableShiftModalOpen] = useState(false);
+  const [tableShiftTarget, setTableShiftTarget] = useState('8');
+  const [posFeedbackToast, setPosFeedbackToast] = useState('');
+
+  const showPosToast = (msg) => {
+    setPosFeedbackToast(msg);
+    setTimeout(() => setPosFeedbackToast(''), 4500);
+  };
 
   useEffect(() => {
     if (codeInputRef.current) {
@@ -142,6 +158,82 @@ export default function CannonKitchenPOS({
     setCart(cart.filter((_, idx) => idx !== voidTargetIndex));
     setVoidTargetIndex(null);
     setVoidCustomNote('');
+  };
+
+  // Add Custom / Off-Menu Open Dish to Cart
+  const handleAddCustomDish = (e) => {
+    e.preventDefault();
+    if (!customDishName.trim() || !customDishPrice) return;
+    const numPrice = Math.max(1, Number(customDishPrice) || 50);
+    const customItem = {
+      id: `CUSTOM-${Date.now().toString().slice(-5)}`,
+      itemCode: '999',
+      name: customDishName.trim(),
+      category: customDishCategory,
+      price: numPrice,
+      dineInPrice: numPrice,
+      roomServicePrice: Math.round(numPrice * 1.10),
+      isCustom: true
+    };
+    addItemToCart(customItem);
+    showPosToast(`✓ Added custom item "${customDishName}" (₹${numPrice}) to KOT!`);
+    setCustomDishModalOpen(false);
+    setCustomDishName('');
+    setCustomDishPrice('');
+  };
+
+  // WhatsApp Dining Bill & Itemized KOT Dispatch
+  const handleSendWhatsAppDiningBill = () => {
+    if (cart.length === 0) {
+      alert('Cart is empty. Please add dishes to generate a bill.');
+      return;
+    }
+
+    const itemsSummary = cart.map(c => 
+      `• ${c.quantity}x ${c.item.name}${c.cookingTags?.length ? ` [${c.cookingTags.join(', ')}]` : ''} - ₹${(getItemPrice(c.item) * c.quantity).toFixed(0)}`
+    ).join('\n');
+
+    const discountSummary = calculatedDiscount > 0 
+      ? `\nLess Discount (${isNonCommercial ? 'NC Comp' : discountReason}): -₹${calculatedDiscount.toFixed(2)}` 
+      : '';
+
+    const destinationLabel = orderType === 'room' 
+      ? `Room Folio: Room ${targetRoom}` 
+      : `Dine-In Table: Table ${tableNumber}`;
+
+    const text = `🍽️ *CANNON KITCHEN & RESTAURANT - DINING BILL*
+Hotel Sai International, Rayagada
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Date: ${new Date().toLocaleDateString('en-IN')} | Time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+Outlet: ${selectedOutlet}
+${destinationLabel}
+Duty Captain: ${captainName}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*ORDERED DISHES & KOT:*
+${itemsSummary}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Gross Subtotal: ₹${grossSubtotal.toFixed(2)}${discountSummary}
+GST @ 5% (SAC 996331): ₹${gst.toFixed(2)}
+*TOTAL PAYABLE: ₹${isNonCommercial ? '0.00 (NC Comp Approved)' : netTotal.toFixed(2)}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Payment Options: Cash / SBI UPI QR / Bill to Room
+UPI Payee VPA: eswara.hotel@sbi
+Thank you for dining at Cannon Kitchen! 🙏`;
+
+    const encoded = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    showPosToast('✓ Dining Bill formatted & dispatched to WhatsApp!');
+  };
+
+  // Table Shift / Reassignment Handler
+  const handleConfirmTableShift = (e) => {
+    e.preventDefault();
+    if (!tableShiftTarget) return;
+
+    const oldTable = tableNumber;
+    setTableNumber(tableShiftTarget);
+    setTableShiftModalOpen(false);
+    showPosToast(`✓ Table shifted from Table ${oldTable} to Table ${tableShiftTarget}! Active KOT transferred.`);
   };
 
   // Tax calculations (F&B: 5% GST without ITC under SAC 996331) with Discount & NC Support
@@ -355,9 +447,29 @@ export default function CannonKitchenPOS({
             </button>
           </div>
 
-          <div style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+          <div style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <span>Duty Steward: <strong style={{ color: 'var(--gold-glow)' }}>{captainName}</strong></span>
-            <span>Active Table: <strong style={{ color: '#38bdf8' }}>{tableNumber}</strong></span>
+            <span>Active Table: <strong style={{ color: '#38bdf8' }}>Table {tableNumber}</strong></span>
+            <button
+              type="button"
+              onClick={() => setTableShiftModalOpen(true)}
+              title="Shift or Reassign Dining Table"
+              style={{
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                background: 'rgba(168, 85, 247, 0.2)',
+                color: '#c084fc',
+                border: '1px solid rgba(168, 85, 247, 0.4)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}
+            >
+              <ArrowRightLeft size={11} /> Shift Table
+            </button>
             <span>Target Room: <strong style={{ color: '#34d399' }}>Room {targetRoom}</strong></span>
           </div>
         </div>
@@ -372,16 +484,16 @@ export default function CannonKitchenPOS({
               background: 'rgba(255,255,255,0.02)',
               borderBottom: '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
-              gap: '1rem',
+              gap: '0.75rem',
               alignItems: 'center'
             }}>
-              <form onSubmit={handleCodeSubmit} style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
-                <div style={{ position: 'relative', flex: '0 0 200px' }}>
+              <form onSubmit={handleCodeSubmit} style={{ display: 'flex', gap: '0.5rem', flex: '0 0 280px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
                   <Hash size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#fbbf24' }} />
                   <input
                     ref={codeInputRef}
                     type="text"
-                    placeholder="Short Code (e.g. 214)"
+                    placeholder="Code (e.g. 214)"
                     value={codeQuery}
                     onChange={(e) => setCodeQuery(e.target.value)}
                     style={{
@@ -400,7 +512,7 @@ export default function CannonKitchenPOS({
                 <button
                   type="submit"
                   className="btn-primary"
-                  style={{ padding: '0.55rem 1rem', fontSize: '0.85rem', fontWeight: 700, background: '#f59e0b', color: '#000' }}
+                  style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem', fontWeight: 700, background: '#f59e0b', color: '#000' }}
                 >
                   Enter [↵]
                 </button>
@@ -424,6 +536,28 @@ export default function CannonKitchenPOS({
                   }}
                 />
               </div>
+
+              <button
+                type="button"
+                onClick={() => setCustomDishModalOpen(true)}
+                title="Punch Off-Menu / Open Kitchen Dish"
+                style={{
+                  padding: '0.55rem 0.85rem',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  borderRadius: '8px',
+                  color: '#38bdf8',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <FilePlus size={14} /> + Custom Dish
+              </button>
             </div>
 
             {/* Quick Reference Code Strip */}
@@ -1203,16 +1337,16 @@ export default function CannonKitchenPOS({
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
                 {orderType === 'room' ? (
                   <button
                     onClick={handleTransferToRoom}
                     disabled={cart.length === 0}
                     className="btn-primary"
                     style={{
-                      flex: 1,
+                      flex: 1.5,
                       padding: '0.7rem',
-                      fontSize: '0.88rem',
+                      fontSize: '0.85rem',
                       fontWeight: 700,
                       background: '#f59e0b',
                       color: '#000',
@@ -1234,11 +1368,36 @@ export default function CannonKitchenPOS({
                     }}
                     disabled={cart.length === 0}
                     className="btn-primary"
-                    style={{ flex: 1, padding: '0.7rem', fontWeight: 700 }}
+                    style={{ flex: 1.5, padding: '0.7rem', fontWeight: 700, fontSize: '0.85rem' }}
                   >
-                    Print KOT to Kitchen (Table {tableNumber})
+                    Print KOT (Table {tableNumber})
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleSendWhatsAppDiningBill}
+                  disabled={cart.length === 0}
+                  title="Dispatch itemized dining bill to WhatsApp"
+                  style={{
+                    flex: 1,
+                    padding: '0.7rem 0.5rem',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    background: 'rgba(34, 197, 94, 0.2)',
+                    color: '#4ade80',
+                    border: '1px solid rgba(34, 197, 94, 0.5)',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
+                    opacity: cart.length === 0 ? 0.5 : 1
+                  }}
+                >
+                  <MessageCircle size={15} /> WhatsApp Bill
+                </button>
               </div>
             </div>
           </div>
@@ -1325,6 +1484,210 @@ export default function CannonKitchenPOS({
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* MODAL: CUSTOM / OFF-MENU OPEN DISH ADDER */}
+        {customDishModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#0d1322',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: 440,
+              padding: '1.5rem',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FilePlus size={20} color="#38bdf8" />
+                  <h3 style={{ fontSize: '1.15rem', color: '#fff', margin: 0 }}>Add Custom / Off-Menu Dish</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCustomDishModalOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddCustomDish}>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Dish Name / Prep Specification</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Special Baby Khichdi (Salt & Ghee only)"
+                    value={customDishName}
+                    onChange={(e) => setCustomDishName(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Price (₹ INR)</label>
+                    <input
+                      type="number"
+                      placeholder="120"
+                      min="1"
+                      value={customDishPrice}
+                      onChange={(e) => setCustomDishPrice(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#fff', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 700 }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Kitchen Section</label>
+                    <select
+                      value={customDishCategory}
+                      onChange={(e) => setCustomDishCategory(e.target.value)}
+                      style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem' }}
+                    >
+                      <option value="South Indian / Special">South Indian / Special</option>
+                      <option value="North Indian / Gravy">North Indian / Gravy</option>
+                      <option value="Beverages & Milk">Beverages & Milk</option>
+                      <option value="Continental / Snacks">Continental / Snacks</option>
+                      <option value="Chef Special Prep">Chef Special Prep</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCustomDishModalOpen(false)}
+                    className="btn-outline"
+                    style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{ flex: 1.5, padding: '0.6rem', fontSize: '0.85rem', background: '#0284c7', borderColor: '#0284c7', color: '#fff' }}
+                  >
+                    + Add to Cart
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: TABLE SHIFT & REASSIGNMENT */}
+        {tableShiftModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#0d1322',
+              border: '1px solid rgba(168, 85, 247, 0.4)',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: 440,
+              padding: '1.5rem',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ArrowRightLeft size={20} color="#c084fc" />
+                  <h3 style={{ fontSize: '1.15rem', color: '#fff', margin: 0 }}>Shift / Reassign Table</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTableShiftModalOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmTableShift}>
+                <div style={{ background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>CURRENT TABLE</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>
+                    Table {tableNumber} ({cart.length} active items in KOT)
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Select Destination Table</label>
+                  <select
+                    className="form-select"
+                    value={tableShiftTarget}
+                    onChange={(e) => setTableShiftTarget(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#fff', border: '1px solid rgba(168, 85, 247, 0.4)', borderRadius: '6px' }}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(tbl => (
+                      <option key={tbl} value={tbl} disabled={tbl.toString() === tableNumber.toString()}>
+                        Table {tbl} {tbl.toString() === tableNumber.toString() ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setTableShiftModalOpen(false)}
+                    className="btn-outline"
+                    style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{ flex: 1.5, padding: '0.6rem', fontSize: '0.85rem', background: '#9333ea', borderColor: '#9333ea', color: '#fff' }}
+                  >
+                    Confirm Table Shift ⇄
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* FLOATING ACTION TOAST */}
+        {posFeedbackToast && (
+          <div style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            background: '#0f172a',
+            color: '#38bdf8',
+            border: '1px solid #38bdf8',
+            padding: '0.85rem 1.25rem',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
+            zIndex: 100001,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            fontSize: '0.85rem',
+            fontWeight: 600
+          }}>
+            <CheckCircle2 size={18} color="#34d399" />
+            <span>{posFeedbackToast}</span>
           </div>
         )}
       </div>

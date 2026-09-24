@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   FileText, Split, CreditCard, DollarSign, CheckCircle2, 
   Printer, Download, ShieldCheck, Clock, User, Bed, 
-  UtensilsCrossed, AlertTriangle, Plus, X, ChevronRight, Lock
+  UtensilsCrossed, AlertTriangle, Plus, X, ChevronRight, Lock,
+  MessageCircle, Edit2, Trash2, Tag, Percent
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS } from '../data/hotelData';
 
@@ -38,16 +39,37 @@ export default function MasterFolioModal({
   const [chargeAmount, setChargeAmount] = useState('');
   const [chargeOutlet, setChargeOutlet] = useState('Cannon Kitchen');
 
+  // In-place Profile Edit Modal State
+  const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
+  const [profileOverrides, setProfileOverrides] = useState({});
+  const [formGuestName, setFormGuestName] = useState('');
+  const [formGuestPhone, setFormGuestPhone] = useState('');
+  const [formCompanyName, setFormCompanyName] = useState('');
+  const [formCorporateGstin, setFormCorporateGstin] = useState('');
+
+  // Courtesy Discount Modal State
+  const [discountModalOpen, setDiscountModalOpen] = useState(false);
+  const [discountType, setDiscountType] = useState('fixed'); // 'fixed' or 'percent'
+  const [discountVal, setDiscountVal] = useState('500');
+  const [discountReason, setDiscountReason] = useState('Managing Director Discretionary Courtesy');
+
+  // Line-Item Void / Credit Note Modal State
+  const [voidModalOpen, setVoidModalOpen] = useState(false);
+  const [voidTargetTxn, setVoidTargetTxn] = useState(null);
+  const [voidReason, setVoidReason] = useState('Billing Discrepancy Correction');
+
   // Filter transactions for currently selected room
   const currentTxns = transactions.filter(t => t.roomNumber === selectedRoom);
 
-  // Find booking details for room
-  const roomBooking = bookings.find(b => b.roomNumber === selectedRoom) || {
+  // Find booking details for room (with live profile overrides)
+  const baseBooking = bookings.find(b => b.roomNumber === selectedRoom) || {
     guestName: selectedRoom === '402' ? 'Anil Sharma (GAIL Regional)' : 'In-House Guest',
     guestPhone: '+91 98210 44556',
     corporateGstin: selectedRoom === '402' ? '07AAACG1509J1ZQ' : null,
     companyName: selectedRoom === '402' ? 'GAIL (India) Limited' : 'Direct Walk-In'
   };
+
+  const roomBooking = profileOverrides[selectedRoom] || baseBooking;
 
   // Calculations
   const totalDebits = currentTxns.reduce((sum, t) => sum + (t.debitAmount || 0), 0);
@@ -121,6 +143,167 @@ export default function MasterFolioModal({
     setChargeAmount('');
   };
 
+  const handleOpenEditProfile = () => {
+    setFormGuestName(roomBooking.guestName || '');
+    setFormGuestPhone(roomBooking.guestPhone || '');
+    setFormCompanyName(roomBooking.companyName || '');
+    setFormCorporateGstin(roomBooking.corporateGstin || '');
+    setEditProfileModalOpen(true);
+  };
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    setProfileOverrides(prev => ({
+      ...prev,
+      [selectedRoom]: {
+        ...roomBooking,
+        guestName: formGuestName,
+        guestPhone: formGuestPhone,
+        companyName: formCompanyName,
+        corporateGstin: formCorporateGstin
+      }
+    }));
+    setEditProfileModalOpen(false);
+  };
+
+  const handleApplyDiscount = (e) => {
+    e.preventDefault();
+    const val = parseFloat(discountVal) || 0;
+    if (val <= 0) return;
+
+    let discountAmt = val;
+    if (discountType === 'percent') {
+      discountAmt = Math.round((balanceDue * (val / 100)) * 100) / 100;
+    }
+
+    if (discountAmt > balanceDue) {
+      discountAmt = balanceDue;
+    }
+
+    const discountTxn = {
+      transactionId: `ALW-${selectedRoom}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${selectedRoom}`,
+      bookingId: roomBooking.bookingId || `BOOK-${selectedRoom}`,
+      roomNumber: selectedRoom,
+      transactionType: 'Allowance',
+      outlet: 'Front Desk',
+      itemCode: 'DISC-AUTH',
+      description: `Manager Allowance (${discountReason})`,
+      debitAmount: 0,
+      creditAmount: discountAmt,
+      taxableBase: discountAmt / 1.12,
+      gstRate: 12,
+      cgst: (discountAmt / 1.12) * 0.06,
+      sgst: (discountAmt / 1.12) * 0.06,
+      sacCode: '996311',
+      invoiceCategory: 'Room',
+      isLocked: 0,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+
+    if (onAddTransaction) {
+      onAddTransaction(discountTxn);
+    }
+    setDiscountModalOpen(false);
+  };
+
+  const handleAddExtraBed = () => {
+    const amt = 560; // ₹500 + 12% GST = ₹560
+    const extraBedTxn = {
+      transactionId: `BED-${selectedRoom}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${selectedRoom}`,
+      bookingId: roomBooking.bookingId || `BOOK-${selectedRoom}`,
+      roomNumber: selectedRoom,
+      transactionType: 'Extra Bed / Rollaway',
+      outlet: 'Housekeeping',
+      itemCode: 'ROLLAWAY-BED',
+      description: 'Extra Rollaway Bed Mattress (Night Tariff)',
+      debitAmount: amt,
+      creditAmount: 0,
+      taxableBase: 500,
+      gstRate: 12,
+      cgst: 30,
+      sgst: 30,
+      sacCode: '996311',
+      invoiceCategory: 'Room',
+      isLocked: 0,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+
+    if (onAddTransaction) {
+      onAddTransaction(extraBedTxn);
+    }
+    alert(`🛏️ Added Extra Rollaway Bed (₹500 + 12% GST = ₹560) to Room ${selectedRoom} Folio!`);
+  };
+
+  const handleOpenVoid = (txn) => {
+    setVoidTargetTxn(txn);
+    setVoidModalOpen(true);
+  };
+
+  const handleConfirmVoid = (e) => {
+    e.preventDefault();
+    if (!voidTargetTxn) return;
+
+    const reversalAmt = voidTargetTxn.debitAmount || 0;
+    const reversalTxn = {
+      transactionId: `CN-${selectedRoom}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${selectedRoom}`,
+      bookingId: roomBooking.bookingId || `BOOK-${selectedRoom}`,
+      roomNumber: selectedRoom,
+      transactionType: 'Credit Note / Reversal',
+      outlet: voidTargetTxn.outlet,
+      itemCode: 'SEC34-CREDIT-NOTE',
+      description: `GST Sec 34 Credit Note: Reversal of ${voidTargetTxn.transactionId} (${voidReason})`,
+      debitAmount: 0,
+      creditAmount: reversalAmt,
+      taxableBase: voidTargetTxn.taxableBase || (reversalAmt / (1 + (voidTargetTxn.gstRate || 12) / 100)),
+      gstRate: voidTargetTxn.gstRate || 12,
+      cgst: voidTargetTxn.cgst || 0,
+      sgst: voidTargetTxn.sgst || 0,
+      sacCode: voidTargetTxn.sacCode || '996311',
+      invoiceCategory: voidTargetTxn.invoiceCategory || 'Room',
+      isLocked: 0,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+
+    if (onAddTransaction) {
+      onAddTransaction(reversalTxn);
+    }
+    setVoidModalOpen(false);
+    setVoidTargetTxn(null);
+  };
+
+  const handleSendWhatsAppInvoice = () => {
+    const rawPhone = (roomBooking.guestPhone || '').replace(/\D/g, '');
+    const cleanPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+
+    const message = 
+`🏨 *HOTEL SAI INTERNATIONAL, RAYAGADA*
+📍 J.K. Road, Rayagada, Odisha - 765001
+📞 06856 225 555 | GSTIN: ${HOTEL_CONFIG.gstin}
+───────────────────────────────
+📋 *TAX INVOICE & FOLIO SUMMARY*
+Room Number: *${selectedRoom}*
+Guest: *${roomBooking.guestName}*
+Company: ${roomBooking.companyName || 'Direct Walk-In'}
+${roomBooking.corporateGstin ? `Corporate GSTIN: ${roomBooking.corporateGstin}\n` : ''}Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+───────────────────────────────
+🛏️ Room Charges (SAC 996311): ₹${invoiceATotal.toFixed(2)}
+🍳 Restaurant F&B (SAC 996331): ₹${invoiceBTotal.toFixed(2)}
+💰 Gross Debits: ₹${totalDebits.toFixed(2)}
+💳 Advances / Paid: ₹${totalCredits.toFixed(2)}
+⚖️ *Net Balance Due: ₹${balanceDue.toFixed(2)}*
+───────────────────────────────
+${balanceDue > 0 ? `💳 Quick UPI Pay: ${HOTEL_CONFIG.upiId}\n` : '✓ Status: FULLY SETTLED & PAID\n'}
+🙏 *Thank you for staying at Hotel Sai International, Rayagada!*
+Divine blessings of sacred Maa Majhighariani.`;
+
+    const encoded = encodeURIComponent(message);
+    const targetUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    window.open(targetUrl, '_blank');
+  };
+
   const handleExecuteSettlement = () => {
     if (tenderVariance !== 0) {
       alert(`Settlement unbalanced! Variance of ₹${tenderVariance.toFixed(2)} must be 0 before checkout.`);
@@ -180,7 +363,7 @@ export default function MasterFolioModal({
             </p>
           </div>
 
-          {/* Room Selector Pills */}
+          {/* Room Selector Pills & Quick Dispatch Buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Active Folio:</span>
             {['402', '301', '104'].map(rNum => (
@@ -199,9 +382,50 @@ export default function MasterFolioModal({
                   border: selectedRoom === rNum ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)'
                 }}
               >
-                Room {rNum} {rNum === '402' ? '(₹13,588 Demo)' : ''}
+                Room {rNum} {rNum === '402' ? '(GAIL B2B)' : rNum === '301' ? '(Executive)' : '(Standard)'}
               </button>
             ))}
+
+            <button
+              onClick={handleSendWhatsAppInvoice}
+              style={{
+                padding: '0.42rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                background: '#25D366',
+                color: '#060e1a',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)'
+              }}
+              title="Send Official Tax Invoice & Payment Link on WhatsApp"
+            >
+              <MessageCircle size={15} /> WhatsApp Invoice
+            </button>
+
+            <button
+              onClick={() => window.print()}
+              style={{
+                padding: '0.42rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                background: 'rgba(255,255,255,0.08)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.2)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Printer size={15} /> Print
+            </button>
+
             <button
               onClick={onClose}
               style={{
@@ -232,9 +456,27 @@ export default function MasterFolioModal({
           gap: '1.25rem'
         }}>
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Guest Name / Corporate</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Guest Name / Corporate</div>
+              <button 
+                onClick={handleOpenEditProfile}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--gold-glow)',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  fontWeight: 600
+                }}
+              >
+                <Edit2 size={12} /> Edit Profile
+              </button>
+            </div>
             <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff' }}>{roomBooking.guestName}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--gold-glow)' }}>{roomBooking.companyName}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--gold-glow)' }}>{roomBooking.companyName} • {roomBooking.guestPhone}</div>
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Corporate GSTIN</div>
@@ -340,13 +582,52 @@ export default function MasterFolioModal({
                   Immutable audit trail. Every room rent, Cannon Kitchen order, and laundry voucher is tracked.
                 </p>
               </div>
-              <button
-                onClick={() => setChargeModalOpen(true)}
-                className="btn-primary"
-                style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                <Plus size={15} /> Post New Charge / KOT
-              </button>
+
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setChargeModalOpen(true)}
+                  className="btn-primary"
+                  style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Plus size={14} /> Post Debit / KOT
+                </button>
+                <button
+                  onClick={() => setDiscountModalOpen(true)}
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    fontSize: '0.82rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'rgba(212, 175, 55, 0.15)',
+                    border: '1px solid var(--gold-glow)',
+                    color: 'var(--gold-glow)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                >
+                  <Tag size={14} /> Courtesy Allowance
+                </button>
+                <button
+                  onClick={handleAddExtraBed}
+                  style={{
+                    padding: '0.45rem 0.9rem',
+                    fontSize: '0.82rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    border: '1px solid #38bdf8',
+                    color: '#38bdf8',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                >
+                  <Bed size={14} /> + Extra Bed (₹560)
+                </button>
+              </div>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -361,6 +642,7 @@ export default function MasterFolioModal({
                     <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'right' }}>Debit (₹)</th>
                     <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'right' }}>Credit (₹)</th>
                     <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>Audit Status</th>
+                    <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -418,6 +700,31 @@ export default function MasterFolioModal({
                           </span>
                         )}
                       </td>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                        {txn.debitAmount > 0 && !txn.isLocked ? (
+                          <button
+                            onClick={() => handleOpenVoid(txn)}
+                            title="Issue Credit Note Reversal (Sec 34 CGST Act)"
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              color: '#f87171',
+                              border: '1px solid rgba(239, 68, 68, 0.35)',
+                              padding: '3px 8px',
+                              borderRadius: '5px',
+                              fontSize: '0.72rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: 600
+                            }}
+                          >
+                            <Trash2 size={12} /> Void / Credit Note
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>-</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -435,6 +742,7 @@ export default function MasterFolioModal({
                     <td style={{ padding: '1rem', textAlign: 'center', color: balanceDue > 0 ? '#f87171' : '#34d399' }}>
                       Bal: ₹{balanceDue.toFixed(2)}
                     </td>
+                    <td></td>
                   </tr>
                 </tfoot>
               </table>
@@ -899,6 +1207,251 @@ export default function MasterFolioModal({
                   </button>
                   <button type="submit" className="btn-primary" style={{ padding: '0.4rem 1rem' }}>
                     Post to Master Folio
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sub-Modal: In-place Guest Profile Edit */}
+        {editProfileModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2200
+          }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: 480, padding: '1.5rem', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Edit2 size={16} color="var(--gold-glow)" /> Edit Billing Profile (Room {selectedRoom})
+                </h4>
+                <button onClick={() => setEditProfileModalOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveProfile}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Guest Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formGuestName}
+                    onChange={(e) => setFormGuestName(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>WhatsApp / Mobile Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={formGuestPhone}
+                    onChange={(e) => setFormGuestPhone(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Company / Organization (Optional)</label>
+                  <input
+                    type="text"
+                    value={formCompanyName}
+                    onChange={(e) => setFormCompanyName(e.target.value)}
+                    placeholder="e.g. GAIL (India) Limited / JK Paper"
+                    style={{ width: '100%', padding: '0.5rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Corporate GSTIN (Rule 46 ITC)</label>
+                  <input
+                    type="text"
+                    value={formCorporateGstin}
+                    onChange={(e) => setFormCorporateGstin(e.target.value.toUpperCase())}
+                    placeholder="e.g. 21AABCH7663L1ZG"
+                    style={{ width: '100%', padding: '0.5rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', fontFamily: 'monospace' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setEditProfileModalOpen(false)} className="btn-outline" style={{ padding: '0.4rem 0.8rem' }}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary" style={{ padding: '0.4rem 1rem' }}>
+                    Save Profile
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sub-Modal: Apply Courtesy Discount / Allowance */}
+        {discountModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2200
+          }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: 460, padding: '1.5rem', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Tag size={16} color="var(--gold-glow)" /> Apply Courtesy Allowance (Room {selectedRoom})
+                </h4>
+                <button onClick={() => setDiscountModalOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleApplyDiscount}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Discount Type</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType('fixed')}
+                      style={{
+                        flex: 1,
+                        padding: '0.45rem',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        background: discountType === 'fixed' ? 'var(--gold-glow)' : '#0b0f19',
+                        color: discountType === 'fixed' ? '#000' : '#fff',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                      }}
+                    >
+                      Fixed Amount (₹)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType('percent')}
+                      style={{
+                        flex: 1,
+                        padding: '0.45rem',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        background: discountType === 'percent' ? 'var(--gold-glow)' : '#0b0f19',
+                        color: discountType === 'percent' ? '#000' : '#fff',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                      }}
+                    >
+                      Percentage (%)
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                    {discountType === 'fixed' ? 'Discount Amount (₹)' : 'Discount Percentage (%)'}
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max={discountType === 'percent' ? '100' : balanceDue}
+                    value={discountVal}
+                    onChange={(e) => setDiscountVal(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  />
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Current Net Balance Due: ₹{balanceDue.toFixed(2)}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Authorized Reason</label>
+                  <select
+                    value={discountReason}
+                    onChange={(e) => setDiscountReason(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  >
+                    <option value="Managing Director Discretionary Courtesy">MD Courtesy</option>
+                    <option value="Corporate Volume Contract Discount">Corporate Volume Partner (JK/GAIL)</option>
+                    <option value="Service Quality Recovery Allowance">Service Quality Recovery</option>
+                    <option value="Long-Stay Devotee Courtesy">Long-Stay Pilgrim Courtesy</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setDiscountModalOpen(false)} className="btn-outline" style={{ padding: '0.4rem 0.8rem' }}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary" style={{ padding: '0.4rem 1rem' }}>
+                    Post Allowance
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sub-Modal: Void / Credit Note Reversal (Section 34 CGST Act) */}
+        {voidModalOpen && voidTargetTxn && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2200
+          }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: 460, padding: '1.5rem', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ color: '#f87171', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Trash2 size={16} /> Issue GST Credit Note / Reversal
+                </h4>
+                <button onClick={() => setVoidModalOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmVoid}>
+                <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>{voidTargetTxn.description}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Txn ID: {voidTargetTxn.transactionId} • Amount: ₹{voidTargetTxn.debitAmount?.toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#fca5a5', marginTop: '0.25rem' }}>
+                    Section 34 CGST Act: This will create an offsetting Credit Note entry, zeroing out the charge on the folio without deleting the audit trail.
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Mandatory Audit Reason</label>
+                  <select
+                    value={voidReason}
+                    onChange={(e) => setVoidReason(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  >
+                    <option value="Wrong Room Bill Posting Error">Wrong Room Bill Posting Error</option>
+                    <option value="Disputed KOT Food Quality Issue">Disputed KOT Food Quality Issue</option>
+                    <option value="Late Check-Out Tariff Waived by GM">Late Check-Out Tariff Waived by GM</option>
+                    <option value="Duplicate Charge Correction">Duplicate Charge Correction</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setVoidModalOpen(false)} className="btn-outline" style={{ padding: '0.4rem 0.8rem' }}>
+                    Cancel
+                  </button>
+                  <button type="submit" style={{ padding: '0.4rem 1rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>
+                    Confirm Credit Note
                   </button>
                 </div>
               </form>

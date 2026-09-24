@@ -4,7 +4,8 @@ import {
   DollarSign, CheckCircle2, AlertTriangle, Printer, Download, 
   Search, RefreshCw, UserCheck, Phone, FileText, Sparkles, 
   Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
-  Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle
+  Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle,
+  ArrowRightLeft, Edit3, MessageCircle
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -13,6 +14,16 @@ import FolioActionsModal from './FolioActionsModal';
 import BookingReceiptModal from './BookingReceiptModal';
 import CheckoutSplitModal from './CheckoutSplitModal';
 import InteractiveCalendar from '@/components/ui/visualize-booking';
+
+// Frequent VIP & Corporate Guests for instant Walk-in auto-fill
+const FREQUENT_VIP_GUESTS = [
+  { name: 'MR. P ASHOK', phone: '+91 6305202068', aadhaar: '891234567890', origin: 'Andhra Pradesh', company: 'Linde India Ltd', billingType: 'BTC', mealPlan: 'CP' },
+  { name: 'LAVAKANTA OJHA', phone: '+91 94371 44520', aadhaar: '745612348901', origin: 'Odisha', company: 'Akchem Synthetics', billingType: 'BTC', mealPlan: 'CP' },
+  { name: 'BIJAY PASWAN', phone: '+91 98610 33812', aadhaar: '623489012345', origin: 'Jharkhand', company: 'PRADAN NGO', billingType: 'BTC', mealPlan: 'EP' },
+  { name: 'UTKARSH SRIVASTAVA', phone: '+91 94370 88912', aadhaar: '512345678901', origin: 'Uttar Pradesh', company: 'Direct Guest', billingType: 'Direct', mealPlan: 'CP' },
+  { name: 'SAHANAWAZ HUSSAIN', phone: '+91 94370 22555', aadhaar: '401234567890', origin: 'Odisha', company: 'Direct Guest', billingType: 'Direct', mealPlan: 'EP' },
+  { name: 'SATYARANJAN SAHOO', phone: '+91 98612 11099', aadhaar: '390123456789', origin: 'Odisha', company: 'Direct Guest', billingType: 'Direct', mealPlan: 'CP' }
+];
 
 export default function ReceptionAdmin({
   rooms = [],
@@ -154,6 +165,27 @@ export default function ReceptionAdmin({
   const [walkInMealPlan, setWalkInMealPlan] = useState('CP'); // CP, EP, MAP, AP
   const [walkInBillingType, setWalkInBillingType] = useState('Direct'); // Direct or BTC (Bill to Company)
   const [walkInCompany, setWalkInCompany] = useState('');
+
+  // Shift Room Modal State (Inter-Room Reassignment)
+  const [shiftModalRoom, setShiftModalRoom] = useState(null);
+  const [shiftTargetRoom, setShiftTargetRoom] = useState('');
+  const [shiftReason, setShiftReason] = useState('Guest Requested Upgrade / Quiet Wing');
+
+  // Edit Stay & Guest Details Modal State
+  const [editStayRoom, setEditStayRoom] = useState(null);
+  const [editStayGuestName, setEditStayGuestName] = useState('');
+  const [editStayPhone, setEditStayPhone] = useState('');
+  const [editStayVehicle, setEditStayVehicle] = useState('');
+  const [editStayExtendNights, setEditStayExtendNights] = useState(0);
+  const [editStayAddExtraBed, setEditStayAddExtraBed] = useState(false);
+  const [editStayNotes, setEditStayNotes] = useState('');
+
+  // Live Notification Toast State
+  const [feedbackToast, setFeedbackToast] = useState('');
+  const showToast = (msg) => {
+    setFeedbackToast(msg);
+    setTimeout(() => setFeedbackToast(''), 4500);
+  };
 
   // Block Rooms Modal State (Screenshot 10 - block_rooms.php)
   const [blockRoomOpen, setBlockRoomOpen] = useState(false);
@@ -359,6 +391,126 @@ export default function ReceptionAdmin({
     setBlockRoomOpen(false);
     setBlockSelectedRoom('');
     setBlockNotes('');
+  };
+
+  // WhatsApp Digital Keycard & Welcome Pass Dispatch
+  const handleSendWelcomePass = (room) => {
+    const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber);
+    const guestName = room.currentGuestName || matchedBooking?.guestName || 'Valued Guest';
+    const rawPhone = matchedBooking?.guestPhone || room.guestPhone || '+91 94370 00000';
+    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+    const message = `🏨 *HOTEL SAI INTERNATIONAL - DIGITAL KEYCARD & WELCOME PASS*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Namaste *${guestName}*, welcome to Hotel Sai International, Rayagada!
+
+🔑 *Assigned Room:* Room ${room.roomNumber} (${room.tier})
+📶 *High-Speed Wi-Fi:* SAI_GUEST_5G
+🔐 *Wi-Fi Password:* SaiLuxury@2026
+📞 *Reception Desk:* Dial 0
+🍽️ *Cannon Kitchen & In-Room Dining:* Dial 9
+
+🛕 *Rayagada Temple Darshan Timings:*
+• Maa Majhighariani Temple: 05:30 AM - 01:30 PM & 04:30 PM - 09:00 PM
+• Jagannath Temple: 06:00 AM - 12:30 PM & 05:00 PM - 08:30 PM
+
+Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message us back directly here.`;
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${formattedPhone}?text=${encoded}`, '_blank');
+    showToast(`✓ WhatsApp Welcome Pass dispatched for Room ${room.roomNumber}!`);
+  };
+
+  // Inter-Room Shift Handlers
+  const handleOpenShiftModal = (room) => {
+    setShiftModalRoom(room);
+    const available = rooms.filter(r => (r.status === 'Available' || r.status === 'Vacant Clean') && r.roomNumber !== room.roomNumber);
+    setShiftTargetRoom(available.length > 0 ? available[0].roomNumber : '');
+    setShiftReason('Guest Requested Upgrade / Quiet Wing');
+  };
+
+  const handleConfirmShiftRoom = (e) => {
+    e.preventDefault();
+    if (!shiftModalRoom || !shiftTargetRoom) return;
+
+    const fromRoomNo = shiftModalRoom.roomNumber;
+    const toRoomNo = shiftTargetRoom;
+    const guestName = shiftModalRoom.currentGuestName || 'In-House Guest';
+
+    // 1. Release source room to Vacant Dirty for housekeeping
+    onUpdateRoomStatus(fromRoomNo, 'Vacant Dirty', null, null);
+    // 2. Mark destination room as Occupied with guest details
+    onUpdateRoomStatus(toRoomNo, 'Occupied', guestName, shiftModalRoom.bookingId);
+
+    // 3. Dispatch shift audit event to D1 Edge DB
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+      body: JSON.stringify({
+        action: 'shift_room',
+        payload: {
+          fromRoom: fromRoomNo,
+          toRoom: toRoomNo,
+          guestName,
+          reason: shiftReason
+        }
+      })
+    }).catch(err => console.warn('Offline shift fallback:', err));
+
+    showToast(`✓ Room shifted from Room ${fromRoomNo} to Room ${toRoomNo} (${shiftReason}). Room ${fromRoomNo} released to Housekeeping.`);
+    setShiftModalRoom(null);
+  };
+
+  // Edit Stay Details Handlers
+  const handleOpenEditStay = (room) => {
+    const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber);
+    setEditStayRoom(room);
+    setEditStayGuestName(room.currentGuestName || matchedBooking?.guestName || '');
+    setEditStayPhone(matchedBooking?.guestPhone || '+91 94370 00000');
+    setEditStayVehicle(matchedBooking?.vehicleNumber || '');
+    setEditStayExtendNights(0);
+    setEditStayAddExtraBed(false);
+    setEditStayNotes('');
+  };
+
+  const handleSaveEditStay = (e) => {
+    e.preventDefault();
+    if (!editStayRoom) return;
+
+    let extraTariff = 0;
+    if (editStayExtendNights > 0) {
+      extraTariff = Math.round((editStayRoom.tariff || 1699) * editStayExtendNights * 1.12);
+    }
+    const extraBed = editStayAddExtraBed ? 560 : 0;
+    const totalAdded = extraTariff + extraBed;
+
+    // Update room with modified guest name
+    onUpdateRoomStatus(editStayRoom.roomNumber, 'Occupied', editStayGuestName, editStayRoom.bookingId);
+
+    // Dispatch update to D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+      body: JSON.stringify({
+        action: 'update_stay_details',
+        payload: {
+          roomNumber: editStayRoom.roomNumber,
+          guestName: editStayGuestName,
+          guestPhone: editStayPhone,
+          vehicleNumber: editStayVehicle,
+          extendedNights: editStayExtendNights,
+          extraBedAdded: editStayAddExtraBed,
+          totalAddedToFolio: totalAdded,
+          notes: editStayNotes
+        }
+      })
+    }).catch(err => console.warn('Offline stay update fallback:', err));
+
+    showToast(`✓ Stay updated for Room ${editStayRoom.roomNumber}! ${totalAdded > 0 ? `Added ₹${totalAdded} (Nights: +${editStayExtendNights}, Bed: ₹${extraBed}) to Folio.` : 'Guest details refreshed.'}`);
+    setEditStayRoom(null);
   };
 
   const executeShiftHandover = () => {
@@ -1021,7 +1173,7 @@ export default function ReceptionAdmin({
                               paddingTop: '0.35rem'
                             }}>
                               {isOccupied && (
-                                <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3px', width: '100%' }}>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1029,16 +1181,16 @@ export default function ReceptionAdmin({
                                     }}
                                     title="Open 12 Folio Edit Options (hotel_documents.pdf Page 5)"
                                     style={{
-                                      flex: 1,
-                                      padding: '2px 4px',
-                                      fontSize: '0.65rem',
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
                                       fontWeight: 700,
                                       background: 'rgba(56, 189, 248, 0.2)',
                                       color: '#38bdf8',
                                       border: '1px solid rgba(56, 189, 248, 0.4)',
                                       borderRadius: '3px',
                                       cursor: 'pointer',
-                                      whiteSpace: 'nowrap'
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
                                     }}
                                   >
                                     ⚙️ Folio
@@ -1069,16 +1221,16 @@ export default function ReceptionAdmin({
                                     }}
                                     title="Official Guest Registration Card (Page 1) - Print for Guest Signature"
                                     style={{
-                                      flex: 1,
-                                      padding: '2px 4px',
-                                      fontSize: '0.65rem',
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
                                       fontWeight: 700,
                                       background: 'rgba(212, 175, 55, 0.25)',
                                       color: 'var(--gold-glow)',
                                       border: '1px solid var(--gold-glow)',
                                       borderRadius: '3px',
                                       cursor: 'pointer',
-                                      whiteSpace: 'nowrap'
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
                                     }}
                                   >
                                     📄 GRC
@@ -1090,21 +1242,86 @@ export default function ReceptionAdmin({
                                     }}
                                     title="Check Out & Multi-Tender Split Settlement (PhonePe + Cash)"
                                     style={{
-                                      flex: 1,
-                                      padding: '2px 4px',
-                                      fontSize: '0.65rem',
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
                                       fontWeight: 800,
                                       background: 'rgba(234, 179, 8, 0.25)',
                                       color: '#facc15',
                                       border: '1px solid rgba(234, 179, 8, 0.5)',
                                       borderRadius: '3px',
                                       cursor: 'pointer',
-                                      whiteSpace: 'nowrap'
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
                                     }}
                                   >
                                     ⚡ Out
                                   </button>
-                                </>
+
+                                  {/* Row 2: Shift Room, Edit Stay, WhatsApp Pass */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenShiftModal(room);
+                                    }}
+                                    title="Shift Room to another Vacant room"
+                                    style={{
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(168, 85, 247, 0.2)',
+                                      color: '#c084fc',
+                                      border: '1px solid rgba(168, 85, 247, 0.4)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    ⇄ Shift
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenEditStay(room);
+                                    }}
+                                    title="Edit Stay & Guest Details: extend dates, extra bed, info"
+                                    style={{
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(59, 130, 246, 0.2)',
+                                      color: '#60a5fa',
+                                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    ✏️ Stay
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSendWelcomePass(room);
+                                    }}
+                                    title="Send WhatsApp Digital Keycard & Welcome Pass"
+                                    style={{
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(34, 197, 94, 0.2)',
+                                      color: '#4ade80',
+                                      border: '1px solid rgba(34, 197, 94, 0.4)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    💬 Pass
+                                  </button>
+                                </div>
                               )}
                               {isVacant && (
                                 <button
@@ -1216,50 +1433,103 @@ export default function ReceptionAdmin({
                           {/* Status-Specific Action Buttons */}
                           <div style={{ display: 'flex', gap: '0.4rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                             {room.status === 'Occupied' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setCheckoutRoom(room)}
-                                  title="Guest Checkout & Multi-Tender Split Settlement"
-                                  style={{
-                                    flex: 2,
-                                    padding: '0.35rem 0.5rem',
-                                    background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(245, 158, 11, 0.2))',
-                                    color: 'var(--gold-glow)',
-                                    border: '1px solid var(--gold-glow)',
-                                    borderRadius: '5px',
-                                    fontSize: '0.74rem',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '4px'
-                                  }}
-                                >
-                                  ⚡ Checkout &amp; Settle
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setBlockSelectedRoom(room.roomNumber);
-                                    setBlockRoomOpen(true);
-                                  }}
-                                  style={{
-                                    flex: 1,
-                                    padding: '0.35rem 0.5rem',
-                                    background: 'rgba(239, 68, 68, 0.15)',
-                                    color: '#f87171',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '5px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Block
-                                </button>
-                              </>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedFolioRoom(room)}
+                                    title="Open 12 Master Folio Options"
+                                    style={{
+                                      flex: 1,
+                                      padding: '0.35rem',
+                                      background: 'rgba(56, 189, 248, 0.2)',
+                                      color: '#38bdf8',
+                                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                                      borderRadius: '4px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    ⚙️ Folio
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setCheckoutRoom(room)}
+                                    title="Guest Checkout & Multi-Tender Split Settlement"
+                                    style={{
+                                      flex: 1.5,
+                                      padding: '0.35rem 0.5rem',
+                                      background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(245, 158, 11, 0.2))',
+                                      color: 'var(--gold-glow)',
+                                      border: '1px solid var(--gold-glow)',
+                                      borderRadius: '4px',
+                                      fontSize: '0.74rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '4px'
+                                    }}
+                                  >
+                                    ⚡ Out &amp; Settle
+                                  </button>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenShiftModal(room)}
+                                    title="Shift Room"
+                                    style={{
+                                      padding: '0.3rem',
+                                      background: 'rgba(168, 85, 247, 0.2)',
+                                      color: '#c084fc',
+                                      border: '1px solid rgba(168, 85, 247, 0.4)',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    ⇄ Shift
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditStay(room)}
+                                    title="Edit Stay & Guest Details"
+                                    style={{
+                                      padding: '0.3rem',
+                                      background: 'rgba(59, 130, 246, 0.2)',
+                                      color: '#60a5fa',
+                                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    ✏️ Stay
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSendWelcomePass(room)}
+                                    title="WhatsApp Welcome Pass"
+                                    style={{
+                                      padding: '0.3rem',
+                                      background: 'rgba(34, 197, 94, 0.2)',
+                                      color: '#4ade80',
+                                      border: '1px solid rgba(34, 197, 94, 0.4)',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    💬 Pass
+                                  </button>
+                                </div>
+                              </div>
                             )}
 
                             {room.status === 'Available' && (
@@ -2365,6 +2635,39 @@ export default function ReceptionAdmin({
                 </select>
               </div>
 
+              {/* VIP / Frequent Corporate Guest Quick-Selector */}
+              <div className="form-group" style={{ background: 'rgba(212, 175, 55, 0.08)', padding: '0.65rem', borderRadius: '6px', border: '1px dashed var(--gold-glow)' }}>
+                <label className="form-label" style={{ color: 'var(--gold-glow)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '0.35rem' }}>
+                  ⚡ Repeat / VIP Guest Fast Auto-Fill
+                </label>
+                <select
+                  className="form-select"
+                  style={{ fontSize: '0.8rem', background: '#0a101d', borderColor: 'rgba(212, 175, 55, 0.4)' }}
+                  onChange={(e) => {
+                    const idx = e.target.value;
+                    if (idx !== '') {
+                      const g = FREQUENT_VIP_GUESTS[parseInt(idx, 10)];
+                      if (g) {
+                        setWalkInName(g.name);
+                        setWalkInPhone(g.phone);
+                        setWalkInAadhaar(g.aadhaar);
+                        setWalkInOrigin(g.origin);
+                        setWalkInBillingType(g.billingType);
+                        setWalkInCompany(g.company);
+                        setWalkInMealPlan(g.mealPlan);
+                      }
+                    }
+                  }}
+                >
+                  <option value="">-- Choose frequent guest to auto-fill details --</option>
+                  {FREQUENT_VIP_GUESTS.map((g, idx) => (
+                    <option key={idx} value={idx}>
+                      {g.name} ({g.company} • {g.phone})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="form-group">
                 <label className="form-label">Guest Full Name</label>
                 <input 
@@ -3106,6 +3409,247 @@ export default function ReceptionAdmin({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 1-CLICK INTER-ROOM SHIFT MODAL */}
+      {shiftModalRoom && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowRightLeft size={20} color="#c084fc" />
+                <h3 style={{ fontSize: '1.2rem', color: '#fff' }}>Shift Room (Inter-Room Transfer)</h3>
+              </div>
+              <button onClick={() => setShiftModalRoom(null)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmShiftRoom} className="modal-body">
+              <div style={{ background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '8px', padding: '0.85rem', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>CURRENT IN-HOUSE OCCUPANT</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>
+                  Room {shiftModalRoom.roomNumber} • {shiftModalRoom.tier}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#c084fc', marginTop: '2px' }}>
+                  Guest: <strong>{shiftModalRoom.currentGuestName || 'In-House Guest'}</strong>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Select Destination Vacant Room</label>
+                <select
+                  className="form-select"
+                  value={shiftTargetRoom}
+                  onChange={(e) => setShiftTargetRoom(e.target.value)}
+                  required
+                >
+                  <option value="">-- Choose Target Vacant Room --</option>
+                  {rooms.filter(r => (r.status === 'Available' || r.status === 'Vacant Clean') && r.roomNumber !== shiftModalRoom.roomNumber).map(r => (
+                    <option key={r.roomNumber} value={r.roomNumber}>
+                      Room {r.roomNumber} (Floor {r.floor} • {r.tier} - ₹{r.tariff}/night)
+                    </option>
+                  ))}
+                </select>
+                {rooms.filter(r => (r.status === 'Available' || r.status === 'Vacant Clean') && r.roomNumber !== shiftModalRoom.roomNumber).length === 0 && (
+                  <div style={{ color: '#f87171', fontSize: '0.75rem', marginTop: '0.35rem' }}>
+                    ⚠️ No vacant clean rooms currently available for reassignment.
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Reason for Shift</label>
+                <select
+                  className="form-select"
+                  value={shiftReason}
+                  onChange={(e) => setShiftReason(e.target.value)}
+                >
+                  <option value="Guest Requested Upgrade / Quiet Wing">Guest Requested Upgrade / Quiet Wing</option>
+                  <option value="AC Cooling Defect / Remote Issue">AC Cooling Defect / Remote Issue</option>
+                  <option value="Plumbing / Water Pressure Concern">Plumbing / Water Pressure Concern</option>
+                  <option value="Bed Preference (Twin to King Reassignment)">Bed Preference (Twin to King Reassignment)</option>
+                  <option value="Administrative / Group Floor Consolidation">Administrative / Group Floor Consolidation</option>
+                </select>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '0.65rem', fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                ℹ️ <strong>Operational Protocol:</strong> Shifting will immediately move guest folio balance to Room {shiftTargetRoom || '...'}, mark Room {shiftModalRoom.roomNumber} as <em>Vacant Dirty</em> for Housekeeping turnover, and log the shift audit record.
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setShiftModalRoom(null)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!shiftTargetRoom}
+                  className="btn-primary-gold"
+                  style={{ flex: 2, justifyContent: 'center', background: '#9333ea', borderColor: '#9333ea', color: '#fff', opacity: !shiftTargetRoom ? 0.5 : 1 }}
+                >
+                  Confirm Room Shift ⇄
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 1-CLICK EDIT STAY & GUEST DETAILS MODAL */}
+      {editStayRoom && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 540 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Edit3 size={20} color="#60a5fa" />
+                <h3 style={{ fontSize: '1.2rem', color: '#fff' }}>Edit Stay &amp; Guest Details (Room {editStayRoom.roomNumber})</h3>
+              </div>
+              <button onClick={() => setEditStayRoom(null)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditStay} className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Guest Full Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editStayGuestName}
+                  onChange={(e) => setEditStayGuestName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Mobile Number</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    value={editStayPhone}
+                    onChange={(e) => setEditStayPhone(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Vehicle Reg. No. (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. OD-18-B-9988"
+                    value={editStayVehicle}
+                    onChange={(e) => setEditStayVehicle(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Stay Extension & Extra Bed Adders */}
+              <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '0.85rem', margin: '0.5rem 0 1rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#60a5fa', marginBottom: '0.65rem' }}>
+                  ⏳ Stay Extension &amp; Amenities Addition:
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem', alignItems: 'center' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '0.25rem' }}>Extend Stay (Additional Nights)</label>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      {[0, 1, 2, 3].map(n => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setEditStayExtendNights(n)}
+                          style={{
+                            flex: 1,
+                            padding: '4px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            background: editStayExtendNights === n ? '#2563eb' : 'rgba(255,255,255,0.06)',
+                            color: editStayExtendNights === n ? '#fff' : '#94a3b8',
+                            border: editStayExtendNights === n ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)'
+                          }}
+                        >
+                          {n === 0 ? 'Same' : `+${n}n`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '0.25rem' }}>Extra Bed Request</label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: '#cbd5e1', cursor: 'pointer', marginTop: '4px' }}>
+                      <input
+                        type="checkbox"
+                        checked={editStayAddExtraBed}
+                        onChange={(e) => setEditStayAddExtraBed(e.target.checked)}
+                      />
+                      <span>+1 Rollaway Bed (₹560)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {(editStayExtendNights > 0 || editStayAddExtraBed) && (
+                  <div style={{ marginTop: '0.65rem', paddingTop: '0.5rem', borderTop: '1px dashed rgba(59, 130, 246, 0.3)', fontSize: '0.74rem', color: '#93c5fd', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Calculated Folio Debit (incl. 12% GST):</span>
+                    <strong style={{ color: '#fff' }}>
+                      +₹{Math.round((editStayRoom.tariff || 1699) * editStayExtendNights * 1.12 + (editStayAddExtraBed ? 560 : 0))}
+                    </strong>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Front Desk Notes</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Guest requested late breakfast, temple darshan car"
+                  value={editStayNotes}
+                  onChange={(e) => setEditStayNotes(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setEditStayRoom(null)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary-gold"
+                  style={{ flex: 2, justifyContent: 'center', background: '#2563eb', borderColor: '#2563eb', color: '#fff' }}
+                >
+                  Save Stay Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING ACTION TOAST */}
+      {feedbackToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          background: '#0f172a',
+          color: '#38bdf8',
+          border: '1px solid #38bdf8',
+          padding: '0.85rem 1.25rem',
+          borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          fontSize: '0.85rem',
+          fontWeight: 600
+        }}>
+          <CheckCircle2 size={18} color="#34d399" />
+          <span>{feedbackToast}</span>
         </div>
       )}
     </section>
