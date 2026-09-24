@@ -1560,7 +1560,26 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               } else if (isCleaning) {
                                 onUpdateRoomStatus(room.roomNumber, 'Available', null, null);
                               } else if (isOccupied) {
-                                setSelectedFolioRoom(room);
+                                setReceiptModalType('a4');
+                                const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
+                                  bookingId: `FMBIL2627-${room.roomNumber}`,
+                                  billNo: `FMBIL2627-${room.roomNumber}`,
+                                  roomNumber: room.roomNumber,
+                                  guestName: room.currentGuestName || 'SAHANAWAZ',
+                                  guestPhone: '+91 94370 22555',
+                                  company: room.currentGuestName?.includes('ASHOK') ? 'LINDE INDIA LTD' : 'Direct Guest',
+                                  corporateGstin: '21AAACB2528H1ZA',
+                                  tier: room.tier,
+                                  tariff: room.tariff || 2199,
+                                  totalAmount: room.balanceDue || room.tariff || 2199,
+                                  nights: 1,
+                                  grcNo: `GRC-${room.roomNumber}`,
+                                  checkInDate: '22/09/2026',
+                                  checkInTime: '11:00 AM',
+                                  checkOutDate: '23/09/2026 (12:00 PM)'
+                                };
+                                setSelectedReceiptBooking(matchedBooking);
+                                setIsReceiptModalOpen(true);
                               }
                             }}
                           >

@@ -416,21 +416,21 @@ export default function FolioActionsModal({
           flexWrap: 'wrap',
           gap: '1rem'
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
               <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', border: '1px solid #60a5fa', fontWeight: 700 }}>
                 ENTERPRISE FOLIO CONTROLS
               </span>
-              <h2 style={{ fontSize: '1.3rem', color: '#fff', margin: 0, fontWeight: 700 }}>
-                Room {room.roomNumber} Folio Operations &amp; Edit Console
+              <h2 style={{ fontSize: '1.2rem', color: '#fff', margin: 0, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                Room {room.roomNumber} Folio Operations
               </h2>
             </div>
-            <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+            <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Guest: <strong style={{ color: '#fff' }}>{guestName}</strong> • Company: <strong style={{ color: '#fbbf24' }}>{guestCompany}</strong> • Net Outstanding: <strong style={{ color: netOutstanding > 0 ? '#f87171' : '#34d399', fontSize: '0.95rem' }}>₹{netOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => {
@@ -442,7 +442,7 @@ export default function FolioActionsModal({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.45) 100%)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(5, 150, 105, 0.5) 100%)',
                 color: '#34d399',
                 border: '1px solid rgba(52, 211, 153, 0.5)',
                 borderRadius: '8px',
@@ -451,7 +451,8 @@ export default function FolioActionsModal({
                 fontWeight: 700,
                 cursor: 'pointer',
                 boxShadow: '0 2px 10px rgba(16, 185, 129, 0.25)',
-                transition: 'all 0.15s ease'
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
               title="Preview & Print Official Consolidated Tax Invoice / Non-GST Bill (FMBIL / NGST Series with Taxable Breakdown)"
             >
@@ -470,7 +471,8 @@ export default function FolioActionsModal({
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }}
             >
               <X size={18} />
@@ -661,20 +663,31 @@ export default function FolioActionsModal({
                             ) : tx.debit > 0 && !isReversal ? (
                               <button
                                 onClick={() => setReversingTx(tx)}
-                                title="Reverse this charge with credit memo"
+                                title="Reverse this charge with audited credit memo"
                                 style={{
                                   padding: '3px 8px',
                                   fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  background: 'rgba(244, 63, 94, 0.2)',
-                                  color: '#f43f5e',
-                                  border: '1px solid rgba(244, 63, 94, 0.4)',
+                                  fontWeight: 600,
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  color: '#cbd5e1',
+                                  border: '1px solid rgba(255, 255, 255, 0.15)',
                                   borderRadius: '4px',
                                   cursor: 'pointer',
-                                  transition: 'all 0.15s ease'
+                                  transition: 'all 0.15s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'rgba(244, 63, 94, 0.2)';
+                                  e.currentTarget.style.color = '#fca5a5';
+                                  e.currentTarget.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                  e.currentTarget.style.color = '#cbd5e1';
+                                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
                                 }}
                               >
-                                ↩️ Void / Reverse
+                                ↩️ Reverse
                               </button>
                             ) : (
                               <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>-</span>
