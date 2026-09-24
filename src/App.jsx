@@ -1,35 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import RoomCatalog from './components/RoomCatalog';
-import FloorExplorer3DModal from './components/FloorExplorer3DModal';
-import BookingModal from './components/BookingModal';
-import BookingReceiptModal from './components/BookingReceiptModal';
-import ReceptionAdmin from './components/ReceptionAdmin';
-import FinancialAnalytics from './components/FinancialAnalytics';
-import AutonomousBotFleetModal from './components/AutonomousBotFleetModal';
 import SatvikDining from './components/SatvikDining';
-import FoodOrderModal from './components/FoodOrderModal';
-import DarshanAdvisorModal from './components/DarshanAdvisorModal';
-import AiConciergeModal from './components/AiConciergeModal';
-import CorporatePortalModal from './components/CorporatePortalModal';
-import MasterFolioModal from './components/MasterFolioModal';
-import CannonKitchenPOS from './components/CannonKitchenPOS';
-import AccountsLedgerModal from './components/AccountsLedgerModal';
-import NightAuditModal from './components/NightAuditModal';
-import StoreInventoryModal from './components/StoreInventoryModal';
-import DirectorPortal from './components/DirectorPortal';
-import RevenueManagementModal from './components/RevenueManagementModal';
-import Footer from './components/Footer';
-import LegalPoliciesModal from './components/LegalPoliciesModal';
-import CookieConsentBanner from './components/CookieConsentBanner';
-import DpdpDataRightsModal from './components/DpdpDataRightsModal';
 import FaqSection from './components/FaqSection';
+import Footer from './components/Footer';
+import CookieConsentBanner from './components/CookieConsentBanner';
+
+// Dynamic Code-Splitting for Enterprise Operational Engines (Loaded on-demand)
+const FloorExplorer3DModal = lazy(() => import('./components/FloorExplorer3DModal'));
+const BookingModal = lazy(() => import('./components/BookingModal'));
+const BookingReceiptModal = lazy(() => import('./components/BookingReceiptModal'));
+const ReceptionAdmin = lazy(() => import('./components/ReceptionAdmin'));
+const FinancialAnalytics = lazy(() => import('./components/FinancialAnalytics'));
+const AutonomousBotFleetModal = lazy(() => import('./components/AutonomousBotFleetModal'));
+const FoodOrderModal = lazy(() => import('./components/FoodOrderModal'));
+const DarshanAdvisorModal = lazy(() => import('./components/DarshanAdvisorModal'));
+const AiConciergeModal = lazy(() => import('./components/AiConciergeModal'));
+const CorporatePortalModal = lazy(() => import('./components/CorporatePortalModal'));
+const MasterFolioModal = lazy(() => import('./components/MasterFolioModal'));
+const CannonKitchenPOS = lazy(() => import('./components/CannonKitchenPOS'));
+const AccountsLedgerModal = lazy(() => import('./components/AccountsLedgerModal'));
+const NightAuditModal = lazy(() => import('./components/NightAuditModal'));
+const StoreInventoryModal = lazy(() => import('./components/StoreInventoryModal'));
+const DirectorPortal = lazy(() => import('./components/DirectorPortal'));
+const RevenueManagementModal = lazy(() => import('./components/RevenueManagementModal'));
+const LegalPoliciesModal = lazy(() => import('./components/LegalPoliciesModal'));
+const DpdpDataRightsModal = lazy(() => import('./components/DpdpDataRightsModal'));
 
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
 import { FloatingDock } from '@/components/ui/floating-dock';
-import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale, FileText } from 'lucide-react';
+import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('guest'); // 'guest' or 'pms'
@@ -451,10 +453,12 @@ export default function App() {
               onOpenBooking={() => handleOpenBooking(ROOM_TIERS[0])}
             />
 
-            <FinancialAnalytics bookings={bookings} />
+            <Suspense fallback={null}>
+              <FinancialAnalytics bookings={bookings} />
+            </Suspense>
           </>
         ) : (
-          <>
+          <Suspense fallback={<div style={{ padding: '4rem', textAlign: 'center', color: 'var(--gold-glow)' }}>Loading Front Desk PMS...</div>}>
             <ReceptionAdmin 
               rooms={rooms}
               bookings={bookings}
@@ -467,136 +471,148 @@ export default function App() {
             />
 
             <FinancialAnalytics bookings={bookings} />
-          </>
+          </Suspense>
         )}
       </main>
 
-      {/* Modals */}
-      <FloorExplorer3DModal 
-        isOpen={floorExplorerOpen}
-        onClose={() => setFloorExplorerOpen(false)}
-        rooms={rooms}
-        onBookRoom={(tier, roomNumber) => handleOpenBooking(tier, roomNumber)}
-      />
+      {/* On-Demand Modals with Suspense Code-Splitting */}
+      <Suspense fallback={null}>
+        <FloorExplorer3DModal 
+          isOpen={floorExplorerOpen}
+          onClose={() => setFloorExplorerOpen(false)}
+          rooms={rooms}
+          onBookRoom={(tier, roomNumber) => handleOpenBooking(tier, roomNumber)}
+        />
 
-      <BookingModal 
-        isOpen={bookingModalOpen}
-        onClose={() => setBookingModalOpen(false)}
-        initialTier={selectedTierForBooking}
-        initialRoomNumber={selectedRoomNumForBooking}
-        rooms={rooms}
-        bookings={bookings}
-        dynamicRates={dynamicRates}
-        onBookingSuccess={handleBookingSuccess}
-      />
+        <BookingModal 
+          isOpen={bookingModalOpen}
+          onClose={() => setBookingModalOpen(false)}
+          initialTier={selectedTierForBooking}
+          initialRoomNumber={selectedRoomNumForBooking}
+          rooms={rooms}
+          bookings={bookings}
+          dynamicRates={dynamicRates}
+          onBookingSuccess={handleBookingSuccess}
+        />
 
-      <BookingReceiptModal 
-        isOpen={receiptModalOpen}
-        onClose={() => setReceiptModalOpen(false)}
-        booking={currentReceiptBooking}
-      />
+        <BookingReceiptModal 
+          isOpen={receiptModalOpen}
+          onClose={() => setReceiptModalOpen(false)}
+          booking={currentReceiptBooking}
+        />
 
-      <FoodOrderModal 
-        isOpen={diningModalOpen}
-        onClose={() => {
-          setDiningModalOpen(false);
-          setSelectedFoodItem(null);
-        }}
-        initialItem={selectedFoodItem}
-        rooms={rooms}
-      />
+        <FoodOrderModal 
+          isOpen={diningModalOpen}
+          onClose={() => {
+            setDiningModalOpen(false);
+            setSelectedFoodItem(null);
+          }}
+          initialItem={selectedFoodItem}
+          rooms={rooms}
+        />
 
-      <DarshanAdvisorModal 
-        isOpen={darshanModalOpen}
-        onClose={() => setDarshanModalOpen(false)}
-      />
+        <DarshanAdvisorModal 
+          isOpen={darshanModalOpen}
+          onClose={() => setDarshanModalOpen(false)}
+        />
 
-      <AiConciergeModal 
-        isOpen={aiConciergeOpen}
-        onClose={() => setAiConciergeOpen(false)}
-      />
+        <AiConciergeModal 
+          isOpen={aiConciergeOpen}
+          onClose={() => setAiConciergeOpen(false)}
+        />
 
-      <AutonomousBotFleetModal 
-        isOpen={botFleetOpen}
-        onClose={() => setBotFleetOpen(false)}
-      />
+        <AutonomousBotFleetModal 
+          isOpen={botFleetOpen}
+          onClose={() => setBotFleetOpen(false)}
+        />
 
-      <CorporatePortalModal 
-        isOpen={corporateModalOpen}
-        onClose={() => setCorporateModalOpen(false)}
-      />
+        <CorporatePortalModal 
+          isOpen={corporateModalOpen}
+          onClose={() => setCorporateModalOpen(false)}
+        />
 
+        {/* IDS Next Enterprise Operational Modals */}
+        <MasterFolioModal 
+          isOpen={folioModalOpen}
+          onClose={() => setFolioModalOpen(false)}
+          rooms={rooms}
+          bookings={bookings}
+          transactions={transactions}
+          onAddTransaction={handleAddTransaction}
+          onSettleFolio={handleSettleFolio}
+        />
 
+        <CannonKitchenPOS 
+          isOpen={posModalOpen}
+          onClose={() => setPosModalOpen(false)}
+          rooms={rooms}
+          onBillToRoom={handleBillToRoomFromPOS}
+        />
 
-      {/* IDS Next Enterprise Operational Modals */}
-      <MasterFolioModal 
-        isOpen={folioModalOpen}
-        onClose={() => setFolioModalOpen(false)}
-        rooms={rooms}
-        bookings={bookings}
-        transactions={transactions}
-        onAddTransaction={handleAddTransaction}
-        onSettleFolio={handleSettleFolio}
-      />
+        <AccountsLedgerModal 
+          isOpen={accountsModalOpen}
+          onClose={() => setAccountsModalOpen(false)}
+          bookings={bookings}
+        />
 
-      <CannonKitchenPOS 
-        isOpen={posModalOpen}
-        onClose={() => setPosModalOpen(false)}
-        rooms={rooms}
-        onBillToRoom={handleBillToRoomFromPOS}
-      />
+        <NightAuditModal 
+          isOpen={nightAuditModalOpen}
+          onClose={() => setNightAuditModalOpen(false)}
+          rooms={rooms}
+          bookings={bookings}
+          transactions={transactions}
+          onExecuteNightAudit={handleExecuteNightAudit}
+        />
 
-      <AccountsLedgerModal 
-        isOpen={accountsModalOpen}
-        onClose={() => setAccountsModalOpen(false)}
-        bookings={bookings}
-      />
+        <StoreInventoryModal 
+          isOpen={storeInventoryModalOpen}
+          onClose={() => setStoreInventoryModalOpen(false)}
+        />
 
-      <NightAuditModal 
-        isOpen={nightAuditModalOpen}
-        onClose={() => setNightAuditModalOpen(false)}
-        rooms={rooms}
-        bookings={bookings}
-        transactions={transactions}
-        onExecuteNightAudit={handleExecuteNightAudit}
-      />
+        <DirectorPortal 
+          isOpen={directorPortalOpen}
+          onClose={() => setDirectorPortalOpen(false)}
+          rooms={rooms}
+          bookings={bookings}
+          onOpenRevenueManagement={() => {
+            setDirectorPortalOpen(false);
+            setRevenueModalOpen(true);
+          }}
+        />
 
-      <StoreInventoryModal 
-        isOpen={storeInventoryModalOpen}
-        onClose={() => setStoreInventoryModalOpen(false)}
-      />
+        {/* IDeaS SAS G3 RMS Platform Revenue Director's Console */}
+        <RevenueManagementModal 
+          isOpen={revenueModalOpen}
+          onClose={() => setRevenueModalOpen(false)}
+          currentOccupancy={Math.round((rooms.filter(r => r.status === 'Occupied').length / (rooms.length || 40)) * 100)}
+          activeRates={dynamicRates}
+          onPublishRates={(newRates) => {
+            setDynamicRates(newRates);
+            setRooms(prev => prev.map(r => {
+              const tierId = r.tier === 'Standard Deluxe' ? 'standard-deluxe' :
+                             r.tier === 'Deluxe Room' ? 'deluxe-room' :
+                             r.tier === 'Executive Room' ? 'executive-room' : 'premium-suite';
+              if (newRates[tierId]) {
+                return { ...r, tariff: newRates[tierId].recommendedRate };
+              }
+              return r;
+            }));
+            alert("⚡ IDeaS G3 RMS: Continuous dynamic micro-rates published to live booking engine, room catalog, and front desk reception!");
+          }}
+        />
 
-      <DirectorPortal 
-        isOpen={directorPortalOpen}
-        onClose={() => setDirectorPortalOpen(false)}
-        rooms={rooms}
-        bookings={bookings}
-        onOpenRevenueManagement={() => {
-          setDirectorPortalOpen(false);
-          setRevenueModalOpen(true);
-        }}
-      />
+        {/* Statutory Legal & Compliance Modals */}
+        <LegalPoliciesModal 
+          isOpen={legalModalOpen}
+          onClose={() => setLegalModalOpen(false)}
+          initialTab={legalModalTab}
+        />
 
-      {/* IDeaS SAS G3 RMS Platform Revenue Director's Console */}
-      <RevenueManagementModal 
-        isOpen={revenueModalOpen}
-        onClose={() => setRevenueModalOpen(false)}
-        currentOccupancy={Math.round((rooms.filter(r => r.status === 'Occupied').length / (rooms.length || 40)) * 100)}
-        activeRates={dynamicRates}
-        onPublishRates={(newRates) => {
-          setDynamicRates(newRates);
-          setRooms(prev => prev.map(r => {
-            const tierId = r.tier === 'Standard Deluxe' ? 'standard-deluxe' :
-                           r.tier === 'Deluxe Room' ? 'deluxe-room' :
-                           r.tier === 'Executive Room' ? 'executive-room' : 'premium-suite';
-            if (newRates[tierId]) {
-              return { ...r, tariff: newRates[tierId].recommendedRate };
-            }
-            return r;
-          }));
-          alert("⚡ IDeaS G3 RMS: Continuous dynamic micro-rates published to live booking engine, room catalog, and front desk reception!");
-        }}
-      />
+        <DpdpDataRightsModal 
+          isOpen={dataRightsModalOpen}
+          onClose={() => setDataRightsModalOpen(false)}
+        />
+      </Suspense>
 
       <Footer 
         onOpenDarshan={() => setDarshanModalOpen(true)}
@@ -610,23 +626,11 @@ export default function App() {
         onOpenDataRights={() => setDataRightsModalOpen(true)}
       />
 
-      {/* Statutory Legal & Compliance Modals */}
-      <LegalPoliciesModal 
-        isOpen={legalModalOpen}
-        onClose={() => setLegalModalOpen(false)}
-        initialTab={legalModalTab}
-      />
-
       <CookieConsentBanner 
         onOpenPolicy={() => {
           setLegalModalTab('cookies');
           setLegalModalOpen(true);
         }}
-      />
-
-      <DpdpDataRightsModal 
-        isOpen={dataRightsModalOpen}
-        onClose={() => setDataRightsModalOpen(false)}
       />
 
       {/* 21st.dev / Magic UI Floating Luxury Navigation Dock */}
