@@ -22,7 +22,6 @@ export default function Navbar({
   onOpenStoreInventory,
   onOpenDirectorPortal,
   onOpenRevenueManagement,
-  onOpenCommercialProposal,
   cartCount = 0,
   rooms = [],
   adminPinVerified,
@@ -324,29 +323,11 @@ export default function Navbar({
             ⚡ IDeaS G3 RMS Console
           </button>
 
-          <button
-            onClick={onOpenCommercialProposal}
-            style={{
-              padding: '0.3rem 0.75rem',
-              borderRadius: '6px',
-              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(56, 189, 248, 0.25))',
-              border: '1px solid var(--gold-glow)',
-              color: '#fff',
-              cursor: 'pointer',
-              fontWeight: 800,
-              fontSize: '0.78rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              boxShadow: '0 2px 10px rgba(212, 175, 55, 0.2)'
-            }}
-          >
-            📜 Commercial Proposal (Post-25th)
-          </button>
+
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-          <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>● Consultant & Eswara Audit Mode</span>
+          <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>● Front Desk Enterprise PMS</span>
         </div>
       </div>
 
@@ -482,24 +463,7 @@ export default function Navbar({
               <Building2 size={15} color="#8b5cf6" /> Corporate Ledgers
             </button>
 
-            <button 
-              onClick={onOpenCommercialProposal}
-              style={{
-                color: '#fff',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(56, 189, 248, 0.2))',
-                border: '1px solid var(--gold-glow)',
-                padding: '0.45rem 0.85rem',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              <FileText size={15} color="var(--gold-glow)" /> 📜 Commercial Proposal
-            </button>
+
           </div>
 
           {/* Action CTAs */}
@@ -578,14 +542,12 @@ export default function Navbar({
               🍳 Fenugreek Restaurant Multi-Outlet POS
             </button>
             <button onClick={() => { onOpenAccountsLedger(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0' }}>
-              ⚖️ Watertight Audit Reconciler (Proof: ₹0.00 Gap)
+              ⚖️ Accounts Day Book & GST Audit
             </button>
             <button onClick={() => { onOpenCorporate(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#a78bfa', padding: '0.4rem 0' }}>
               🏢 Corporate B2B (Ashok Leyland / JK Paper)
             </button>
-            <button onClick={() => { onOpenCommercialProposal(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#38bdf8', padding: '0.4rem 0', fontWeight: 800 }}>
-              📜 Commercial Proposal (Post-25th Review)
-            </button>
+
             <button onClick={() => { onOpenRevenueManagement(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0', fontWeight: 800 }}>
               ⚡ IDeaS G3 RMS Console
             </button>

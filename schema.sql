@@ -240,20 +240,30 @@ CREATE TABLE IF NOT EXISTS lost_and_found (
   claim_date TEXT
 );
 
--- 17. CASHIER SHIFT HANDOVERS
+-- 17. CASHIER SHIFT HANDOVERS (FRONT DESK & POS CASH DRAWER BALANCING)
 CREATE TABLE IF NOT EXISTS cashier_shift_handovers (
   handover_id TEXT PRIMARY KEY,
   shift_date TEXT NOT NULL,
-  shift_type TEXT NOT NULL, -- Morning (07:00-15:00), Evening (15:00-23:00), Night (23:00-07:00)
+  shift_type TEXT NOT NULL, -- Morning (07:00-15:00), Evening (15:00-23:00), Night (23:00-07:00), General Shift
   outgoing_cashier TEXT NOT NULL,
   incoming_cashier TEXT NOT NULL,
-  opening_float REAL NOT NULL,
-  cash_sales REAL NOT NULL,
-  petty_cash_paid REAL NOT NULL,
-  closing_cash_actual REAL NOT NULL,
-  closing_cash_expected REAL NOT NULL,
-  variance REAL NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('Balanced', 'Discrepancy')),
+  opening_float REAL NOT NULL DEFAULT 5000,
+  cash_sales REAL NOT NULL DEFAULT 0,
+  petty_cash_paid REAL NOT NULL DEFAULT 0,
+  cash_collected REAL NOT NULL DEFAULT 0,
+  upi_collected REAL NOT NULL DEFAULT 0,
+  card_collected REAL NOT NULL DEFAULT 0,
+  corporate_credit REAL NOT NULL DEFAULT 0,
+  total_revenue REAL NOT NULL DEFAULT 0,
+  expected_drawer_cash REAL NOT NULL DEFAULT 0,
+  actual_drawer_cash REAL NOT NULL DEFAULT 0,
+  closing_cash_expected REAL NOT NULL DEFAULT 0,
+  closing_cash_actual REAL NOT NULL DEFAULT 0,
+  variance_amount REAL NOT NULL DEFAULT 0,
+  variance REAL NOT NULL DEFAULT 0,
+  discrepancy_reason TEXT,
+  status TEXT NOT NULL DEFAULT 'BALANCED', -- 'BALANCED', 'SURPLUS', 'DEFICIT', 'Balanced', 'Discrepancy'
+  verified_by TEXT NOT NULL DEFAULT 'Duty Manager',
   notes TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -684,12 +694,20 @@ INSERT OR IGNORE INTO rooms (room_number, tier, floor, tariff, capacity_adults, 
 ('409', 'Premium Suite', 4, 3999.00, 4, 2, 'Imperial King + Sofa Bed', '["Living Area","Master Bedroom","Fruit Basket","Priority Room Service","Free Local Shuttle"]', 'Available'),
 ('410', 'Premium Suite', 4, 3999.00, 4, 2, 'Imperial King + Sofa Bed', '["Living Area","Master Bedroom","Fruit Basket","Priority Room Service","Free Local Shuttle"]', 'VIP Hold');
 
--- CORPORATE PARTNERS (RAYAGADA MAJOR HUBS)
-INSERT OR IGNORE INTO corporate_partners (corporate_id, company_name, gstin, location, contact_person, contact_email, contact_phone, contracted_discount_percent) VALUES
-('CORP-01', 'JK Paper Mills Ltd.', '21AAACJ1288P1ZZ', 'Jaykaypur, Rayagada', 'Subrat Panda (Admin GM)', 'admin.jk@jkpaper.com', '+91 6856 222000', 15),
-('CORP-02', 'IMFA (Indian Metals & Ferro Alloys)', '21AAACI0981M1Z5', 'Therubali, Rayagada', 'D. K. Mohapatra (VP HR)', 'traveldesk@imfa.in', '+91 6856 233444', 15),
-('CORP-03', 'Utkal Alumina International Ltd.', '21AABCU5544N1ZV', 'Doraguda, Rayagada', 'Manish Agrawal (Corporate Logistics)', 'logistics@utkalalumina.adityabirla.com', '+91 6856 244555', 20),
-('CORP-04', 'East Coast Railway (ECoR) Rayagada Div.', '21AAAGR0022E1Z8', 'Station Road, Rayagada', 'P. K. Nayak (Sr. DSTE)', 'travel.rgda@ecor.railnet.gov.in', '+91 6856 223311', 12);
+-- CORPORATE PARTNERS (RAYAGADA MAJOR INDUSTRIAL HUBS - 12 REGISTERED CLIENTS)
+INSERT OR IGNORE INTO corporate_partners (corporate_id, company_name, gstin, location, contact_person, contact_email, contact_phone, contracted_discount_percent, credit_days, status) VALUES
+('CORP-01', 'JK Paper Mills Ltd.', '21AAACJ1288P1ZZ', 'Jaykaypur, Rayagada', 'Subrat Panda (Admin GM)', 'admin.jk@jkpaper.com', '+91 6856 222000', 15, 30, 'Active'),
+('CORP-02', 'GAIL (India) Limited', '07AAACG1509J1ZQ', 'Pipeline Regional Office, Rayagada', 'Rajeshwar Rao', 'travel.gail@gail.co.in', '+91 6856 228811', 15, 30, 'Active'),
+('CORP-03', 'Mahindra & Mahindra Ltd.', '27AAACM1545A1Z4', 'Automotive Logistics, Rayagada', 'Sunil K. Verma', 'verma.sunil@mahindra.com', '+91 6856 229944', 12, 30, 'Active'),
+('CORP-04', 'Hindustan Coca-Cola Beverages', '21AAACH1123P1Z9', 'South Odisha Distribution Hub', 'Amitabh Sen', 'traveldesk@hccb.co.in', '+91 6856 231122', 10, 30, 'Active'),
+('CORP-05', 'IMFA (Indian Metals & Ferro Alloys)', '21AAACI0981M1Z5', 'Therubali, Rayagada', 'D. K. Mohapatra (VP HR)', 'traveldesk@imfa.in', '+91 6856 233444', 15, 30, 'Active'),
+('CORP-06', 'Utkal Alumina International Ltd.', '21AABCU5544N1ZV', 'Doraguda, Rayagada', 'Manish Agrawal (Corporate Logistics)', 'logistics@utkalalumina.adityabirla.com', '+91 6856 244555', 20, 45, 'Active'),
+('CORP-07', 'East Coast Railway (ECoR) Rayagada Div.', '21AAAGR0022E1Z8', 'Station Road, Rayagada', 'P. K. Nayak (Sr. DSTE)', 'travel.rgda@ecor.railnet.gov.in', '+91 6856 223311', 12, 30, 'Active'),
+('CORP-08', 'PRADAN', '21AAATP0912K1Z3', 'J K Pur, Rayagada', 'Bijay Paswan', 'rayagada@pradan.net', '+91 7209347755', 15, 30, 'Active'),
+('CORP-09', 'Ashok Leyland Limited', '33AAACA0779M1ZT', 'Commercial Vehicle Service Division, Rayagada', 'Malay Panda', 'service.odisha@ashokleyland.com', '+91 6856 226688', 18, 45, 'Active'),
+('CORP-10', 'Easy Note Stationary Pvt Ltd', '21AABCE9876R1Z2', 'Rayagada Industrial Area', 'Mriganka Dasgupta', 'accounts@easynote.in', '+91 94370 55441', 10, 30, 'Active'),
+('CORP-11', 'Incredible Dreams Hotels & Resorts', '21AACCI7788P1Z5', 'Regional Hospitality Partner', 'Prabhu Prasad Padhy', 'travel@incredibledreams.co.in', '+91 98610 33221', 15, 30, 'Active'),
+('CORP-12', 'Linde India Ltd', '21AAACB2528H1ZA', 'J.K. Paper Mill Plant Site, Jaykaypur, Rayagada', 'P. Ashok', 'p.ashok@linde.com', '+91 6305202068', 15, 30, 'Active');
 
 -- SPIRITUAL & REGIONAL SERVICES
 INSERT OR IGNORE INTO spiritual_services (service_id, title, destination, distance_km, timing_info, description, transport_tariff) VALUES
@@ -772,4 +790,154 @@ CREATE TABLE IF NOT EXISTS rms_audit_log (
   performed_by TEXT NOT NULL DEFAULT 'Revenue Director',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- ============================================================================
+-- 50. CENTRAL GUEST CRM & LOYALTY (REPEAT VISITORS & VIP PROFILES)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS guest_profiles (
+  guest_id TEXT PRIMARY KEY,
+  phone TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT,
+  id_proof_type TEXT NOT NULL DEFAULT 'Aadhaar',
+  id_proof_masked TEXT NOT NULL,
+  city TEXT,
+  state_of_origin TEXT NOT NULL DEFAULT 'Odisha',
+  is_vip INTEGER NOT NULL DEFAULT 0,
+  dietary_preference TEXT DEFAULT 'Regular', -- 'Satvik / Jain', 'Vegetarian', 'Regular'
+  preferred_room_tier TEXT,
+  vehicle_number TEXT,
+  total_visits INTEGER NOT NULL DEFAULT 1,
+  lifetime_spend REAL NOT NULL DEFAULT 0,
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================================
+-- 51. RESTAURANT KOT VOIDS (ANTI-THEFT CANNON KITCHEN CANCEL LOG)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS restaurant_kot_voids (
+  void_id TEXT PRIMARY KEY,
+  kot_id TEXT NOT NULL,
+  room_or_table TEXT NOT NULL,
+  item_code TEXT NOT NULL,
+  item_name TEXT NOT NULL,
+  quantity INTEGER NOT NULL,
+  item_amount REAL NOT NULL,
+  reason TEXT NOT NULL, -- 'Guest Changed Mind', 'Captain Mistake', 'Food Burnt', 'Item Unavailable'
+  custom_note TEXT,
+  voided_by TEXT NOT NULL DEFAULT 'Captain',
+  authorized_by TEXT NOT NULL DEFAULT 'F&B Manager',
+  voided_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================================
+-- 52. INBOUND CORPORATE INQUIRIES (B2B PORTAL LEADS)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS corporate_inquiries (
+  inquiry_id TEXT PRIMARY KEY,
+  company_name TEXT NOT NULL,
+  gstin TEXT,
+  contact_person TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  estimated_monthly_rooms TEXT DEFAULT '5-10 rooms/month',
+  status TEXT NOT NULL DEFAULT 'Pending Review', -- 'Pending Review', 'Contacted', 'Agreement Sent', 'Onboarded'
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================================
+-- 53. RESTAURANT TABLES MASTER (CANNON KITCHEN LIVE FLOOR LAYOUT)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS restaurant_tables (
+  table_number TEXT PRIMARY KEY,
+  section TEXT NOT NULL DEFAULT 'AC Dining', -- 'AC Dining', 'Family Section', 'Express Counter', 'Executive Lounge'
+  capacity INTEGER NOT NULL DEFAULT 4,
+  status TEXT NOT NULL DEFAULT 'Vacant', -- 'Vacant', 'Occupied', 'Billed', 'Reserved'
+  current_kot_id TEXT,
+  captain_name TEXT,
+  last_updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================================
+-- 54. DIGITAL KEYCARDS (ENCRYPTED NFC / WEB ACCESS PASSES)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS digital_keycards (
+  card_id TEXT PRIMARY KEY,
+  booking_id TEXT NOT NULL,
+  room_number TEXT NOT NULL,
+  guest_name TEXT NOT NULL,
+  access_pin TEXT NOT NULL,
+  valid_from TEXT NOT NULL,
+  valid_until TEXT NOT NULL,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (room_number) REFERENCES rooms(room_number)
+);
+
+-- Pre-seed 12 Restaurant Tables
+INSERT OR IGNORE INTO restaurant_tables (table_number, section, capacity, status) VALUES
+('1', 'AC Dining', 4, 'Vacant'),
+('2', 'AC Dining', 4, 'Vacant'),
+('3', 'AC Dining', 2, 'Vacant'),
+('4', 'AC Dining', 6, 'Vacant'),
+('5', 'AC Dining', 4, 'Vacant'),
+('6', 'Family Section', 8, 'Vacant'),
+('7', 'Family Section', 6, 'Vacant'),
+('8', 'Family Section', 4, 'Vacant'),
+('9', 'Express Counter', 2, 'Vacant'),
+('10', 'Express Counter', 2, 'Vacant'),
+('11', 'Executive Lounge', 4, 'Vacant'),
+('12', 'Executive Lounge', 6, 'Vacant');
+
+-- ============================================================================
+-- HIGH-PERFORMANCE PRODUCTION DATABASE INDEXES
+-- ============================================================================
+
+-- 1. Mutex & Booking Date Collision Index (High Frequency Reservation Check)
+CREATE INDEX IF NOT EXISTS idx_bookings_conflict 
+  ON bookings (room_number, check_in_date, check_out_date, booking_status);
+
+-- 2. GSTR-1, Police Register & Chronological Lookup Index
+CREATE INDEX IF NOT EXISTS idx_bookings_created 
+  ON bookings (created_at DESC);
+
+-- 3. Repeat Guest Lookup by Phone
+CREATE INDEX IF NOT EXISTS idx_bookings_phone 
+  ON bookings (guest_phone);
+
+-- 4. Double-Entry Master Folio Transactions Index (Instant Folio Modal Load)
+CREATE INDEX IF NOT EXISTS idx_folio_txns_folio 
+  ON folio_transactions (folio_id);
+
+-- 5. Night Audit Hard-Lock Batch & Room Audit Index
+CREATE INDEX IF NOT EXISTS idx_folio_txns_room_lock 
+  ON folio_transactions (room_number, is_locked);
+
+-- 6. Multi-Tender Split Payment by Folio
+CREATE INDEX IF NOT EXISTS idx_split_payments_folio 
+  ON split_payments (folio_id);
+
+-- 7. Corporate Statement of Account & TDS Index
+CREATE INDEX IF NOT EXISTS idx_corporate_ledger_corp 
+  ON corporate_ledger (corporate_id, entry_date DESC);
+
+-- 8. 10-Minute Cart Abandonment & Hold Expiry Cleanup Index
+CREATE INDEX IF NOT EXISTS idx_room_holds_expiry 
+  ON room_holds (expires_at, client_ip);
+
+-- 9. DPDP Act 2023 30-Day Auto-Purge Cron Index
+CREATE INDEX IF NOT EXISTS idx_consent_records_purge 
+  ON consent_records (purge_scheduled_at);
+
+-- 10. Live Kitchen Order Display Index
+CREATE INDEX IF NOT EXISTS idx_food_orders_room 
+  ON food_orders (room_number, status);
+
+-- 11. Staff Biometric Attendance Index
+CREATE INDEX IF NOT EXISTS idx_attendance_staff_date 
+  ON attendance (staff_id, date);
+
 

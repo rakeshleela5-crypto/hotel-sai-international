@@ -530,7 +530,7 @@ export default function AccountsLedgerModal({
               whiteSpace: 'nowrap'
             }}
           >
-            <Scale size={15} /> ⚖️ Watertight Audit Reconciler (Proof: ₹0.00 Gap)
+            <Scale size={15} /> ⚖️ Audit Reconciler (Zero-Variance)
           </button>
 
           <button
@@ -550,7 +550,7 @@ export default function AccountsLedgerModal({
               whiteSpace: 'nowrap'
             }}
           >
-            <Zap size={15} /> ⚡ Daily Flash Report (Screenshot 16)
+            <Zap size={15} /> ⚡ Daily Flash Report
           </button>
 
           <button
@@ -682,20 +682,20 @@ export default function AccountsLedgerModal({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <h3 style={{ color: '#fff', margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>
-                    Watertight Audit Reconciliation Proof Engine
+                    Audit Reconciliation Statement
                   </h3>
                   <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', fontWeight: 700, border: '1px solid #34d399', fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}>
                     AUDIT STATUS: 100% BALANCED (₹0.00 VARIANCE)
                   </span>
                 </div>
                 <p style={{ margin: '0.3rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                  Comprehensive side-by-side reconciliation proof for <strong>Managing Director Eswara</strong> &amp; Operations Consultant <strong>Shravan Patnaik</strong>.
+                  Comprehensive side-by-side reconciliation statement for Executive Management &amp; Operations Audit.
                 </p>
               </div>
 
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button
-                  onClick={() => alert('Printing Official Daily Audit Reconciliation Certificate for Managing Director Eswara and Shravan Patnaik (Ref: AUD-2026-09-20-BALANCED)')}
+                  onClick={() => alert('Printing Official Daily Audit Reconciliation Certificate (Ref: AUD-2026-09-20-BALANCED)')}
                   className="btn-primary-gold"
                   style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
                 >
@@ -874,7 +874,7 @@ export default function AccountsLedgerModal({
               <div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Official Verification Sign-Off:</div>
                 <div style={{ fontSize: '0.92rem', color: '#fff', fontWeight: 700, marginTop: '0.2rem' }}>
-                  Audited &amp; Sealed by: Sudhakar Reddy (Front Office) | Verified for: Shravan Patnaik (Consultant)
+                  Audited &amp; Sealed by: Front Office Lead | Verified by: Executive Accounts Lead
                 </div>
               </div>
 
@@ -887,21 +887,21 @@ export default function AccountsLedgerModal({
           </div>
         )}
 
-        {/* Tab 1: FLASH REPORT (Screenshot 16 Mirror) */}
+        {/* Tab 1: FLASH REPORT */}
         {activeTab === 'flash-report' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <h3 style={{ color: '#fff', margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
-                    Night Audit Daily Flash Report (Screenshot 16 Mirror)
+                    Night Audit Daily Flash Report
                   </h3>
                   <span className="badge" style={{ background: 'rgba(212, 175, 55, 0.15)', color: 'var(--gold-glow)', fontSize: '0.75rem' }}>
                     DATE: {flashReportData.auditDate}
                   </span>
                 </div>
                 <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  Audited live snapshot of room occupancy, ARR, RevPAR, and departmental revenues for Eswara & Shravan Patnaik.
+                  Audited live snapshot of room occupancy, ARR, RevPAR, and departmental revenues.
                 </p>
               </div>
 
@@ -1058,7 +1058,7 @@ export default function AccountsLedgerModal({
               <AlertTriangle size={24} color="#f87171" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <strong style={{ color: '#f87171', fontSize: '0.9rem' }}>
-                  The Smoking Gun Found in Legacy MySoft Screenshots 1, 18, 19:
+                  Legacy Revenue Leakage Audit Notice:
                 </strong>
                 <p style={{ margin: '0.25rem 0 0', color: '#cbd5e1', fontSize: '0.8rem', lineHeight: '1.4' }}>
                   In legacy MySoft's <code style={{ color: '#fca5a5', background: 'rgba(0,0,0,0.4)', padding: '2px 5px', borderRadius: '4px' }}>sales_summary.php</code>, the <strong>Rest. F&B</strong> column reported <strong>₹0.00</strong> on checked-out room folios despite guests ordering breakfast and dinner to their rooms. When front desk settled bills, restaurant revenue was orphaned or lumped into untracked cash, causing a ₹17,000 variance with POS collections.
@@ -1334,7 +1334,7 @@ export default function AccountsLedgerModal({
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ color: '#fff', margin: 0, fontSize: '1.15rem' }}>Statement of Corporate Account with TDS (Screenshot 15)</h3>
+                <h3 style={{ color: '#fff', margin: 0, fontSize: '1.15rem' }}>Statement of Corporate Account with TDS</h3>
                 <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                   Itemized debits (stays), credits (NEFT/cheques), and TDS deductions with running balance.
                 </p>

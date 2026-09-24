@@ -640,7 +640,7 @@ export default function ReceptionAdmin({
             className="btn-outline-gold"
             style={{ padding: '0.6rem 1.1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <Ban size={15} color="#f87171" /> Block Room / OOO (Screenshot 10)
+            <Ban size={15} color="#f87171" /> Block Room / Out of Order
           </button>
           <button 
             onClick={() => setWalkInOpen(true)}
@@ -787,7 +787,7 @@ export default function ReceptionAdmin({
                   border: 'none'
                 }}
               >
-                📊 MySoft Legacy Tape Matrix (Screenshot 2)
+                📊 Legacy Tape Matrix View
               </button>
               <button
                 onClick={() => setTapeChartViewMode('modern')}
@@ -2488,7 +2488,7 @@ export default function ReceptionAdmin({
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Ban size={20} color="#f87171" />
-                <h3 style={{ fontSize: '1.2rem', color: '#fff' }}>Block Room / Out of Order (Screenshot 10)</h3>
+                <h3 style={{ fontSize: '1.2rem', color: '#fff' }}>Block Room / Out of Order</h3>
               </div>
               <button onClick={() => setBlockRoomOpen(false)} className="modal-close-btn">
                 <X size={20} />
@@ -2518,17 +2518,17 @@ export default function ReceptionAdmin({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Block Reason (Standard MySoft Codes)</label>
+                <label className="form-label">Block Reason (Standard PMS Codes)</label>
                 <select
                   className="form-select"
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   required
                 >
-                  <option value="AC PRBLM">AC PRBLM (Air Conditioner Issue - Screenshot 2)</option>
+                  <option value="AC PRBLM">AC PRBLM (Air Conditioner Issue)</option>
                   <option value="PAINTING">PAINTING (Room Wall Refurbishment)</option>
                   <option value="PLUMBING">PLUMBING (Bathroom Leakage)</option>
-                  <option value="MANAGEMENT HOLD">MANAGEMENT HOLD (Reserved for MD / Consultant)</option>
+                  <option value="MANAGEMENT HOLD">MANAGEMENT HOLD (Executive Reservation)</option>
                   <option value="DEEP SANITIZATION">DEEP SANITIZATION (Routine Maintenance)</option>
                 </select>
               </div>

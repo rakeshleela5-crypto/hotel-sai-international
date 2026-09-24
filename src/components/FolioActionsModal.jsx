@@ -1022,7 +1022,7 @@ export default function FolioActionsModal({
                     color: '#fca5a5',
                     lineHeight: 1.5
                   }}>
-                    <strong>Owner Video Rule:</strong> <em>"24-hours tarvaatha 2-3 hours late stay tariff software lo automatically vasthadi... Regular guest aithe vaddhu anukunte adhi REMOVE cheyali!"</em>
+                    <strong>Operating Policy:</strong> <em>"Late stay charges (past standard 12:00 PM check-out) can be waived for authorized preferred corporate or loyal guests at manager discretion."</em>
                     <br />
                     Clicking <strong>Remove Tariff</strong> immediately posts an authorized GM waiver credit memo to zero-out the late tariff before final checkout.
                   </div>
@@ -1502,7 +1502,7 @@ export default function FolioActionsModal({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                   <span className="badge" style={{ background: 'rgba(167, 139, 250, 0.2)', color: '#c084fc', border: '1px solid #c084fc', fontWeight: 700 }}>
-                    OWNER VIDEO DEMO (2:15 - 4:40)
+                    INTER-ROOM TRANSFER
                   </span>
                   <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
                     Transfer Folio • Inter-Room Bill Transfer
@@ -1512,7 +1512,7 @@ export default function FolioActionsModal({
                   Move restaurant food bills or other charges between rooms (e.g. Senior Officer covering Junior Officer's dining allowance, or correcting a wrong room dining slip).
                 </p>
 
-                {/* Owner's Quick Presets */}
+                {/* Quick Presets */}
                 <div style={{
                   background: 'rgba(12, 24, 43, 0.7)',
                   border: '1px solid rgba(167, 139, 250, 0.3)',
@@ -1521,7 +1521,7 @@ export default function FolioActionsModal({
                   marginBottom: '1.25rem'
                 }}>
                   <div style={{ fontSize: '0.75rem', color: '#c084fc', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                    ⚡ Owner Video Transfer Scenarios:
+                    ⚡ Common Transfer Scenarios:
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button
@@ -1686,7 +1686,7 @@ export default function FolioActionsModal({
                   Corporate Split Billing (Room vs Food Invoices)
                 </h3>
                 <p style={{ margin: '0 0 1.5rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                  Pages 2 &amp; 3 of hotel_documents.pdf &amp; Owner Video: Automatically splits Room Tariff (SAC 996311) to Corporate BTC and Fenugreek Restaurant Dining (SAC 996331) to Guest Direct settlement.
+                  Standard Corporate Billing SOP: Automatically splits Room Tariff (SAC 996311) to Corporate BTC and Fenugreek Restaurant Dining (SAC 996331) to Guest Direct settlement.
                 </p>
 
                 <div style={{

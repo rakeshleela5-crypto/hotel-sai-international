@@ -14,7 +14,6 @@ import DarshanAdvisorModal from './components/DarshanAdvisorModal';
 import AiConciergeModal from './components/AiConciergeModal';
 import CorporatePortalModal from './components/CorporatePortalModal';
 import MasterFolioModal from './components/MasterFolioModal';
-import CommercialProposalModal from './components/CommercialProposalModal';
 import CannonKitchenPOS from './components/CannonKitchenPOS';
 import AccountsLedgerModal from './components/AccountsLedgerModal';
 import NightAuditModal from './components/NightAuditModal';
@@ -150,7 +149,7 @@ export default function App() {
 
   // IDS Next Operational Modules State
   const [folioModalOpen, setFolioModalOpen] = useState(false);
-  const [commercialProposalOpen, setCommercialProposalOpen] = useState(false);
+
   const [posModalOpen, setPosModalOpen] = useState(false);
   const [accountsModalOpen, setAccountsModalOpen] = useState(false);
   const [nightAuditModalOpen, setNightAuditModalOpen] = useState(false);
@@ -412,7 +411,6 @@ export default function App() {
         onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
         onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
         onOpenRevenueManagement={() => setRevenueModalOpen(true)}
-        onOpenCommercialProposal={() => setCommercialProposalOpen(true)}
         rooms={rooms}
         adminPinVerified={adminPinVerified}
         setAdminPinVerified={setAdminPinVerified}
@@ -528,10 +526,7 @@ export default function App() {
         onClose={() => setCorporateModalOpen(false)}
       />
 
-      <CommercialProposalModal
-        isOpen={commercialProposalOpen}
-        onClose={() => setCommercialProposalOpen(false)}
-      />
+
 
       {/* IDS Next Enterprise Operational Modals */}
       <MasterFolioModal 
@@ -648,7 +643,7 @@ export default function App() {
             onClick: () => setFloorExplorerOpen(true)
           },
           {
-            title: "Audit Reconciler (Proof)",
+            title: "Accounts Day Book",
             icon: <Scale className="h-5 w-5" />,
             onClick: () => setAccountsModalOpen(true)
           },
@@ -657,11 +652,7 @@ export default function App() {
             icon: <Utensils className="h-5 w-5" />,
             onClick: () => setPosModalOpen(true)
           },
-          {
-            title: "Commercial Proposal",
-            icon: <FileText className="h-5 w-5" />,
-            onClick: () => setCommercialProposalOpen(true)
-          },
+
           {
             title: currentView === 'pms' ? "Guest Portal" : "Reception PMS",
             icon: <ShieldCheck className="h-5 w-5" />,

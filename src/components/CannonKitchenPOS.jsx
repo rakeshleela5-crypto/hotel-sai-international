@@ -336,7 +336,7 @@ export default function CannonKitchenPOS({
               }}
             >
               <span style={{ width: 8, height: 8, borderRadius: '2px', background: '#10b981' }}></span>
-              🔲 MyPOS Table Grid (Screenshot 20)
+              🔲 Dining Table Floor Grid
             </button>
             <button
               onClick={() => setPosViewMode('menu')}
@@ -1115,9 +1115,9 @@ export default function CannonKitchenPOS({
                           fontSize: '0.72rem'
                         }}
                       >
-                        <option value="Managing Director Courtesy">MD Eswara Courtesy</option>
-                        <option value="Corporate Contract Discount">Corporate Contract (Linde/JK)</option>
-                        <option value="Operations Consultant Shravan Patnaik Courtesy">Consultant Patnaik Courtesy</option>
+                        <option value="Managing Director Courtesy">MD Courtesy</option>
+                        <option value="Corporate Contract Discount">Corporate Contract</option>
+                        <option value="Management Courtesy">Management Courtesy</option>
                         <option value="Food Quality Recovery">Food Quality Recovery</option>
                         <option value="Loyal Regular Guest">Loyal Regular Guest</option>
                         <option value="GM Discretionary Allowance">GM Discretionary Allowance</option>
@@ -1141,8 +1141,8 @@ export default function CannonKitchenPOS({
                         fontWeight: 600
                       }}
                     >
-                      <option value="Managing Director Eswara VIP Dining">MD Eswara VIP Dining</option>
-                      <option value="Operations Consultant Shravan Patnaik Review">Consultant Patnaik Audit Review</option>
+                      <option value="Executive Management Dining">Executive VIP Dining</option>
+                      <option value="Executive Management Review">Management Audit Review</option>
                       <option value="Chef Kitchen Tasting & QC">Chef Tasting &amp; QC Sampling</option>
                       <option value="Staff / Duty Meal">Staff / Duty Meal Allocation</option>
                     </select>

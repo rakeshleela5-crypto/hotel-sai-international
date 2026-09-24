@@ -608,10 +608,9 @@ export default function CheckoutSplitModal({
                   boxShadow: '0 2px 10px rgba(56, 189, 248, 0.2)'
                 }}
               >
-                <Sparkles size={14} color="#34d399" /> 🏢 Owner Video Split (₹962 PhonePe + ₹12,596 Linde BTC)
+                <Sparkles size={14} color="#34d399" /> 🏢 Corporate Dual-Tender (₹962 Guest UPI + ₹12,596 Company BTC)
               </button>
 
-              {/* OWNER'S EXACT VIDEO DEMO PRESET */}
               <button
                 type="button"
                 onClick={() => applyPreset('owner-demo')}
@@ -630,7 +629,7 @@ export default function CheckoutSplitModal({
                   boxShadow: '0 2px 10px rgba(212, 175, 55, 0.2)'
                 }}
               >
-                <Sparkles size={14} /> Owner Demo (₹462 PhonePe + ₹500 Cash)
+                <Sparkles size={14} /> Quick Split (₹462 UPI + ₹500 Cash)
               </button>
 
               <button
