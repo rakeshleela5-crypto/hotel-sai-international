@@ -4,11 +4,13 @@
 
 export const HOTEL_CONFIG = {
   name: "Hotel Sai International Pvt Ltd",
+  legalName: "Hotel Sai International Pvt Ltd",
   tagline: "Premier 39-Room International Executive & Pilgrim Hotel",
   address: "J.K. Road, Rayagada, Rayagada - 765001, India",
   landline: "06856 225 555",
   phone: "+91 8895225555",
   altPhone: "+91 8249258377",
+  phones: ["+91 8895225555", "+91 8249258377"],
   email: "hotelsaiinternational2010@gmail.com",
   adminEmail: "admin@hotelsaiinternational.com",
   travelDeskEmail: "traveldesk@hotelsaiinternational.com",
@@ -22,6 +24,7 @@ export const HOTEL_CONFIG = {
   distanceStation: "1.5 km from Rayagada Railway Junction (RGDA)",
   distanceTemple: "2.0 km from sacred Maa Majhighariani Temple",
   stateCode: "21",
+  state: "Odisha",
   stateName: "Odisha"
 };
 

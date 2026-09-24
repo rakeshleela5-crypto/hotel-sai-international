@@ -10,7 +10,7 @@ import { DigitalKeycard } from '@/components/ui/digital-keycard';
 export default function BookingReceiptModal({ isOpen, onClose, booking, initialType = 'a4' }) {
   // View modes: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'money-receipt' (Page 5), 'pos' (Thermal), 'keycard' (3D RFID)
   const [invoiceType, setInvoiceType] = useState(initialType || 'a4');
-  const prevIsOpenRef = useRef(false);
+  const [isNonGstBill, setIsNonGstBill] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -37,7 +37,6 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
   const { base, cgst, sgst, total, advance, balanceDue } = calculateTaxes();
 
   // Sheet 1 Requirement: Non-GST Billing Series (NGST2627-XXXX) vs GST Tax Invoice (FMBIL2627-XXXX)
-  const [isNonGstBill, setIsNonGstBill] = useState(false);
   const gstBillNo = booking.billNo || `FMBIL2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`;
   const nonGstBillNo = `NGST2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`;
   const effectiveBillNo = isNonGstBill ? nonGstBillNo : gstBillNo;
@@ -58,8 +57,8 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
   const foodSgst = Number((foodBase * 0.025).toFixed(2));
 
   return (
-    <div className="official-invoice-overlay">
-      <div className="official-invoice-modal-content" style={{ maxWidth: 1040, width: '100%' }}>
+    <div className="official-invoice-overlay" onClick={onClose}>
+      <div className="official-invoice-modal-content" style={{ maxWidth: 1040, width: '100%' }} onClick={(e) => e.stopPropagation()}>
         {/* Modal Action Bar (Hidden in Print) */}
         <div className="invoice-action-bar no-print" style={{ 
           display: 'flex', 
@@ -397,14 +396,14 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               <div className="header-right">
                 <div className="hotel-brand-block">
                   <div className="hotel-trade-name" style={{ fontSize: '1.25rem', fontWeight: 900 }}>
-                    {HOTEL_CONFIG.legalName.toUpperCase()}
+                    {(HOTEL_CONFIG.legalName || HOTEL_CONFIG.name || 'HOTEL SAI INTERNATIONAL PVT. LTD.').toUpperCase()}
                   </div>
                   <div className="address-line">{HOTEL_CONFIG.address}</div>
                   <div className="contact-line">
-                    GSTIN: <span className="text-bold-gstin">{HOTEL_CONFIG.gstin}</span> | State Code: {HOTEL_CONFIG.stateCode} ({HOTEL_CONFIG.state})
+                    GSTIN: <span className="text-bold-gstin">{HOTEL_CONFIG.gstin}</span> | State Code: {HOTEL_CONFIG.stateCode} ({HOTEL_CONFIG.state || HOTEL_CONFIG.stateName || 'Odisha'})
                   </div>
                   <div className="contact-line">
-                    Ph: {HOTEL_CONFIG.phones.join(', ')} | Tel: {HOTEL_CONFIG.landline}
+                    Ph: {(HOTEL_CONFIG.phones || [HOTEL_CONFIG.phone, HOTEL_CONFIG.altPhone].filter(Boolean)).join(', ')} | Tel: {HOTEL_CONFIG.landline}
                   </div>
                   <div className="contact-line" style={{ fontSize: '9px', color: '#64748b' }}>
                     Web: {HOTEL_CONFIG.website} | Email: {HOTEL_CONFIG.email}
@@ -680,7 +679,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               <div className="header-right">
                 <div className="hotel-brand-block">
                   <div className="hotel-trade-name" style={{ fontSize: '1.2rem', fontWeight: 900 }}>
-                    {HOTEL_CONFIG.legalName.toUpperCase()}
+                    {(HOTEL_CONFIG.legalName || HOTEL_CONFIG.name || 'HOTEL SAI INTERNATIONAL PVT. LTD.').toUpperCase()}
                   </div>
                   <div className="address-line">{HOTEL_CONFIG.address}</div>
                   <div className="contact-line">
@@ -813,7 +812,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               <div className="header-right">
                 <div className="hotel-brand-block">
                   <div className="hotel-trade-name" style={{ fontSize: '1.2rem', fontWeight: 900 }}>
-                    {HOTEL_CONFIG.legalName.toUpperCase()}
+                    {(HOTEL_CONFIG.legalName || HOTEL_CONFIG.name || 'HOTEL SAI INTERNATIONAL PVT. LTD.').toUpperCase()}
                   </div>
                   <div className="address-line">CANNON KITCHEN RESTAURANT • Rayagada, Odisha - 765001</div>
                   <div className="contact-line">
@@ -1157,7 +1156,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
           }}>
             <div style={{ textAlign: 'center', borderBottom: '2px dashed #94a3b8', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
               <h2 style={{ color: '#0c182b', fontSize: '1.25rem', margin: 0, fontWeight: 900 }}>
-                {HOTEL_CONFIG.legalName.toUpperCase()}
+                {(HOTEL_CONFIG.legalName || HOTEL_CONFIG.name || 'HOTEL SAI INTERNATIONAL PVT. LTD.').toUpperCase()}
               </h2>
               <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '0.2rem' }}>
                 {HOTEL_CONFIG.address}
