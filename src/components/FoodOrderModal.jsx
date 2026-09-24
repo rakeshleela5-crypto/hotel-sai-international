@@ -3,7 +3,7 @@ import { X, ShoppingBag, Plus, Minus, Trash2, CheckCircle2, Utensils, AlertCircl
 import { RESTAURANT_MENU, HOTEL_CONFIG } from '../data/hotelData';
 import { playSuccessChime } from '../utils/soundAlert';
 
-export default function FoodOrderModal({ isOpen, onClose, initialItem = null, rooms = [] }) {
+export default function FoodOrderModal({ isOpen, onClose, initialItem = null, rooms = [], onBillToRoom }) {
   const [cart, setCart] = useState(initialItem ? [{ ...initialItem, qty: 1 }] : []);
   const [roomNumber, setRoomNumber] = useState('');
   const [guestName, setGuestName] = useState('');
@@ -42,7 +42,11 @@ export default function FoodOrderModal({ isOpen, onClose, initialItem = null, ro
     if (!roomNumber) return;
 
     setSubmitting(true);
+    const kotId = `IR-KOT-${Date.now().toString().slice(-4)}`;
+    const itemsDescription = cart.map(c => `${c.qty}x ${c.name}`).join(', ');
+
     const payload = {
+      kotId,
       roomNumber,
       guestName: guestName || `Room ${roomNumber} Guest`,
       items: cart,
@@ -54,11 +58,31 @@ export default function FoodOrderModal({ isOpen, onClose, initialItem = null, ro
     };
 
     try {
-      await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'place_food_order', payload })
-      });
+      // Connect to central Front Desk & Accountant Folio Pipeline
+      if (billingMode === 'Bill to Room Folio' && onBillToRoom) {
+        onBillToRoom({
+          kotId,
+          roomNumber,
+          outlet: 'In-Room Dining (Satvik Tray)',
+          items: cart,
+          grossSubtotal: subtotal,
+          discount: 0,
+          discountReason: 'None',
+          subtotal,
+          gst,
+          totalAmount: total,
+          isNonCommercial: false,
+          description: `In-Room Dining (${itemsDescription})`,
+          captainName: 'In-Room Service Captain',
+          createdAt: new Date().toISOString()
+        });
+      } else {
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'place_food_order', payload })
+        });
+      }
       playSuccessChime();
       setOrderSubmitted(true);
     } catch (err) {

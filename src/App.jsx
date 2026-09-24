@@ -220,18 +220,81 @@ export default function App() {
 
   const handleBookingSuccess = (newBooking) => {
     setBookings(prev => [newBooking, ...prev]);
-    // Update room status
+    // Update room status and outstanding balance on front desk matrix
     setRooms(prev => prev.map(r => {
       if (r.roomNumber === newBooking.roomNumber) {
         return {
           ...r,
           status: 'Occupied',
           currentGuestName: newBooking.guestName,
-          currentBookingId: newBooking.bookingId
+          currentBookingId: newBooking.bookingId,
+          outstandingBalance: newBooking.balanceDue !== undefined ? newBooking.balanceDue : (newBooking.totalAmount || r.tariff || 1699)
         };
       }
       return r;
     }));
+
+    // Auto-inject Day-1 Room Tariff debit and Advance Deposit credit into central transactions ledger
+    const initialTxs = [];
+    const tariffAmount = Number(newBooking.tariffPerNight || newBooking.baseTotal || 1699);
+    initialTxs.push({
+      transactionId: `TXN-TARIFF-${newBooking.roomNumber}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${newBooking.roomNumber}`,
+      bookingId: newBooking.bookingId,
+      roomNumber: newBooking.roomNumber,
+      transactionType: 'Room Charge',
+      outlet: 'Front Desk PMS',
+      itemCode: 'TARIFF-DAY1',
+      description: `Room Tariff - ${newBooking.tier || 'Room'} (Day 1 Check-In)`,
+      debitAmount: tariffAmount,
+      creditAmount: 0,
+      taxableBase: tariffAmount,
+      gstRate: tariffAmount > 7500 ? 18 : (tariffAmount > 0 ? 12 : 0),
+      cgst: Math.round(tariffAmount * 0.06 * 100) / 100,
+      sgst: Math.round(tariffAmount * 0.06 * 100) / 100,
+      sacCode: '996311',
+      isLocked: 0,
+      createdBy: 'Front Desk Reception',
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    });
+
+    if (newBooking.advanceDeposit && Number(newBooking.advanceDeposit) > 0) {
+      initialTxs.push({
+        transactionId: `TXN-ADV-${newBooking.roomNumber}-${Date.now().toString().slice(-4)}`,
+        folioId: `FOLIO-${newBooking.roomNumber}`,
+        bookingId: newBooking.bookingId,
+        roomNumber: newBooking.roomNumber,
+        transactionType: 'Payment',
+        outlet: 'Front Desk PMS',
+        itemCode: 'ADVANCE',
+        description: `Check-In Advance Deposit (${newBooking.paymentMode || 'UPI'})`,
+        debitAmount: 0,
+        creditAmount: Number(newBooking.advanceDeposit),
+        taxableBase: 0,
+        gstRate: 0,
+        cgst: 0,
+        sgst: 0,
+        sacCode: '-',
+        isLocked: 0,
+        createdBy: 'Front Desk Reception',
+        createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+      });
+    }
+
+    setTransactions(prev => [...initialTxs, ...prev]);
+
+    // Dispatch initial transactions to Cloudflare D1
+    const adminPin = getVerifiedAdminPin();
+    if (adminPin) {
+      initialTxs.forEach(tx => {
+        fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+          body: JSON.stringify({ action: 'post_folio_transaction', payload: tx })
+        }).catch(() => {});
+      });
+    }
+
     setCurrentReceiptBooking(newBooking);
     setReceiptModalOpen(true);
   };
@@ -310,6 +373,30 @@ export default function App() {
       createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
     };
     setTransactions(prev => [newTxn, ...prev]);
+
+    // Immediately update room outstanding balance on front desk matrix
+    setRooms(prev => prev.map(r => {
+      if (r.roomNumber === payload.roomNumber) {
+        const currentBal = Number(r.outstandingBalance !== undefined ? r.outstandingBalance : (r.tariff || 0));
+        return {
+          ...r,
+          outstandingBalance: Math.round((currentBal + payload.totalAmount) * 100) / 100
+        };
+      }
+      return r;
+    }));
+
+    // Immediately update booking balance due
+    setBookings(prev => prev.map(b => {
+      if ((b.roomNumber === payload.roomNumber || b.room_number === payload.roomNumber) && b.bookingStatus !== 'Checked Out') {
+        const currentBal = Number(b.balanceDue !== undefined ? b.balanceDue : (b.totalAmount || 0));
+        return {
+          ...b,
+          balanceDue: Math.round((currentBal + payload.totalAmount) * 100) / 100
+        };
+      }
+      return b;
+    }));
 
     // Dispatch to Cloudflare Edge D1
     const adminPin = getVerifiedAdminPin();
@@ -462,6 +549,8 @@ export default function App() {
             <ReceptionAdmin 
               rooms={rooms}
               bookings={bookings}
+              transactions={transactions}
+              onAddTransaction={handleAddTransaction}
               onUpdateRoomStatus={handleUpdateRoomStatus}
               onNewBooking={handleBookingSuccess}
               onRunNightAudit={handleRunNightAudit}
@@ -509,6 +598,7 @@ export default function App() {
           }}
           initialItem={selectedFoodItem}
           rooms={rooms}
+          onBillToRoom={handleBillToRoomFromPOS}
         />
 
         <DarshanAdvisorModal 
@@ -553,6 +643,9 @@ export default function App() {
           isOpen={accountsModalOpen}
           onClose={() => setAccountsModalOpen(false)}
           bookings={bookings}
+          rooms={rooms}
+          transactions={transactions}
+          onAddTransaction={handleAddTransaction}
         />
 
         <NightAuditModal 
@@ -597,7 +690,18 @@ export default function App() {
               }
               return r;
             }));
-            alert("⚡ IDeaS G3 RMS: Continuous dynamic micro-rates published to live booking engine, room catalog, and front desk reception!");
+
+            // Persist published rates to Cloudflare D1
+            const adminPin = getVerifiedAdminPin();
+            if (adminPin) {
+              fetch('/api/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+                body: JSON.stringify({ action: 'publish_dynamic_rates', payload: { rates: newRates } })
+              }).catch(e => console.warn('D1 rate publish sync:', e));
+            }
+
+            alert("⚡ IDeaS G3 RMS: Continuous dynamic micro-rates published to live booking engine, room catalog, front desk reception, and synced to Cloudflare D1!");
           }}
         />
 

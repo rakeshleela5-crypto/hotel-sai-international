@@ -28,6 +28,8 @@ const FREQUENT_VIP_GUESTS = [
 export default function ReceptionAdmin({
   rooms = [],
   bookings = [],
+  transactions = [],
+  onAddTransaction,
   onUpdateRoomStatus,
   onNewBooking,
   onRunNightAudit,
@@ -3631,6 +3633,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           onClose={() => setSelectedFolioRoom(null)}
           room={selectedFolioRoom}
           rooms={rooms}
+          transactions={transactions}
+          onAddTransaction={onAddTransaction}
           onUpdateFolio={(roomNumber, updateData) => {
             console.log(`Updated Folio for Room ${roomNumber}:`, updateData);
           }}

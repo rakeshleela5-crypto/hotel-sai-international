@@ -12,7 +12,10 @@ import BookingReceiptModal from './BookingReceiptModal';
 export default function AccountsLedgerModal({
   isOpen,
   onClose,
-  bookings = []
+  bookings = [],
+  rooms = [],
+  transactions = [],
+  onAddTransaction
 }) {
   if (!isOpen) return null;
 
@@ -31,18 +34,45 @@ export default function AccountsLedgerModal({
   // Sheet 1 & Sheet 3 Requirements: Outstanding View Mode ('in-house' vs 'corporate')
   const [outstandingViewType, setOutstandingViewType] = useState('in-house');
 
-  // In-House Guest Outstanding Register with Today's Outstanding vs Total Cumulative Outstanding & Advance Deposit (A.D.)
-  const inHouseOutstandingData = [
-    { roomNumber: '104', guestName: 'Santosh Patra', phone: '+91 94371 22334', totalCharges: 3568, advanceDeposit: 3568, todayCharges: 0, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Settled' },
-    { roomNumber: '201', guestName: 'Ashok Leyland Site Engg', phone: '+91 98101 22345', totalCharges: 8940, advanceDeposit: 2500, todayCharges: 2980, todayOutstanding: 1480, cumulativeOutstanding: 6440, status: 'Due Today' },
-    { roomNumber: '204', guestName: 'Dr. Debabrata Mohanty', phone: '+91 94370 55123', totalCharges: 4850, advanceDeposit: 2000, todayCharges: 1650, todayOutstanding: 650, cumulativeOutstanding: 2850, status: 'Due Today' },
-    { roomNumber: '208', guestName: 'Rajesh Agrawal & Family', phone: '+91 98610 88291', totalCharges: 11200, advanceDeposit: 6000, todayCharges: 3400, todayOutstanding: 1400, cumulativeOutstanding: 5200, status: 'Due Today' },
-    { roomNumber: '301', guestName: 'Vikram Singhania (JK Paper)', phone: '+91 98101 55667', totalCharges: 7650, advanceDeposit: 7650, todayCharges: 850, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Covered by A.D.' },
-    { roomNumber: '304', guestName: 'Subrat Tripathy', phone: '+91 99372 11984', totalCharges: 6100, advanceDeposit: 3000, todayCharges: 1950, todayOutstanding: 950, cumulativeOutstanding: 3100, status: 'Due Today' },
-    { roomNumber: '309', guestName: 'Pravat Kumar Jena', phone: '+91 94373 66410', totalCharges: 5400, advanceDeposit: 2000, todayCharges: 1800, todayOutstanding: 800, cumulativeOutstanding: 3400, status: 'Due Today' },
-    { roomNumber: '401', guestName: 'IMFA Executive Guest', phone: '+91 98112 44321', totalCharges: 9800, advanceDeposit: 5000, todayCharges: 3200, todayOutstanding: 1200, cumulativeOutstanding: 4800, status: 'Due Today' },
-    { roomNumber: '405', guestName: 'Manoj Dash', phone: '+91 97761 33289', totalCharges: 3200, advanceDeposit: 3200, todayCharges: 0, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Settled' }
-  ];
+  // In-House Guest Outstanding Register computed dynamically from live occupied rooms, master transactions & advance deposits
+  const inHouseOutstandingData = (() => {
+    const occupied = (rooms || []).filter(r => r.status === 'Occupied' || r.status === 'Occupied Clean');
+    if (occupied.length > 0) {
+      return occupied.map(r => {
+        const matchedB = (bookings || []).find(b => b.roomNumber === r.roomNumber || b.room_number === r.roomNumber);
+        const roomTxs = (transactions || []).filter(t => t.roomNumber === r.roomNumber);
+        const debits = roomTxs.reduce((sum, t) => sum + (Number(t.debitAmount) || 0), 0);
+        const credits = roomTxs.reduce((sum, t) => sum + (Number(t.creditAmount) || 0), 0);
+        const totalCharges = debits > 0 ? debits : (matchedB?.totalAmount || r.tariff || 2999);
+        const advanceDeposit = credits > 0 ? credits : (matchedB?.advanceDeposit || 0);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayCharges = roomTxs.filter(t => t.createdAt?.includes(todayStr)).reduce((sum, t) => sum + (Number(t.debitAmount) || 0), 0);
+        const cumulativeOutstanding = Math.max(0, totalCharges - advanceDeposit);
+        return {
+          roomNumber: r.roomNumber,
+          guestName: r.currentGuestName || matchedB?.guestName || 'In-House Guest',
+          phone: matchedB?.guestPhone || '+91 94370 00000',
+          totalCharges,
+          advanceDeposit,
+          todayCharges,
+          todayOutstanding: Math.max(0, todayCharges - advanceDeposit),
+          cumulativeOutstanding,
+          status: cumulativeOutstanding === 0 ? 'Settled' : (advanceDeposit >= totalCharges ? 'Covered by A.D.' : 'Due Today')
+        };
+      });
+    }
+    return [
+      { roomNumber: '104', guestName: 'Santosh Patra', phone: '+91 94371 22334', totalCharges: 3568, advanceDeposit: 3568, todayCharges: 0, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Settled' },
+      { roomNumber: '201', guestName: 'Ashok Leyland Site Engg', phone: '+91 98101 22345', totalCharges: 8940, advanceDeposit: 2500, todayCharges: 2980, todayOutstanding: 1480, cumulativeOutstanding: 6440, status: 'Due Today' },
+      { roomNumber: '204', guestName: 'Dr. Debabrata Mohanty', phone: '+91 94370 55123', totalCharges: 4850, advanceDeposit: 2000, todayCharges: 1650, todayOutstanding: 650, cumulativeOutstanding: 2850, status: 'Due Today' },
+      { roomNumber: '208', guestName: 'Rajesh Agrawal & Family', phone: '+91 98610 88291', totalCharges: 11200, advanceDeposit: 6000, todayCharges: 3400, todayOutstanding: 1400, cumulativeOutstanding: 5200, status: 'Due Today' },
+      { roomNumber: '301', guestName: 'Vikram Singhania (JK Paper)', phone: '+91 98101 55667', totalCharges: 7650, advanceDeposit: 7650, todayCharges: 850, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Covered by A.D.' },
+      { roomNumber: '304', guestName: 'Subrat Tripathy', phone: '+91 99372 11984', totalCharges: 6100, advanceDeposit: 3000, todayCharges: 1950, todayOutstanding: 950, cumulativeOutstanding: 3100, status: 'Due Today' },
+      { roomNumber: '309', guestName: 'Pravat Kumar Jena', phone: '+91 94373 66410', totalCharges: 5400, advanceDeposit: 2000, todayCharges: 1800, todayOutstanding: 800, cumulativeOutstanding: 3400, status: 'Due Today' },
+      { roomNumber: '401', guestName: 'IMFA Executive Guest', phone: '+91 98112 44321', totalCharges: 9800, advanceDeposit: 5000, todayCharges: 3200, todayOutstanding: 1200, cumulativeOutstanding: 4800, status: 'Due Today' },
+      { roomNumber: '405', guestName: 'Manoj Dash', phone: '+91 97761 33289', totalCharges: 3200, advanceDeposit: 3200, todayCharges: 0, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Settled' }
+    ];
+  })();
 
   // CSV Generator for Outstanding Report (Sheet 1 & 2: Report CSV / Download)
   const handleDownloadOutstandingCSV = (type) => {

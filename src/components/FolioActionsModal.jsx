@@ -13,6 +13,8 @@ export default function FolioActionsModal({
   onClose,
   room,
   rooms = [],
+  transactions = [],
+  onAddTransaction,
   onUpdateFolio,
   onShiftRoom,
   onCheckoutRoom,
@@ -24,17 +26,42 @@ export default function FolioActionsModal({
   const [selectedAction, setSelectedAction] = useState('ledger'); // 'ledger', 'charges', 'advance', 'split-settle', 'late-checkout', 'change-room', 'pax-change', 'link-room', 'swap-room', 'paid-out', 'allowance', 'edit-guest', 'split-folio'
   const [actionSuccess, setActionSuccess] = useState('');
 
+  // Map central live transactions or fallback
+  const getInitialTxs = () => {
+    const matched = (transactions || []).filter(t => t.roomNumber === room.roomNumber);
+    if (matched.length > 0) {
+      return matched.map(t => ({
+        id: t.transactionId || t.id,
+        date: t.createdAt ? t.createdAt.slice(0, 10) : '22/09/2026',
+        type: t.transactionType === 'Food & Beverage' ? 'DINING' : t.transactionType === 'Payment' ? 'ADVANCE' : 'TARIFF',
+        desc: t.description || `${t.outlet || 'PMS'} - ${t.itemCode || ''}`,
+        sac: t.sacCode || (t.transactionType === 'Food & Beverage' ? '996331' : '996311'),
+        debit: Number(t.debitAmount) || 0,
+        credit: Number(t.creditAmount) || 0,
+        operator: t.createdBy || 'Front Desk'
+      }));
+    }
+    return [
+      { id: 'TX-101', date: '17/09/2026', type: 'TARIFF', desc: `Room Tariff - ${room.tier || 'Executive Room'} (Day 1)`, sac: '996311', debit: Number(room.tariff || 2999), credit: 0, operator: 'Sudhakar Reddy' },
+      { id: 'TX-102', date: '18/09/2026', type: 'TARIFF', desc: `Room Tariff - ${room.tier || 'Executive Room'} (Day 2)`, sac: '996311', debit: Number(room.tariff || 2999), credit: 0, operator: 'Sudhakar Reddy' },
+      { id: 'TX-103', date: '18/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18346 (Veg Fried Rice)', sac: '996331', debit: 294.00, credit: 0, operator: 'Sadananda' },
+      { id: 'TX-104', date: '19/09/2026', type: 'TARIFF', desc: `Room Tariff - ${room.tier || 'Executive Room'} (Day 3)`, sac: '996311', debit: Number(room.tariff || 2999), credit: 0, operator: 'Sudhakar Reddy' },
+      { id: 'TX-105', date: '19/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18372 (Paneer Tikka + Water)', sac: '996331', debit: 325.50, credit: 0, operator: 'Koti' },
+      { id: 'TX-106', date: '20/09/2026', type: 'TARIFF', desc: `Room Tariff - ${room.tier || 'Executive Room'} (Day 4)`, sac: '996311', debit: Number(room.tariff || 2999), credit: 0, operator: 'Sudhakar Reddy' },
+      { id: 'TX-107', date: '20/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18401 (Dal Makhani + Naan)', sac: '996331', debit: 325.50, credit: 0, operator: 'Deepak' },
+      { id: 'TX-108', date: '17/09/2026', type: 'ADVANCE', desc: 'Check-In Advance (UPI SBI Merchant QR)', sac: '-', debit: 0, credit: 3000.00, operator: 'Front Desk' }
+    ];
+  };
+
   // Live Folio Transactions with Double-Entry Balancing & Reversals
-  const [folioTransactions, setFolioTransactions] = useState([
-    { id: 'TX-101', date: '17/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 1)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
-    { id: 'TX-102', date: '18/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 2)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
-    { id: 'TX-103', date: '18/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18346 (Veg Fried Rice)', sac: '996331', debit: 294.00, credit: 0, operator: 'Sadananda' },
-    { id: 'TX-104', date: '19/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 3)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
-    { id: 'TX-105', date: '19/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18372 (Paneer Tikka + Water)', sac: '996331', debit: 325.50, credit: 0, operator: 'Koti' },
-    { id: 'TX-106', date: '20/09/2026', type: 'TARIFF', desc: 'Room Tariff - Executive Room (Day 4)', sac: '996311', debit: 2999.00, credit: 0, operator: 'Sudhakar Reddy' },
-    { id: 'TX-107', date: '20/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18401 (Dal Makhani + Naan)', sac: '996331', debit: 325.50, credit: 0, operator: 'Deepak' },
-    { id: 'TX-108', date: '17/09/2026', type: 'ADVANCE', desc: 'Check-In Advance (UPI SBI Merchant QR)', sac: '-', debit: 0, credit: 3000.00, operator: 'Front Desk' }
-  ]);
+  const [folioTransactions, setFolioTransactions] = useState(getInitialTxs);
+
+  React.useEffect(() => {
+    const matched = (transactions || []).filter(t => t.roomNumber === room.roomNumber);
+    if (matched.length > 0) {
+      setFolioTransactions(getInitialTxs());
+    }
+  }, [transactions, room.roomNumber]);
 
   // Reversal Dialog State
   const [reversingTx, setReversingTx] = useState(null);

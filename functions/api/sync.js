@@ -638,6 +638,13 @@ export async function onRequestPost({ request, env }) {
         subtotal, gst, totalAmount
       ).run().catch(() => {});
 
+      // 3. Update bookings balance_due in Cloudflare D1 database
+      await db.prepare(`
+        UPDATE bookings
+        SET balance_due = balance_due + ?, updated_at = datetime('now')
+        WHERE room_number = ? AND booking_status NOT IN ('Cancelled', 'Checked Out')
+      `).bind(totalAmount, roomNumber).run().catch(err => console.warn('D1 balance_due update non-fatal:', err));
+
       return jsonResponse({ success: true, transactionId: txnId, kotId, billedToRoom: roomNumber });
     }
 
@@ -890,6 +897,23 @@ export async function onRequestPost({ request, env }) {
       `).bind(mode).run();
 
       return jsonResponse({ success: true, mode });
+    }
+
+    // 20. ERP PUBLIC: Corporate B2B Account Onboarding Application
+    if (action === 'apply_corporate_account') {
+      const p = payload;
+      const corpId = p.corporateId || `CORP-${Date.now().toString().slice(-4)}`;
+      await db.prepare(`
+        INSERT OR IGNORE INTO corporate_partners (
+          corporate_id, company_name, gstin, location, contact_person,
+          contact_email, contact_phone, contracted_discount_percent, credit_days, status
+        ) VALUES (?, ?, ?, 'Rayagada Industrial Area', ?, ?, ?, 10, 30, 'Pending Verification')
+      `).bind(
+        corpId, p.companyName, p.gstin, p.contactPerson || 'Logistics Lead',
+        p.contactEmail || '', p.contactPhone || ''
+      ).run().catch(e => console.warn("Corporate partner application insert error:", e));
+
+      return jsonResponse({ success: true, corporateId: corpId });
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
