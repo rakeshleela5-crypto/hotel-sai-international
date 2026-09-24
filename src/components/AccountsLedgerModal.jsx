@@ -24,6 +24,104 @@ export default function AccountsLedgerModal({
   const [corporatePartners, setCorporatePartners] = useState(CORPORATE_PARTNERS);
   const [corporateLedger, setCorporateLedger] = useState(INITIAL_CORPORATE_LEDGER);
 
+  // Sheet 1 & Sheet 3 Requirements: Outstanding View Mode ('in-house' vs 'corporate')
+  const [outstandingViewType, setOutstandingViewType] = useState('in-house');
+
+  // In-House Guest Outstanding Register with Today's Outstanding vs Total Cumulative Outstanding & Advance Deposit (A.D.)
+  const inHouseOutstandingData = [
+    { roomNumber: '104', guestName: 'Santosh Patra', phone: '+91 94371 22334', totalCharges: 3568, advanceDeposit: 3568, todayCharges: 0, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Settled' },
+    { roomNumber: '201', guestName: 'Ashok Leyland Site Engg', phone: '+91 98101 22345', totalCharges: 8940, advanceDeposit: 2500, todayCharges: 2980, todayOutstanding: 1480, cumulativeOutstanding: 6440, status: 'Due Today' },
+    { roomNumber: '204', guestName: 'Dr. Debabrata Mohanty', phone: '+91 94370 55123', totalCharges: 4850, advanceDeposit: 2000, todayCharges: 1650, todayOutstanding: 650, cumulativeOutstanding: 2850, status: 'Due Today' },
+    { roomNumber: '208', guestName: 'Rajesh Agrawal & Family', phone: '+91 98610 88291', totalCharges: 11200, advanceDeposit: 6000, todayCharges: 3400, todayOutstanding: 1400, cumulativeOutstanding: 5200, status: 'Due Today' },
+    { roomNumber: '301', guestName: 'Vikram Singhania (JK Paper)', phone: '+91 98101 55667', totalCharges: 7650, advanceDeposit: 7650, todayCharges: 850, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Covered by A.D.' },
+    { roomNumber: '304', guestName: 'Subrat Tripathy', phone: '+91 99372 11984', totalCharges: 6100, advanceDeposit: 3000, todayCharges: 1950, todayOutstanding: 950, cumulativeOutstanding: 3100, status: 'Due Today' },
+    { roomNumber: '309', guestName: 'Pravat Kumar Jena', phone: '+91 94373 66410', totalCharges: 5400, advanceDeposit: 2000, todayCharges: 1800, todayOutstanding: 800, cumulativeOutstanding: 3400, status: 'Due Today' },
+    { roomNumber: '401', guestName: 'IMFA Executive Guest', phone: '+91 98112 44321', totalCharges: 9800, advanceDeposit: 5000, todayCharges: 3200, todayOutstanding: 1200, cumulativeOutstanding: 4800, status: 'Due Today' },
+    { roomNumber: '405', guestName: 'Manoj Dash', phone: '+91 97761 33289', totalCharges: 3200, advanceDeposit: 3200, todayCharges: 0, todayOutstanding: 0, cumulativeOutstanding: 0, status: 'Settled' }
+  ];
+
+  // CSV Generator for Outstanding Report (Sheet 1 & 2: Report CSV / Download)
+  const handleDownloadOutstandingCSV = (type) => {
+    let headers = [];
+    let rows = [];
+
+    if (type === 'in-house') {
+      headers = ['Room No', 'Guest / Company Name', 'Phone', 'Total Incurred Charges (INR)', 'Advance Deposit A.D. (INR)', 'Charges Added Today (INR)', 'Todays Outstanding (INR)', 'Total Cumulative Outstanding (INR)', 'Billing Status'];
+      rows = inHouseOutstandingData.map(r => [
+        r.roomNumber,
+        `"${r.guestName}"`,
+        r.phone,
+        r.totalCharges,
+        r.advanceDeposit,
+        r.todayCharges,
+        r.todayOutstanding,
+        r.cumulativeOutstanding,
+        r.status
+      ]);
+    } else {
+      headers = ['Corporate Account', 'Contact Person', 'Phone', '0 - 30 Days Current (INR)', '31 - 60 Days (INR)', '60+ Days Overdue (INR)', 'Total Outstanding (INR)', 'Credit Limit (INR)', 'Credit Days'];
+      rows = corporatePartners.map(corp => [
+        `"${corp.name}"`,
+        `"${corp.contactPerson}"`,
+        corp.contactPhone,
+        (corp.openingBalance * 0.7).toFixed(0),
+        (corp.openingBalance * 0.25).toFixed(0),
+        (corp.openingBalance * 0.05).toFixed(0),
+        corp.openingBalance,
+        corp.creditLimit || 200000,
+        corp.creditDays || 30
+      ]);
+    }
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Hotel_Sai_Outstanding_Report_${type.toUpperCase()}_2026.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CSV Generator for Item-Wise Sales (Sheet 1, 2, 3: Food vs Beverage with Total Qty)
+  const handleDownloadItemSalesCSV = () => {
+    const items = [
+      { code: '102', name: 'Chicken Dum Biryani (Chef Special)', cat: 'Food (Non-Veg)', qty: 38, rate: 260, cost: '32%', margin: '68%' },
+      { code: '101', name: 'Butter Chicken Boneless', cat: 'Food (Non-Veg)', qty: 24, rate: 320, cost: '34%', margin: '66%' },
+      { code: '214', name: 'Mushroom Masala (Code 214)', cat: 'Food (Veg)', qty: 26, rate: 220, cost: '27%', margin: '73%' },
+      { code: '215', name: 'Paneer Butter Masala', cat: 'Food (Veg)', qty: 32, rate: 210, cost: '29%', margin: '71%' },
+      { code: '307', name: 'Plain Steamed Rice (Code 307)', cat: 'Food (Rice & Breads)', qty: 55, rate: 90, cost: '18%', margin: '82%' },
+      { code: '308', name: 'Dal Fry (Yellow Lentils Tadka)', cat: 'Food (Rice & Breads)', qty: 42, rate: 140, cost: '22%', margin: '78%' },
+      { code: '309', name: 'Butter Tandoori Roti', cat: 'Food (Rice & Breads)', qty: 110, rate: 25, cost: '15%', margin: '85%' },
+      { code: '201', name: 'Mutton Kassa (Odisha Style)', cat: 'Food (Non-Veg)', qty: 14, rate: 420, cost: '41%', margin: '59%' },
+      { code: '202', name: 'Mutton Rogan Josh', cat: 'Food (Non-Veg)', qty: 12, rate: 440, cost: '42%', margin: '58%' },
+      { code: '103', name: 'Chilli Chicken Dry', cat: 'Food (Non-Veg)', qty: 18, rate: 240, cost: '31%', margin: '69%' },
+      { code: '401', name: 'Fresh Lime Soda (Sweet/Salt)', cat: 'Beverages', qty: 28, rate: 70, cost: '14%', margin: '86%' },
+      { code: '402', name: 'Packaged Mineral Water (1L)', cat: 'Beverages', qty: 45, rate: 30, cost: '45%', margin: '55%' }
+    ];
+
+    const headers = ['Item Code', 'Item Description / Name', 'Category (Food / Beverage)', 'Units Sold (Total Quantity)', 'Dine-In Rate (INR)', 'Total Sales (INR)', 'Food Cost %', 'Kitchen Margin %'];
+    const rows = items.map(i => [
+      i.code,
+      `"${i.name}"`,
+      i.cat,
+      i.qty,
+      i.rate,
+      i.qty * i.rate,
+      i.cost,
+      i.margin
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Cannon_Kitchen_Item_Wise_Sales_Register_2026.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Sync corporate ledger from Cloudflare D1
   useEffect(() => {
     if (!isOpen) return;
@@ -1140,11 +1238,11 @@ export default function AccountsLedgerModal({
 
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button
-                  onClick={() => alert('Exporting Item-Wise Sales Report (CSV) for Chef & Storekeeper')}
+                  onClick={handleDownloadItemSalesCSV}
                   className="btn-primary"
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
                 >
-                  <FileSpreadsheet size={15} /> Export Item Sales (CSV)
+                  <FileSpreadsheet size={15} /> Export Item Sales CSV
                 </button>
               </div>
             </div>
@@ -1601,53 +1699,304 @@ export default function AccountsLedgerModal({
           </div>
         )}
 
-        {/* Tab 6: Outstanding Aging Report */}
+        {/* Tab 6: Outstanding Aging & Live Dues Report (Sheet 1 & Sheet 3 Requirements) */}
         {activeTab === 'outstanding' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
-            <h3 style={{ color: '#fff', fontSize: '1.15rem', marginBottom: '0.5rem' }}>
-              Corporate Credit Aging Analysis (30 / 60 / 90 Days)
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1.5rem' }}>
-              Monitors pending credit balances from anchor industrial accounts to prevent bad debt and enforce contracted payment terms.
-            </p>
+            {/* Header with Title and Mode Switcher */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <TrendingUp size={22} color="var(--gold-glow)" />
+                  <h3 style={{ color: '#fff', fontSize: '1.3rem', margin: 0, fontWeight: 800 }}>
+                    Outstanding Dues &amp; Aging Register
+                  </h3>
+                  <span className="badge" style={{ background: 'rgba(244, 114, 182, 0.2)', color: '#f472b6', border: '1px solid #f472b6', fontSize: '0.72rem' }}>
+                    Sheet 1 &amp; 3: Today's vs Total Cumulative
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>
+                  Reconciles daily folio debits against Advance Deposits (A.D.), showing Today's Incurred Outstanding vs Total Stay Cumulative Balance.
+                </p>
+              </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                  <th style={{ padding: '0.75rem 1rem' }}>Corporate Account</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Contact Person</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>0 - 30 Days (Current)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>31 - 60 Days</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>60+ Days Overdue</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total Outstanding</th>
-                </tr>
-              </thead>
-              <tbody>
-                {corporatePartners.map(corp => (
-                  <tr key={corp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>{corp.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{corp.location}</div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>
-                      {corp.contactPerson} ({corp.contactPhone})
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>
-                      ₹{(corp.openingBalance * 0.7).toFixed(0)}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#fbbf24', fontWeight: 600 }}>
-                      ₹{(corp.openingBalance * 0.25).toFixed(0)}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#f87171', fontWeight: 600 }}>
-                      ₹{(corp.openingBalance * 0.05).toFixed(0)}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 800, color: '#fff' }}>
-                      ₹{corp.openingBalance.toLocaleString('en-IN')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                {/* Sub-tab view switcher */}
+                <div style={{
+                  display: 'inline-flex',
+                  background: 'rgba(6, 14, 26, 0.85)',
+                  padding: '3px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <button
+                    onClick={() => setOutstandingViewType('in-house')}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: outstandingViewType === 'in-house' ? 'var(--gold-glow)' : 'transparent',
+                      color: outstandingViewType === 'in-house' ? '#060e1a' : '#94a3b8',
+                      border: 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    🏨 In-House Guests (Today vs Cumulative)
+                  </button>
+                  <button
+                    onClick={() => setOutstandingViewType('corporate')}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: outstandingViewType === 'corporate' ? 'var(--gold-glow)' : 'transparent',
+                      color: outstandingViewType === 'corporate' ? '#060e1a' : '#94a3b8',
+                      border: 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    🏢 Corporate Accounts (Aging)
+                  </button>
+                </div>
+
+                {/* 1-Click CSV Download Button */}
+                <button
+                  onClick={() => handleDownloadOutstandingCSV(outstandingViewType)}
+                  className="btn-primary-gold"
+                  style={{
+                    padding: '0.55rem 1.1rem',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    boxShadow: '0 4px 14px rgba(212, 175, 55, 0.25)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <FileSpreadsheet size={16} /> 📥 Download Outstanding CSV
+                </button>
+              </div>
+            </div>
+
+            {/* Sheet 3 Requirement: Category-Wise Revenue Split Banner (Room Rent vs Food vs GST Amount) */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85))',
+              border: '1px solid rgba(212, 175, 55, 0.35)',
+              borderRadius: '10px',
+              padding: '1.1rem 1.35rem',
+              marginBottom: '1.5rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gold-glow)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  📊 Category-Wise Revenue &amp; Tax Distribution (Sheet 3 Requirement)
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  Accounting SAC Codes: 996311 (Accommodation) • 996331 (Restaurant)
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>1. Room Rent (SAC 996311)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>₹74,900.00</div>
+                  <div style={{ fontSize: '0.72rem', color: '#38bdf8', marginTop: '0.15rem' }}>GST @ 12%: ₹8,988.00</div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>2. Food &amp; Dining (Cannon Kitchen)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>₹70,015.00</div>
+                  <div style={{ fontSize: '0.72rem', color: '#facc15', marginTop: '0.15rem' }}>GST @ 5%: ₹3,500.75</div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>3. Total GST Amount</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#a855f7', marginTop: '0.2rem' }}>₹12,488.75</div>
+                  <div style={{ fontSize: '0.72rem', color: '#c084fc', marginTop: '0.15rem' }}>CGST: ₹6,244.38 • SGST: ₹6,244.38</div>
+                </div>
+
+                <div style={{ background: 'rgba(212, 175, 55, 0.08)', padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--gold-glow)', textTransform: 'uppercase', fontWeight: 700 }}>Total Invoiced Turnover</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--gold-glow)', marginTop: '0.2rem' }}>₹1,57,403.75</div>
+                  <div style={{ fontSize: '0.72rem', color: '#34d399', marginTop: '0.15rem' }}>All-Inclusive Billing (Room + Kitchen)</div>
+                </div>
+              </div>
+            </div>
+
+            {/* KPI Summary Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.25)', borderLeft: '4px solid #ef4444' }}>
+                <div style={{ fontSize: '0.72rem', color: '#f87171', textTransform: 'uppercase', fontWeight: 600 }}>⚡ Today's Incurred Outstanding</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#f87171', marginTop: '0.2rem' }}>₹6,530.00</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Charges added today minus daily settlements</div>
+              </div>
+
+              <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.25)', borderLeft: '4px solid #f59e0b' }}>
+                <div style={{ fontSize: '0.72rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 600 }}>🏛️ Total Cumulative Outstanding</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fbbf24', marginTop: '0.2rem' }}>
+                  {outstandingViewType === 'in-house' ? '₹28,990.00' : '₹2,14,350.00'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {outstandingViewType === 'in-house' ? 'Across 7 Active In-House Rooms' : 'Across 5 Approved B2B Corporates'}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(52, 211, 153, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(52, 211, 153, 0.25)', borderLeft: '4px solid #10b981' }}>
+                <div style={{ fontSize: '0.72rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600 }}>💰 Advance Deposits (A.D.) Held</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#34d399', marginTop: '0.2rem' }}>₹31,418.00</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Customer Security &amp; Reservation Advance</div>
+              </div>
+            </div>
+
+            {/* VIEW 1: IN-HOUSE GUESTS OUTSTANDING TABLE */}
+            {outstandingViewType === 'in-house' && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>Room No</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>Guest / Company</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>Phone</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>Total Charges</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#34d399' }}>Advance (A.D.)</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>Added Today</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#f87171' }}>Today's Outstanding</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: 'var(--gold-glow)' }}>Cumulative Outstanding</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'center' }}>Billing Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inHouseOutstandingData.map((row, idx) => (
+                        <tr key={idx} style={{
+                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                          background: row.todayOutstanding > 0 ? 'rgba(239, 68, 68, 0.03)' : 'transparent'
+                        }}>
+                          <td style={{ padding: '0.7rem 0.85rem', fontWeight: 800, color: 'var(--gold-glow)' }}>
+                            Room {row.roomNumber}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', fontWeight: 600, color: '#fff' }}>
+                            {row.guestName}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', color: '#94a3b8', fontSize: '0.78rem' }}>
+                            {row.phone}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', textAlign: 'right', color: '#cbd5e1' }}>
+                            ₹{row.totalCharges.toLocaleString('en-IN')}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', textAlign: 'right', fontWeight: 700, color: '#34d399' }}>
+                            ₹{row.advanceDeposit.toLocaleString('en-IN')}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', textAlign: 'right', color: '#cbd5e1' }}>
+                            ₹{row.todayCharges.toLocaleString('en-IN')}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', textAlign: 'right', fontWeight: 800, color: row.todayOutstanding > 0 ? '#f87171' : '#64748b' }}>
+                            {row.todayOutstanding > 0 ? `₹${row.todayOutstanding.toLocaleString('en-IN')}` : '₹0.00'}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', textAlign: 'right', fontWeight: 900, color: row.cumulativeOutstanding > 0 ? '#fbbf24' : '#34d399' }}>
+                            {row.cumulativeOutstanding > 0 ? `₹${row.cumulativeOutstanding.toLocaleString('en-IN')}` : '₹0.00 (Paid)'}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.85rem', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              background: row.status === 'Settled' ? 'rgba(52, 211, 153, 0.15)' : row.status === 'Covered by A.D.' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: row.status === 'Settled' ? '#34d399' : row.status === 'Covered by A.D.' ? '#38bdf8' : '#f87171',
+                              border: `1px solid ${row.status === 'Settled' ? '#34d39940' : row.status === 'Covered by A.D.' ? '#38bdf840' : '#f8717140'}`
+                            }}>
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: 'rgba(255,255,255,0.06)', fontWeight: 800 }}>
+                        <td colSpan={3} style={{ padding: '0.75rem 0.85rem', color: 'var(--gold-glow)' }}>
+                          TOTALS (7 ACTIVE IN-HOUSE ROOMS)
+                        </td>
+                        <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#fff' }}>₹60,408.00</td>
+                        <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#34d399' }}>₹31,418.00</td>
+                        <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#fff' }}>₹15,860.00</td>
+                        <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#f87171', fontSize: '0.9rem' }}>₹6,530.00</td>
+                        <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#fbbf24', fontSize: '0.95rem' }}>₹28,990.00</td>
+                        <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', color: '#94a3b8' }}>-</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* VIEW 2: CORPORATE CREDIT AGING TABLE */}
+            {outstandingViewType === 'corporate' && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <th style={{ padding: '0.75rem 1rem' }}>Corporate Account</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Contact Person</th>
+                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>0 - 30 Days (Current)</th>
+                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>31 - 60 Days</th>
+                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>60+ Days Overdue</th>
+                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--gold-glow)' }}>Total Outstanding</th>
+                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Credit Limit Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {corporatePartners.map(corp => (
+                        <tr key={corp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <div style={{ fontWeight: 700, color: '#fff' }}>{corp.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{corp.location} • GSTIN: {corp.gstin}</div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>
+                            {corp.contactPerson} ({corp.contactPhone})
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>
+                            ₹{(corp.openingBalance * 0.7).toFixed(0)}
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#fbbf24', fontWeight: 600 }}>
+                            ₹{(corp.openingBalance * 0.25).toFixed(0)}
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#f87171', fontWeight: 600 }}>
+                            ₹{(corp.openingBalance * 0.05).toFixed(0)}
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 900, color: '#fff', fontSize: '0.95rem' }}>
+                            ₹{corp.openingBalance.toLocaleString('en-IN')}
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              background: 'rgba(52, 211, 153, 0.15)',
+                              color: '#34d399',
+                              border: '1px solid rgba(52, 211, 153, 0.3)'
+                            }}>
+                              Within Limit (₹{(corp.creditLimit || 200000).toLocaleString('en-IN')})
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

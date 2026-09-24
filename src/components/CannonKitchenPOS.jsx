@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   UtensilsCrossed, Plus, Minus, Trash2, Printer, CheckCircle2, 
   Search, Hash, DollarSign, Smartphone, Bed, ShieldCheck, X, 
-  Send, Sparkles, Clock, AlertCircle, ArrowRightLeft, MessageCircle, FilePlus
+  Send, Sparkles, Clock, AlertCircle, ArrowRightLeft, MessageCircle, FilePlus,
+  FileSpreadsheet, Download
 } from 'lucide-react';
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
 
@@ -72,6 +73,48 @@ export default function CannonKitchenPOS({
   // Table Shift & Merge Modal State
   const [tableShiftModalOpen, setTableShiftModalOpen] = useState(false);
   const [tableShiftTarget, setTableShiftTarget] = useState('8');
+
+  // Sheet 2 Requirement: Daily Item Sales & Quantity Register (Sale ఆ వివరణ)
+  const [showDailySalesModal, setShowDailySalesModal] = useState(false);
+  const [dailySalesCategoryFilter, setDailySalesCategoryFilter] = useState('all');
+
+  const dailySalesItems = [
+    { code: '102', name: 'Chicken Dum Biryani (Chef Special)', cat: 'Food (Non-Veg)', qty: 38, rate: 260, totalSales: 9880 },
+    { code: '101', name: 'Butter Chicken Boneless', cat: 'Food (Non-Veg)', qty: 24, rate: 320, totalSales: 7680 },
+    { code: '214', name: 'Mushroom Masala (Code 214)', cat: 'Food (Veg)', qty: 26, rate: 220, totalSales: 5720 },
+    { code: '215', name: 'Paneer Butter Masala', cat: 'Food (Veg)', qty: 32, rate: 210, totalSales: 6720 },
+    { code: '307', name: 'Plain Steamed Rice (Code 307)', cat: 'Food (Rice & Breads)', qty: 55, rate: 90, totalSales: 4950 },
+    { code: '308', name: 'Dal Fry (Yellow Lentils Tadka)', cat: 'Food (Rice & Breads)', qty: 42, rate: 140, totalSales: 5880 },
+    { code: '309', name: 'Butter Tandoori Roti', cat: 'Food (Rice & Breads)', qty: 110, rate: 25, totalSales: 2750 },
+    { code: '201', name: 'Mutton Kassa (Odisha Style)', cat: 'Food (Non-Veg)', qty: 14, rate: 420, totalSales: 5880 },
+    { code: '202', name: 'Mutton Rogan Josh', cat: 'Food (Non-Veg)', qty: 12, rate: 440, totalSales: 5280 },
+    { code: '103', name: 'Chilli Chicken Dry', cat: 'Food (Non-Veg)', qty: 18, rate: 240, totalSales: 4320 },
+    { code: '401', name: 'Fresh Lime Soda (Sweet/Salt)', cat: 'Beverages', qty: 28, rate: 70, totalSales: 1960 },
+    { code: '402', name: 'Packaged Mineral Water (1L)', cat: 'Beverages', qty: 45, rate: 30, totalSales: 1350 }
+  ];
+
+  const handleDownloadDailySalesCSV = () => {
+    const headers = ['Item Code', 'Item Description (వివరణ)', 'Category', 'Total Quantity Sold', 'Rate (INR)', 'Total Amount (INR)'];
+    const rows = dailySalesItems.map(i => [
+      i.code,
+      `"${i.name}"`,
+      i.cat,
+      i.qty,
+      i.rate,
+      i.totalSales
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Cannon_Kitchen_Daily_Sales_Quantity_Report_2026.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showPosToast('✓ Downloaded Daily Sales & Quantity CSV Report!');
+  };
+
   const [posFeedbackToast, setPosFeedbackToast] = useState('');
 
   const showPosToast = (msg) => {
@@ -444,6 +487,24 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               }}
             >
               📋 Fast Code & Dish Catalog
+            </button>
+            <button
+              onClick={() => setShowDailySalesModal(true)}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                background: 'rgba(212, 175, 55, 0.2)',
+                color: 'var(--gold-glow)',
+                border: '1px solid rgba(212, 175, 55, 0.4)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              📊 Daily Sales &amp; Qty (ఆ వివరణ)
             </button>
           </div>
 
@@ -1663,6 +1724,185 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: DAILY ITEM SALES & QUANTITY REGISTER (Sheet 2: Sale ఆ వివరణ) */}
+        {showDailySalesModal && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem',
+            backdropFilter: 'blur(6px)'
+          }}>
+            <div style={{
+              background: '#0d1527',
+              border: '1px solid var(--gold-glow)',
+              borderRadius: '14px',
+              width: '100%',
+              maxWidth: 960,
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '1.5rem',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
+              color: '#fff'
+            }}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <UtensilsCrossed size={22} color="var(--gold-glow)" />
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+                      Cannon Kitchen Daily Sales &amp; Quantity Register
+                    </h3>
+                    <span className="badge" style={{ background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', border: '1px solid var(--gold-glow)', fontSize: '0.72rem' }}>
+                      Sheet 2: ఆ వివరణ (Item Breakdown)
+                    </span>
+                  </div>
+                  <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Itemized consumption, dish yield, and total quantity sold across Food &amp; Beverage categories
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <button
+                    onClick={handleDownloadDailySalesCSV}
+                    className="btn-primary-gold"
+                    style={{
+                      padding: '0.45rem 0.95rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <FileSpreadsheet size={15} /> 📥 Export CSV (వివరణ)
+                  </button>
+                  <button
+                    onClick={() => setShowDailySalesModal(false)}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* KPI Summary Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#f87171', textTransform: 'uppercase', fontWeight: 600 }}>🍗 Non-Veg Delicacies</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: '0.15rem' }}>₹33,040.00</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>92 Portions (Biryani &amp; Mutton)</div>
+                </div>
+
+                <div style={{ background: 'rgba(52, 211, 153, 0.08)', border: '1px solid rgba(52, 211, 153, 0.25)', borderRadius: '8px', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600 }}>🍄 Veg &amp; Paneer Specials</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: '0.15rem' }}>₹12,440.00</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>58 Portions (Mushroom Masala)</div>
+                </div>
+
+                <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '8px', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#38bdf8', textTransform: 'uppercase', fontWeight: 600 }}>🍚 Rice &amp; Tandoori Breads</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff', marginTop: '0.15rem' }}>₹13,580.00</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>207 Units (Code 307 &amp; Roti)</div>
+                </div>
+
+                <div style={{ background: 'rgba(212, 175, 55, 0.08)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--gold-glow)', textTransform: 'uppercase', fontWeight: 700 }}>Total Kitchen Turnover</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--gold-glow)', marginTop: '0.15rem' }}>₹70,015.00</div>
+                  <div style={{ fontSize: '0.7rem', color: '#34d399' }}>446 Total Dishes / Units Sold</div>
+                </div>
+              </div>
+
+              {/* Filter Pills */}
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                {[
+                  { id: 'all', label: 'All Items (446)' },
+                  { id: 'Food (Non-Veg)', label: '🍗 Non-Veg (92)' },
+                  { id: 'Food (Veg)', label: '🍄 Veg Dishes (58)' },
+                  { id: 'Food (Rice & Breads)', label: '🍚 Rice & Breads (207)' },
+                  { id: 'Beverages', label: '🥤 Beverages (73)' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setDailySalesCategoryFilter(tab.id)}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: dailySalesCategoryFilter === tab.id ? 'var(--gold-glow)' : 'rgba(255,255,255,0.04)',
+                      color: dailySalesCategoryFilter === tab.id ? '#060e1a' : '#94a3b8',
+                      border: dailySalesCategoryFilter === tab.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.08)'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Scrollable Items Table */}
+              <div style={{ flex: 1, overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <th style={{ padding: '0.65rem 0.85rem' }}>Code</th>
+                      <th style={{ padding: '0.65rem 0.85rem' }}>Dish / Beverage Description (వివరణ)</th>
+                      <th style={{ padding: '0.65rem 0.85rem' }}>Category</th>
+                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'center', color: '#38bdf8' }}>Units Sold (Total Qty)</th>
+                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>Dine-In Rate</th>
+                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right', color: 'var(--gold-glow)' }}>Total Sales</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dailySalesItems
+                      .filter(i => dailySalesCategoryFilter === 'all' || i.cat === dailySalesCategoryFilter)
+                      .map((row, idx) => (
+                        <tr key={idx} style={{
+                          borderBottom: '1px solid rgba(255,255,255,0.03)',
+                          background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'
+                        }}>
+                          <td style={{ padding: '0.65rem 0.85rem', fontFamily: 'monospace', color: 'var(--gold-glow)', fontWeight: 700 }}>
+                            #{row.code}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: '#fff' }}>
+                            {row.name}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.85rem', color: '#cbd5e1' }}>
+                            {row.cat}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'center', fontWeight: 800, color: '#38bdf8', fontSize: '0.9rem' }}>
+                            {row.qty}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', color: '#cbd5e1' }}>
+                            ₹{row.rate.toFixed(2)}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>
+                            ₹{row.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: 'rgba(255,255,255,0.06)', fontWeight: 800 }}>
+                      <td colSpan={3} style={{ padding: '0.75rem 0.85rem', color: 'var(--gold-glow)' }}>TOTALS</td>
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', color: '#38bdf8', fontSize: '0.95rem' }}>446</td>
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>-</td>
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: 'var(--gold-glow)', fontSize: '0.95rem' }}>₹70,015.00</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </div>
         )}

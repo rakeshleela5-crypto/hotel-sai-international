@@ -38,7 +38,12 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
 
   const { base, cgst, sgst, total, advance, balanceDue } = calculateTaxes();
 
-  const billNo = booking.billNo || `FMBIL2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`;
+  // Sheet 1 Requirement: Non-GST Billing Series (NGST2627-XXXX) vs GST Tax Invoice (FMBIL2627-XXXX)
+  const [isNonGstBill, setIsNonGstBill] = useState(false);
+  const gstBillNo = booking.billNo || `FMBIL2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`;
+  const nonGstBillNo = `NGST2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`;
+  const effectiveBillNo = isNonGstBill ? nonGstBillNo : gstBillNo;
+  const billNo = effectiveBillNo;
   const foodBillNo = `FMBIL2627-${String(Number(booking.roomNumber || 1499) + 1).padStart(5, '0')}`;
   const planCode = booking.mealPlan || booking.plan || 'CP';
   const grcNo = booking.grcNo || '684';
@@ -132,6 +137,52 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
             width: '100%',
             WebkitOverflowScrolling: 'touch'
           }}>
+            {/* Sheet 1: GST vs Non-GST Billing Series Selector */}
+            <div style={{
+              display: 'inline-flex',
+              background: 'rgba(0,0,0,0.5)',
+              padding: '2px',
+              borderRadius: '6px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              marginRight: '6px',
+              flexShrink: 0
+            }}>
+              <button
+                type="button"
+                onClick={() => setIsNonGstBill(false)}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: !isNonGstBill ? 'var(--gold-glow)' : 'transparent',
+                  color: !isNonGstBill ? '#060e1a' : '#94a3b8',
+                  border: 'none',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                🏛️ GST Bill (FMBIL)
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsNonGstBill(true)}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: isNonGstBill ? '#38bdf8' : 'transparent',
+                  color: isNonGstBill ? '#060e1a' : '#94a3b8',
+                  border: 'none',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                📜 Non-GST Bill (NGST)
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={() => setInvoiceType('a4')}
@@ -333,9 +384,17 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
           <div className="tax-invoice-sheet">
             <div className="sheet-header">
               <div className="header-left">
-                <span className="page-mark">ORIGINAL FOR RECIPIENT / GUEST COPY</span>
-                <h1 className="tax-invoice-title" style={{ letterSpacing: '1px' }}>TAX INVOICE / GUEST FOLIO</h1>
-                <div className="copy-type">Rule 46 of CGST / OGST Rules, 2017</div>
+                <span className="page-mark">
+                  {isNonGstBill ? 'ORIGINAL FOR RECIPIENT / NON-GST BILL' : 'ORIGINAL FOR RECIPIENT / GUEST COPY'}
+                </span>
+                <h1 className="tax-invoice-title" style={{ letterSpacing: '1px' }}>
+                  {isNonGstBill ? 'NON-GST BILL / BILL OF SUPPLY' : 'TAX INVOICE / GUEST FOLIO'}
+                </h1>
+                <div className="copy-type">
+                  {isNonGstBill 
+                    ? 'Section 31(3)(c) of CGST / OGST Rules (Non-Taxable & Exempt Supplies)' 
+                    : 'Rule 46 of CGST / OGST Rules, 2017'}
+                </div>
               </div>
               <div className="header-right">
                 <div className="hotel-brand-block">
@@ -414,16 +473,18 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               </div>
             </div>
 
+            {/* Sheet 1: Explicit Taxable vs Non-Taxable Columns & Non-GST Billing Support */}
             <table className="ledger-table">
               <thead>
                 <tr>
-                  <th style={{ width: '35px' }}>#</th>
+                  <th style={{ width: '30px' }}>#</th>
                   <th>Date &amp; Service Particulars</th>
-                  <th style={{ width: '75px', textAlign: 'center' }}>SAC</th>
-                  <th style={{ width: '55px', textAlign: 'center' }}>Qty</th>
-                  <th className="th-amount" style={{ width: '95px' }}>Rate (₹)</th>
-                  <th className="th-amount" style={{ width: '85px' }}>Disc (₹)</th>
-                  <th className="th-amount" style={{ width: '105px' }}>Taxable Val (₹)</th>
+                  <th style={{ width: '65px', textAlign: 'center' }}>SAC</th>
+                  <th style={{ width: '45px', textAlign: 'center' }}>Qty</th>
+                  <th className="th-amount" style={{ width: '85px' }}>Rate (₹)</th>
+                  <th className="th-amount" style={{ width: '95px' }}>Taxable Val (₹)</th>
+                  <th className="th-amount" style={{ width: '105px' }}>Non-Taxable (₹)</th>
+                  <th className="th-amount" style={{ width: '95px' }}>Line Total (₹)</th>
                 </tr>
               </thead>
               <tbody>
@@ -438,7 +499,8 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                   <td style={{ textAlign: 'center' }}>996311</td>
                   <td style={{ textAlign: 'center' }}>4</td>
                   <td className="text-right">₹2,999.00</td>
-                  <td className="text-right">₹0.00</td>
+                  <td className="text-right">{isNonGstBill ? '₹0.00' : '₹11,996.00'}</td>
+                  <td className="text-right">{isNonGstBill ? '₹11,996.00' : '₹0.00'}</td>
                   <td className="text-right">₹11,996.00</td>
                 </tr>
                 <tr>
@@ -452,26 +514,47 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                   <td style={{ textAlign: 'center' }}>996331</td>
                   <td style={{ textAlign: 'center' }}>3</td>
                   <td className="text-right">₹300.00 avg</td>
-                  <td className="text-right">₹0.00</td>
+                  <td className="text-right">{isNonGstBill ? '₹0.00' : '₹900.00'}</td>
+                  <td className="text-right">{isNonGstBill ? '₹900.00' : '₹0.00'}</td>
                   <td className="text-right">₹900.00</td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Taxable Base:</td>
-                  <td className="text-right" style={{ fontWeight: 'bold' }}>₹12,896.00</td>
+                  <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Taxable Base (₹):</td>
+                  <td className="text-right" style={{ fontWeight: 'bold' }}>{isNonGstBill ? '₹0.00' : '₹12,896.00'}</td>
                 </tr>
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'right' }}>Central GST (CGST @ 2.5%):</td>
-                  <td className="text-right">₹320.92</td>
+                  <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Non-Taxable / Exempt Base (₹):</td>
+                  <td className="text-right" style={{ fontWeight: 'bold', color: isNonGstBill ? '#0284c7' : '#64748b' }}>{isNonGstBill ? '₹12,896.00' : '₹0.00'}</td>
                 </tr>
-                <tr>
-                  <td colSpan="6" style={{ textAlign: 'right' }}>Odisha State GST (SGST @ 2.5%):</td>
-                  <td className="text-right">₹320.92</td>
-                </tr>
+                {!isNonGstBill && (
+                  <>
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'right' }}>Central GST (CGST @ 2.5%):</td>
+                      <td className="text-right">₹320.92</td>
+                    </tr>
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'right' }}>Odisha State GST (SGST @ 2.5%):</td>
+                      <td className="text-right">₹320.92</td>
+                    </tr>
+                  </>
+                )}
+                {isNonGstBill && (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'right', color: '#64748b', fontStyle: 'italic', fontSize: '9.5px' }}>
+                      GST Exemption: Exempt / Non-GST Supply under Section 11 of CGST Act
+                    </td>
+                    <td className="text-right" style={{ color: '#64748b' }}>₹0.00 (Exempt)</td>
+                  </tr>
+                )}
                 <tr className="tfoot-round">
-                  <td colSpan="6" style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>CONSOLIDATED TOTAL (INR):</td>
-                  <td className="text-right text-net-amount">₹13,537.84</td>
+                  <td colSpan="7" style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>
+                    {isNonGstBill ? 'NON-GST BILL TOTAL (INR):' : 'CONSOLIDATED TOTAL (INR):'}
+                  </td>
+                  <td className="text-right text-net-amount">
+                    {isNonGstBill ? '₹12,896.00' : '₹13,537.84'}
+                  </td>
                 </tr>
               </tfoot>
             </table>
@@ -479,7 +562,9 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
             <div className="in-words-row">
               <span className="in-words-label">Amount in Words:</span>
               <span className="in-words-value">
-                Indian Rupees Thirteen Thousand Five Hundred Thirty-Eight Only
+                {isNonGstBill 
+                  ? 'Indian Rupees Twelve Thousand Eight Hundred Ninety-Six Only' 
+                  : 'Indian Rupees Thirteen Thousand Five Hundred Thirty-Eight Only'}
               </span>
             </div>
 
