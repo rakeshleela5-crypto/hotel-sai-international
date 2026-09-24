@@ -75,3 +75,29 @@ export function playSuccessChime() {
     console.debug("Success chime suppressed:", err);
   }
 }
+
+export function playOrderAlert() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    // Kitchen Bell two-tone chime (High Bell D6 -> A6)
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1174.66, ctx.currentTime); // D6
+    osc.frequency.exponentialRampToValueAtTime(1760.00, ctx.currentTime + 0.12); // A6
+
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+  } catch (err) {
+    console.debug("Order alert chime suppressed:", err);
+  }
+}

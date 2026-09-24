@@ -1171,6 +1171,61 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ success: true, cardId });
     }
 
+    // 27. RESTAURANT: Update Food Order Status (Preparing, Out for Delivery, Delivered)
+    if (action === 'update_order_status') {
+      const { orderId, status } = payload;
+      await db.prepare(`
+        UPDATE food_orders 
+        SET status = ? 
+        WHERE order_id = ?
+      `).bind(status, orderId).run().catch(() => {});
+
+      return jsonResponse({ success: true, orderId, status });
+    }
+
+    // 28. HOUSEKEEPING: Update Room Service Request Status
+    if (action === 'update_room_service_status') {
+      const { requestId, status } = payload;
+      const isResolved = status === 'Completed' || status === 'Resolved';
+      await db.prepare(`
+        UPDATE room_service_requests 
+        SET status = ?, resolved_at = ?
+        WHERE request_id = ?
+      `).bind(status, isResolved ? new Date().toISOString() : null, requestId).run().catch(() => {});
+
+      return jsonResponse({ success: true, requestId, status });
+    }
+
+    // 29. STAFF: Record Attendance Entry
+    if (action === 'record_staff_attendance') {
+      const { staffId, date, status, shift } = payload;
+      await db.prepare(`
+        INSERT OR REPLACE INTO attendance (id, staff_id, date, status, shift)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(`ATT-${staffId}-${date}`, staffId, date, status || 'Present', shift || 'Morning').run().catch(() => {});
+
+      return jsonResponse({ success: true, staffId, date, status });
+    }
+
+    // 30. DISASTER RECOVERY: Restore Database Backup
+    if (action === 'restore_database_backup') {
+      const data = payload;
+      let restoredCount = 0;
+
+      if (Array.isArray(data.rooms) && data.rooms.length > 0) {
+        for (const r of data.rooms) {
+          await db.prepare(`
+            UPDATE rooms 
+            SET status = ?, current_guest_name = ?, current_booking_id = ?
+            WHERE room_number = ?
+          `).bind(r.status || 'Available', r.currentGuestName || null, r.currentBookingId || null, r.roomNumber || r.room_number).run().catch(() => {});
+          restoredCount++;
+        }
+      }
+
+      return jsonResponse({ success: true, message: `Database state restored (${restoredCount} rooms synchronized)` });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error) {

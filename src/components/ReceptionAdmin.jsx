@@ -5,7 +5,8 @@ import {
   Search, RefreshCw, UserCheck, Phone, FileText, Sparkles, 
   Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
   Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle,
-  ArrowRightLeft, Edit3, MessageCircle, TrendingUp
+  ArrowRightLeft, Edit3, MessageCircle, TrendingUp, QrCode, Database,
+  BellRing
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -14,6 +15,12 @@ import FolioActionsModal from './FolioActionsModal';
 import BookingReceiptModal from './BookingReceiptModal';
 import CheckoutSplitModal from './CheckoutSplitModal';
 import InteractiveCalendar from '@/components/ui/visualize-booking';
+import RoomQrModal from './RoomQrModal';
+import BackupRestoreModal from './BackupRestoreModal';
+import LiveOrdersDrawerModal from './LiveOrdersDrawerModal';
+import RoomServicesCareModal from './RoomServicesCareModal';
+import LinenRoomAssetsSection from './LinenRoomAssetsSection';
+import StaffPayrollSection from './StaffPayrollSection';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
 const FREQUENT_VIP_GUESTS = [
@@ -68,6 +75,180 @@ export default function ReceptionAdmin({
       tenders: { cash: 500, upi: 462, upiRef: 'UPI-849102', upiProvider: 'PhonePe', card: 0, btc: 0 }
     }
   ]);
+
+  // Operational Modals: Room QR, Backup JSON, Live Food Orders, Room Services Care
+  const [roomQrOpen, setRoomQrOpen] = useState(false);
+  const [selectedRoomForQr, setSelectedRoomForQr] = useState('101');
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [liveOrdersOpen, setLiveOrdersOpen] = useState(false);
+  const [roomServicesCareOpen, setRoomServicesCareOpen] = useState(false);
+
+  // Live Food Orders & Room Services Data State (2 New, 4 Pending defaults matching live reference)
+  const [foodOrdersList, setFoodOrdersList] = useState([
+    {
+      orderId: 'KOT-8491',
+      roomNumber: '204',
+      guestName: 'BIJAY PASWAN',
+      outlet: 'Cannon Kitchen',
+      status: 'Received',
+      items: [
+        { name: 'Paneer Butter Masala', quantity: 1, price: 240 },
+        { name: 'Butter Tandoori Roti', quantity: 4, price: 30 },
+        { name: 'Jeera Rice', quantity: 1, price: 160 }
+      ],
+      totalAmount: 520,
+      is_jain_satvik: 0,
+      created_at: new Date(Date.now() - 6 * 60000).toISOString()
+    },
+    {
+      orderId: 'KOT-8492',
+      roomNumber: '302',
+      guestName: 'UTKARSH SRIVASTAVA',
+      outlet: 'Cannon Kitchen',
+      status: 'Received',
+      items: [
+        { name: 'Dal Tadka (Satvik Pure Veg)', quantity: 1, price: 180 },
+        { name: 'Steamed Basmati Rice', quantity: 2, price: 90 },
+        { name: 'Curd & Salad Platter', quantity: 1, price: 80 }
+      ],
+      totalAmount: 440,
+      is_jain_satvik: 1,
+      created_at: new Date(Date.now() - 2 * 60000).toISOString()
+    }
+  ]);
+
+  const [roomServicesList, setRoomServicesList] = useState([
+    {
+      requestId: 'REQ-1092',
+      roomNumber: '105',
+      serviceType: 'Extra Water',
+      description: 'Guest requested 2 extra Kinley water bottles and clean glasses',
+      priority: 'Normal',
+      status: 'Pending',
+      assignedStaff: 'Babula Sahu',
+      requestedAt: new Date(Date.now() - 15 * 60000).toISOString()
+    },
+    {
+      requestId: 'REQ-1093',
+      roomNumber: '202',
+      serviceType: 'Linen Change',
+      description: 'Replace king bedsheet and 2 fresh terry bath towels',
+      priority: 'Normal',
+      status: 'Pending',
+      assignedStaff: 'Anita Majhi',
+      requestedAt: new Date(Date.now() - 25 * 60000).toISOString()
+    },
+    {
+      requestId: 'REQ-1094',
+      roomNumber: '308',
+      serviceType: 'Maintenance',
+      description: 'Geyser pilot light checked, guest requested hot water verification',
+      priority: 'High',
+      status: 'Pending',
+      assignedStaff: 'Kailash Sabar',
+      requestedAt: new Date(Date.now() - 8 * 60000).toISOString()
+    },
+    {
+      requestId: 'REQ-1095',
+      roomNumber: '401',
+      serviceType: 'Toiletries',
+      description: 'VIP Suite: Extra Ayurvedic soap, shampoo kit and herbal dental set',
+      priority: 'Urgent',
+      status: 'Pending',
+      assignedStaff: 'Anita Majhi',
+      requestedAt: new Date(Date.now() - 3 * 60000).toISOString()
+    }
+  ]);
+
+  const handleUpdateFoodOrderStatus = (orderId, newStatus) => {
+    setFoodOrdersList(prev => prev.map(o => {
+      if ((o.order_id || o.orderId) === orderId) {
+        return { ...o, status: newStatus };
+      }
+      return o;
+    }));
+
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'update_order_status',
+        payload: { orderId, status: newStatus }
+      })
+    }).catch(err => console.warn('Order status sync fallback:', err));
+
+    setFeedbackToast(`Order #${orderId} marked as ${newStatus}`);
+  };
+
+  const handleBillToRoomFromLiveOrders = (payload) => {
+    if (onAddTransaction) {
+      onAddTransaction({
+        id: `TXN-${Date.now()}`,
+        roomNumber: payload.roomNumber,
+        category: 'Food & Beverage',
+        description: `KOT #${payload.orderId} - Cannon Kitchen In-Room Dining`,
+        amount: payload.totalAmount,
+        type: 'Charge',
+        date: new Date().toISOString()
+      });
+    }
+
+    setFoodOrdersList(prev => prev.map(o => {
+      if ((o.order_id || o.orderId) === payload.orderId) {
+        return { ...o, payment_status: 'Billed to Room', status: 'Delivered' };
+      }
+      return o;
+    }));
+
+    setFeedbackToast(`KOT #${payload.orderId} (₹${payload.totalAmount}) billed to Room ${payload.roomNumber} folio!`);
+  };
+
+  const handleAddRoomServiceRequest = (newReq) => {
+    setRoomServicesList(prev => [newReq, ...prev]);
+
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'place_room_service',
+        payload: newReq
+      })
+    }).catch(err => console.warn('Service request sync fallback:', err));
+
+    setFeedbackToast(`Service call logged for Room ${newReq.roomNumber}!`);
+  };
+
+  const handleUpdateRoomServiceStatus = (requestId, newStatus) => {
+    setRoomServicesList(prev => prev.map(r => {
+      if ((r.requestId || r.request_id) === requestId) {
+        return { ...r, status: newStatus };
+      }
+      return r;
+    }));
+
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'update_room_service_status',
+        payload: { requestId, status: newStatus }
+      })
+    }).catch(err => console.warn('Service status sync fallback:', err));
+
+    setFeedbackToast(`Service ticket #${requestId} marked as ${newStatus}`);
+  };
 
   const handleCheckoutConfirm = (payload) => {
     // 1. Release room to Vacant Dirty (Owner requirement: "automatic ga Dirty ani padatadi")
@@ -793,6 +974,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               icon: Utensils, 
               color: '#fbbf24', 
               desc: 'KOT Billing, In-Room Dining & POS',
+              badge: foodOrdersList.filter(o => o.status === 'Received').length > 0 ? `${foodOrdersList.filter(o => o.status === 'Received').length} New` : null,
+              badgeColor: '#ef4444',
               onClick: () => {
                 setActiveDepartment('restaurant');
                 if (onOpenRestaurantPOS) onOpenRestaurantPOS();
@@ -826,6 +1009,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               icon: Layers, 
               color: '#facc15', 
               desc: '39-Room Vacant Dirty Turnover',
+              badge: roomServicesList.filter(r => r.status === 'Pending').length > 0 ? `${roomServicesList.filter(r => r.status === 'Pending').length} Pending` : null,
+              badgeColor: '#f59e0b',
               onClick: () => {
                 setActiveDepartment('housekeeping');
                 setActiveTab('housekeeping');
@@ -848,7 +1033,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                   border: isSelected ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.07)',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
                 }}
               >
                 <div style={{
@@ -864,9 +1050,21 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 }}>
                   <Icon size={16} />
                 </div>
-                <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isSelected ? '#fff' : '#cbd5e1' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: isSelected ? '#fff' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     {dept.label}
+                    {dept.badge && (
+                      <span style={{
+                        background: dept.badgeColor,
+                        color: '#fff',
+                        fontSize: '0.65rem',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        fontWeight: 800
+                      }}>
+                        {dept.badge}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.68rem', color: isSelected ? 'var(--gold-glow)' : 'var(--text-muted)' }}>
                     {dept.desc}
@@ -898,27 +1096,85 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button 
+            onClick={() => { setSelectedRoomForQr('101'); setRoomQrOpen(true); }}
+            className="btn-outline-gold"
+            title="Generate In-Room Dining, Digital Keycard & Standee QR"
+            style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <QrCode size={15} color="var(--gold-glow)" /> Room QR
+          </button>
+          <button 
+            onClick={() => setBackupOpen(true)}
+            className="btn-outline-gold"
+            title="One-click Complete JSON Database Dump & Restore"
+            style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <Database size={15} color="#38bdf8" /> Backup JSON
+          </button>
+          <button 
+            onClick={() => setLiveOrdersOpen(true)}
+            className="btn-outline-gold"
+            title="View Real-Time Cannon Kitchen In-Room Dining Orders"
+            style={{ 
+              padding: '0.55rem 0.95rem', 
+              fontSize: '0.82rem', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.35rem',
+              borderColor: foodOrdersList.filter(o => o.status === 'Received').length > 0 ? '#ef4444' : undefined,
+              background: foodOrdersList.filter(o => o.status === 'Received').length > 0 ? 'rgba(239, 68, 68, 0.12)' : undefined
+            }}
+          >
+            <Utensils size={15} color="#fbbf24" /> Live Food Orders
+            {foodOrdersList.filter(o => o.status === 'Received').length > 0 && (
+              <span style={{ background: '#ef4444', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 800 }}>
+                {foodOrdersList.filter(o => o.status === 'Received').length} New
+              </span>
+            )}
+          </button>
+          <button 
+            onClick={() => setRoomServicesCareOpen(true)}
+            className="btn-outline-gold"
+            title="Manage Housekeeping, Extra Water, Linen & Maintenance Calls"
+            style={{ 
+              padding: '0.55rem 0.95rem', 
+              fontSize: '0.82rem', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.35rem',
+              borderColor: roomServicesList.filter(r => r.status === 'Pending').length > 0 ? '#f59e0b' : undefined,
+              background: roomServicesList.filter(r => r.status === 'Pending').length > 0 ? 'rgba(245, 158, 11, 0.12)' : undefined
+            }}
+          >
+            <BellRing size={15} color="#facc15" /> Room Services &amp; Care
+            {roomServicesList.filter(r => r.status === 'Pending').length > 0 && (
+              <span style={{ background: '#f59e0b', color: '#060e1a', padding: '1px 6px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 800 }}>
+                {roomServicesList.filter(r => r.status === 'Pending').length} Pending
+              </span>
+            )}
+          </button>
           <button 
             onClick={() => setBlockRoomOpen(true)}
             className="btn-outline-gold"
-            style={{ padding: '0.6rem 1.1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            <Ban size={15} color="#f87171" /> Block Room / Out of Order
+            <Ban size={15} color="#f87171" /> Block Room
           </button>
           <button 
             onClick={() => setWalkInOpen(true)}
             className="btn-primary-gold"
-            style={{ padding: '0.6rem 1.25rem', fontSize: '0.88rem' }}
+            style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem' }}
           >
-            <UserCheck size={16} /> Express Walk-In Check-In
+            <UserCheck size={15} /> Express Walk-In
           </button>
           <button 
             onClick={() => setActiveTab('cashier-audit')}
             className="btn-secondary-sapphire"
-            style={{ padding: '0.6rem 1.25rem', fontSize: '0.88rem' }}
+            style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem' }}
           >
-            <Clock size={16} /> Cashier Handover &amp; Night Audit
+            <Clock size={15} /> Night Audit
           </button>
         </div>
       </div>
@@ -926,7 +1182,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       {/* Navigation Sub-Tabs */}
       <div style={{
         display: 'flex',
-        gap: '0.5rem',
+        gap: '0.45rem',
         flexWrap: 'wrap',
         marginBottom: '1.75rem',
         background: 'rgba(6, 14, 26, 0.7)',
@@ -940,6 +1196,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           { id: 'occupancy-report', label: '📈 Occupancy Report (Day/Mo/Yr)' },
           { id: 'cashier-audit', label: '💰 Cashier Shift Handover & Night Audit' },
           { id: 'housekeeping', label: '🧹 Housekeeping & Linen Tracker' },
+          { id: 'linen-assets', label: '🧺 Linen & Room Assets (Part 3)' },
+          { id: 'staff-payroll', label: '👥 Staff Attendance & Payroll (Part 1)' },
           { id: 'police-register', label: '🚨 Sarai Act Police Register' },
           { id: 'dpdp', label: '🛡️ DPDP Act 2023 Compliance' }
         ].map(tab => (
@@ -947,13 +1205,15 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              padding: '0.6rem 1.1rem',
+              padding: '0.55rem 1rem',
               borderRadius: '8px',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: 600,
               background: activeTab === tab.id ? 'var(--gold-glow)' : 'transparent',
               color: activeTab === tab.id ? '#060e1a' : '#94a3b8',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              border: 'none',
+              cursor: 'pointer'
             }}
           >
             {tab.label}
@@ -1626,9 +1886,32 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           >
                             <div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fff' }}>
-                                  {room.roomNumber}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fff' }}>
+                                    {room.roomNumber}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedRoomForQr(room.roomNumber);
+                                      setRoomQrOpen(true);
+                                    }}
+                                    title={`Generate Room ${room.roomNumber} QR Standee, Key & Dining`}
+                                    style={{
+                                      background: 'rgba(212, 175, 55, 0.15)',
+                                      border: '1px solid var(--gold-glow)',
+                                      color: 'var(--gold-glow)',
+                                      padding: '1px 4px',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center'
+                                    }}
+                                  >
+                                    <QrCode size={11} />
+                                  </button>
+                                </div>
                                 <span style={{
                                   fontSize: '0.65rem',
                                   fontWeight: 800,
@@ -2044,9 +2327,32 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
-                              Room {room.roomNumber}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+                                Room {room.roomNumber}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedRoomForQr(room.roomNumber);
+                                  setRoomQrOpen(true);
+                                }}
+                                title={`Generate Room ${room.roomNumber} QR Standee & Key`}
+                                style={{
+                                  background: 'rgba(212, 175, 55, 0.15)',
+                                  border: '1px solid var(--gold-glow)',
+                                  color: 'var(--gold-glow)',
+                                  padding: '2px 5px',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <QrCode size={13} />
+                              </button>
+                            </div>
                             <span className={`badge-status badge-${(room.status || 'available').toLowerCase().replace(' ', '-')}`}>
                               {room.status}
                             </span>
@@ -3259,7 +3565,20 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </table>
             </div>
           </div>
+
+          {/* Part 3: Linen Par Stock & Room Asset Custody Embedded */}
+          <LinenRoomAssetsSection rooms={rooms} />
         </div>
+      )}
+
+      {/* TAB: LINEN & ROOM ASSETS (Part 3) */}
+      {activeTab === 'linen-assets' && (
+        <LinenRoomAssetsSection rooms={rooms} />
+      )}
+
+      {/* TAB: STAFF ATTENDANCE & PAYROLL (Part 1) */}
+      {activeTab === 'staff-payroll' && (
+        <StaffPayrollSection />
       )}
 
       {/* TAB 4: SARAI ACT POLICE REGISTER */}
@@ -4412,6 +4731,39 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           </div>
         </div>
       )}
+
+      {/* OPERATIONAL QUICK MODALS (Sri Sai Vasudev Residency Parity) */}
+      <RoomQrModal
+        isOpen={roomQrOpen}
+        onClose={() => setRoomQrOpen(false)}
+        initialRoomNumber={selectedRoomForQr}
+        rooms={rooms}
+      />
+
+      <BackupRestoreModal
+        isOpen={backupOpen}
+        onClose={() => setBackupOpen(false)}
+        rooms={rooms}
+        bookings={bookings}
+        onRestoreSuccess={() => setFeedbackToast("Database snapshot successfully restored from JSON!")}
+      />
+
+      <LiveOrdersDrawerModal
+        isOpen={liveOrdersOpen}
+        onClose={() => setLiveOrdersOpen(false)}
+        foodOrders={foodOrdersList}
+        onUpdateOrderStatus={handleUpdateFoodOrderStatus}
+        onBillToRoom={handleBillToRoomFromLiveOrders}
+      />
+
+      <RoomServicesCareModal
+        isOpen={roomServicesCareOpen}
+        onClose={() => setRoomServicesCareOpen(false)}
+        rooms={rooms}
+        serviceRequests={roomServicesList}
+        onAddRequest={handleAddRoomServiceRequest}
+        onUpdateRequestStatus={handleUpdateRoomServiceStatus}
+      />
 
       {/* FLOATING ACTION TOAST */}
       {feedbackToast && (
