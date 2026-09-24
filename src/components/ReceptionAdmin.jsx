@@ -1557,6 +1557,10 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                 setWalkInRate(room.tariff);
                                 setWalkInDeposit(room.tariff);
                                 setWalkInOpen(true);
+                              } else if (isCleaning) {
+                                onUpdateRoomStatus(room.roomNumber, 'Available', null, null);
+                              } else if (isOccupied) {
+                                setSelectedFolioRoom(room);
                               }
                             }}
                           >
@@ -1802,6 +1806,95 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                       💬 Pass
                                     </button>
                                   </div>
+                                </div>
+                              )}
+                              {isCleaning && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '3px', width: '100%' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onUpdateRoomStatus(room.roomNumber, 'Available', null, null);
+                                    }}
+                                    title="Housekeeping complete: Release room to Vacant Clean (Ready for Guest)"
+                                    style={{
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 800,
+                                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.45))',
+                                      color: '#34d399',
+                                      border: '1px solid #10b981',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    🧹 Ready
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setWalkInRoom(room.roomNumber);
+                                      setWalkInRate(room.tariff);
+                                      setWalkInDeposit(room.tariff);
+                                      setWalkInOpen(true);
+                                    }}
+                                    title="Immediate Walk-In Check-In"
+                                    style={{
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(56, 189, 248, 0.2)',
+                                      color: '#38bdf8',
+                                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    + Walk-In
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setReceiptModalType('a4');
+                                      const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
+                                        bookingId: `FMBIL2627-${room.roomNumber}`,
+                                        billNo: `FMBIL2627-${room.roomNumber}`,
+                                        roomNumber: room.roomNumber,
+                                        guestName: room.currentGuestName || 'RECENT GUEST (CHECKED OUT)',
+                                        guestPhone: '+91 94370 22555',
+                                        company: 'LINDE INDIA LTD',
+                                        corporateGstin: '21AAACB2528H1ZA',
+                                        tier: room.tier,
+                                        tariff: room.tariff || 2199,
+                                        totalAmount: room.tariff || 2199,
+                                        nights: 1,
+                                        grcNo: `GRC-${room.roomNumber}`,
+                                        checkInDate: '22/09/2026',
+                                        checkInTime: '11:00 AM',
+                                        checkOutDate: '23/09/2026 (12:00 PM)'
+                                      };
+                                      setSelectedReceiptBooking(matchedBooking);
+                                      setIsReceiptModalOpen(true);
+                                    }}
+                                    title="View Last Settled Tax Invoice / Non-GST Bill"
+                                    style={{
+                                      padding: '3px 2px',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      background: 'rgba(212, 175, 55, 0.2)',
+                                      color: 'var(--gold-glow)',
+                                      border: '1px solid var(--gold-glow)',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    🧾 Bill
+                                  </button>
                                 </div>
                               )}
                               {isVacant && (
