@@ -45,6 +45,7 @@ export default function BackupRestoreModal({
       }
 
       // 2. Compile full snapshot bundle
+      const dbSource = remoteData.data || remoteData;
       const timestamp = new Date().toISOString();
       const backupPayload = {
         meta: {
@@ -57,22 +58,22 @@ export default function BackupRestoreModal({
           roomInventoryCount: 40
         },
         database: {
-          rooms: remoteData.rooms || rooms || [],
-          bookings: remoteData.bookings || bookings || [],
-          foodOrders: remoteData.foodOrders || [],
-          roomServiceRequests: remoteData.roomServices || [],
-          corporatePartners: remoteData.corporatePartners || [],
-          staff: remoteData.staff || [],
-          attendance: remoteData.attendance || [],
-          payrollHistory: remoteData.payroll || [],
-          linenInventory: remoteData.linenInventory || [],
-          checkoutInspections: remoteData.checkoutInspections || [],
-          restaurantTables: remoteData.restaurantTables || [],
-          guestProfiles: remoteData.guestProfiles || [],
-          folioTransactions: remoteData.folioTransactions || [],
-          splitPayments: remoteData.splitPayments || [],
-          corporateLedger: remoteData.corporateLedger || [],
-          hotelConfig: remoteData.config || HOTEL_CONFIG
+          rooms: dbSource.rooms || rooms || [],
+          bookings: dbSource.bookings || bookings || [],
+          foodOrders: dbSource.foodOrders || [],
+          roomServiceRequests: dbSource.roomServiceRequests || dbSource.roomServices || [],
+          corporatePartners: dbSource.corporatePartners || [],
+          staff: dbSource.staff || [],
+          attendance: dbSource.attendance || [],
+          payrollHistory: dbSource.payrollHistory || dbSource.payroll || [],
+          linenInventory: dbSource.linenInventory || [],
+          checkoutInspections: dbSource.checkoutInspections || [],
+          restaurantTables: dbSource.restaurantTables || [],
+          guestProfiles: dbSource.guestProfiles || [],
+          folioTransactions: dbSource.folioTransactions || [],
+          splitPayments: dbSource.splitPayments || [],
+          corporateLedger: dbSource.corporateLedger || [],
+          hotelConfig: dbSource.hotelConfig || dbSource.config || HOTEL_CONFIG
         }
       };
 
