@@ -161,6 +161,100 @@ export default function App() {
   const [revenueModalOpen, setRevenueModalOpen] = useState(false);
   const [dynamicRates, setDynamicRates] = useState(() => calculateAllTierMicroRates({ occupancyRate: 68, daysToArrival: 3, pickupVelocity48h: 4 }));
 
+  // Live Food Orders & KDS State shared across Front Desk & Cannon Kitchen POS
+  const [foodOrders, setFoodOrders] = useState([
+    {
+      orderId: 'KOT-8491',
+      roomNumber: '204',
+      guestName: 'BIJAY PASWAN',
+      outlet: 'Cannon Kitchen',
+      status: 'Received',
+      items: [
+        { name: 'Paneer Butter Masala', quantity: 1, price: 240, notes: 'Stone-ground mustard gravy, mild' },
+        { name: 'Butter Tandoori Roti', quantity: 4, price: 30, notes: 'Freshly baked and crisp' },
+        { name: 'Jeera Rice', quantity: 1, price: 160, notes: 'Fragrant cumin tadka' }
+      ],
+      totalAmount: 520,
+      is_jain_satvik: 0,
+      captain: 'KOTI',
+      created_at: new Date(Date.now() - 6 * 60000).toISOString()
+    },
+    {
+      orderId: 'KOT-8492',
+      roomNumber: '302',
+      guestName: 'UTKARSH SRIVASTAVA',
+      outlet: 'Cannon Kitchen',
+      status: 'Received',
+      items: [
+        { name: 'Dal Tadka (Satvik Pure Veg)', quantity: 1, price: 180, notes: 'No Onion, No Garlic, Desi Ghee' },
+        { name: 'Steamed Basmati Rice', quantity: 2, price: 90, notes: 'Hot steamed fresh' },
+        { name: 'Curd & Salad Platter', quantity: 1, price: 80, notes: 'Chilled cucumber & lemon' }
+      ],
+      totalAmount: 440,
+      is_jain_satvik: 1,
+      captain: 'SADANANDA',
+      created_at: new Date(Date.now() - 2 * 60000).toISOString()
+    },
+    {
+      orderId: 'KOT-7514',
+      tableNumber: '6',
+      guestName: 'P. K. Mohapatra',
+      outlet: 'Cannon Kitchen',
+      status: 'Preparing',
+      items: [
+        { name: 'Mutton Kassa (Odisha Style)', quantity: 2, price: 420, notes: 'Spicy mustard & whole spices' },
+        { name: 'Butter Tandoori Roti', quantity: 6, price: 25, notes: 'Extra butter' },
+        { name: 'Fresh Lime Soda (Sweet/Salt)', quantity: 2, price: 70, notes: 'Chilled with ice' }
+      ],
+      totalAmount: 1190,
+      is_jain_satvik: 0,
+      captain: 'KOTI',
+      created_at: new Date(Date.now() - 14 * 60000).toISOString()
+    },
+    {
+      orderId: 'KOT-7515',
+      tableNumber: 'B',
+      guestName: 'Dr. Tripathy',
+      outlet: 'Drop In Bar',
+      status: 'Preparing',
+      items: [
+        { name: 'Chicken Dum Biryani (Chef Special)', quantity: 2, price: 260, notes: 'Dum cooked, with raita' },
+        { name: 'Chilli Chicken Dry', quantity: 1, price: 240, notes: 'Crispy starter' }
+      ],
+      totalAmount: 760,
+      is_jain_satvik: 0,
+      captain: 'SADANANDA',
+      created_at: new Date(Date.now() - 18 * 60000).toISOString()
+    }
+  ]);
+
+  const handleUpdateOrderStatus = (orderId, newStatus) => {
+    setFoodOrders(prev => prev.map(o => {
+      if ((o.orderId || o.order_id) === orderId) {
+        return { ...o, status: newStatus };
+      }
+      return o;
+    }));
+
+    const adminPin = adminPinVerified ? getVerifiedAdminPin() : '';
+    if (!adminPin) return;
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'update_order_status',
+        payload: { orderId, status: newStatus }
+      })
+    }).catch(err => console.warn('Offline order status sync:', err));
+  };
+
+  const handleAddFoodOrder = (newOrder) => {
+    setFoodOrders(prev => [newOrder, ...prev]);
+  };
+
   const [searchDates, setSearchDates] = useState({
     checkIn: new Date().toISOString().split('T')[0],
     checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0],
@@ -466,6 +560,26 @@ export default function App() {
       })
     }).catch(err => console.warn('Offline KOT room bill sync:', err));
 
+    // Also propagate to Live Food Orders & KDS queue
+    handleAddFoodOrder({
+      orderId: payload.kotId,
+      roomNumber: payload.roomNumber,
+      tableNumber: null,
+      guestName: rooms.find(r => r.roomNumber === payload.roomNumber)?.currentGuestName || `Room ${payload.roomNumber} Guest`,
+      outlet: payload.outlet || 'Cannon Kitchen',
+      status: 'Received',
+      items: payload.items?.map(it => ({
+        name: it.item?.name || it.name,
+        quantity: it.quantity,
+        price: it.item?.price || it.price,
+        notes: it.notes
+      })) || [],
+      totalAmount: payload.totalAmount,
+      is_jain_satvik: payload.items?.some(it => it.cookingTags?.includes('Satvik')) ? 1 : 0,
+      captain: payload.captainName || 'KOTI',
+      created_at: new Date().toISOString()
+    });
+
     alert(`✓ KOT #${payload.kotId} (${payload.outlet || 'Fenugreek Restaurant'}) of ₹${payload.totalAmount.toFixed(2)} debited directly to Room ${payload.roomNumber} Master Folio & synced to D1!`);
   };
 
@@ -600,6 +714,8 @@ export default function App() {
               onOpenRestaurantPOS={() => setPosModalOpen(true)}
               onOpenAccountsLedger={() => setAccountsModalOpen(true)}
               onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
+              foodOrders={foodOrders}
+              onUpdateOrderStatus={handleUpdateOrderStatus}
             />
 
             <FinancialAnalytics bookings={bookings} />
@@ -680,6 +796,9 @@ export default function App() {
           onClose={() => setPosModalOpen(false)}
           rooms={rooms}
           onBillToRoom={handleBillToRoomFromPOS}
+          foodOrders={foodOrders}
+          onUpdateOrderStatus={handleUpdateOrderStatus}
+          onAddFoodOrder={handleAddFoodOrder}
         />
 
         <AccountsLedgerModal 

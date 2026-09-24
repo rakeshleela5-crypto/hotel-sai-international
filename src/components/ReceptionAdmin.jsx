@@ -43,7 +43,9 @@ export default function ReceptionAdmin({
   nightAudits = [],
   onOpenRestaurantPOS,
   onOpenAccountsLedger,
-  onOpenStoreInventory
+  onOpenStoreInventory,
+  foodOrders: propFoodOrders,
+  onUpdateOrderStatus: propUpdateOrderStatus
 }) {
   // The 3 Authorized Roles & 5 Department Console (Owner Video 2 Requirement)
   const [activeRole, setActiveRole] = useState('owner'); // 'owner' (Eswara MD), 'receptionist' (Front Desk), 'accounts' (Accounts Lead)
@@ -84,7 +86,7 @@ export default function ReceptionAdmin({
   const [roomServicesCareOpen, setRoomServicesCareOpen] = useState(false);
 
   // Live Food Orders & Room Services Data State (2 New, 4 Pending defaults matching live reference)
-  const [foodOrdersList, setFoodOrdersList] = useState([
+  const [internalFoodOrdersList, setInternalFoodOrdersList] = useState([
     {
       orderId: 'KOT-8491',
       roomNumber: '204',
@@ -116,6 +118,8 @@ export default function ReceptionAdmin({
       created_at: new Date(Date.now() - 2 * 60000).toISOString()
     }
   ]);
+
+  const foodOrdersList = propFoodOrders || internalFoodOrdersList;
 
   const [roomServicesList, setRoomServicesList] = useState([
     {
@@ -161,7 +165,10 @@ export default function ReceptionAdmin({
   ]);
 
   const handleUpdateFoodOrderStatus = (orderId, newStatus) => {
-    setFoodOrdersList(prev => prev.map(o => {
+    if (propUpdateOrderStatus) {
+      propUpdateOrderStatus(orderId, newStatus);
+    }
+    setInternalFoodOrdersList(prev => prev.map(o => {
       if ((o.order_id || o.orderId) === orderId) {
         return { ...o, status: newStatus };
       }

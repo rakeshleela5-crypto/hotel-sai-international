@@ -3,20 +3,112 @@ import {
   UtensilsCrossed, Plus, Minus, Trash2, Printer, CheckCircle2, 
   Search, Hash, DollarSign, Smartphone, Bed, ShieldCheck, X, 
   Send, Sparkles, Clock, AlertCircle, ArrowRightLeft, MessageCircle, FilePlus,
-  FileSpreadsheet, Download
+  FileSpreadsheet, Download, ChefHat, Bell, Volume2, VolumeX, Truck, Flame, RefreshCw, Eye, AlertTriangle, Filter
 } from 'lucide-react';
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
+import { playOrderAlert } from '../utils/soundAlert';
 
 export default function CannonKitchenPOS({
   isOpen,
   onClose,
   rooms = [],
-  onBillToRoom
+  onBillToRoom,
+  foodOrders: propFoodOrders,
+  onUpdateOrderStatus: propUpdateOrderStatus,
+  onAddFoodOrder: propAddFoodOrder
 }) {
   if (!isOpen) return null;
 
-  // View Mode: 'tableGrid' (Authentic MySoft Screenshot 20 layout) | 'menu'
+  // View Mode: 'tableGrid' | 'menu' | 'liveOrders' (Kitchen Display System)
   const [posViewMode, setPosViewMode] = useState('tableGrid');
+
+  // Live Food Orders Data (KDS Queue)
+  const DEFAULT_KITCHEN_ORDERS = [
+    {
+      orderId: 'KOT-8491',
+      roomNumber: '204',
+      guestName: 'BIJAY PASWAN',
+      outlet: 'Cannon Kitchen',
+      orderType: 'room',
+      status: 'Received',
+      items: [
+        { name: 'Paneer Butter Masala', quantity: 1, price: 240, notes: 'Stone-ground mustard gravy, mild' },
+        { name: 'Butter Tandoori Roti', quantity: 4, price: 30, notes: 'Freshly baked and crisp' },
+        { name: 'Jeera Rice', quantity: 1, price: 160, notes: 'Fragrant cumin tadka' }
+      ],
+      totalAmount: 520,
+      is_jain_satvik: 0,
+      captain: 'KOTI',
+      created_at: new Date(Date.now() - 6 * 60000).toISOString()
+    },
+    {
+      orderId: 'KOT-8492',
+      roomNumber: '302',
+      guestName: 'UTKARSH SRIVASTAVA',
+      outlet: 'Cannon Kitchen',
+      orderType: 'room',
+      status: 'Received',
+      items: [
+        { name: 'Dal Tadka (Satvik Pure Veg)', quantity: 1, price: 180, notes: 'No Onion, No Garlic, Desi Ghee' },
+        { name: 'Steamed Basmati Rice', quantity: 2, price: 90, notes: 'Hot steamed fresh' },
+        { name: 'Curd & Salad Platter', quantity: 1, price: 80, notes: 'Chilled cucumber & lemon' }
+      ],
+      totalAmount: 440,
+      is_jain_satvik: 1,
+      captain: 'SADANANDA',
+      created_at: new Date(Date.now() - 2 * 60000).toISOString()
+    },
+    {
+      orderId: 'KOT-7514',
+      tableNumber: '6',
+      guestName: 'P. K. Mohapatra',
+      outlet: 'Cannon Kitchen',
+      orderType: 'table',
+      status: 'Preparing',
+      items: [
+        { name: 'Mutton Kassa (Odisha Style)', quantity: 2, price: 420, notes: 'Spicy mustard & whole spices' },
+        { name: 'Butter Tandoori Roti', quantity: 6, price: 25, notes: 'Extra butter' },
+        { name: 'Fresh Lime Soda (Sweet/Salt)', quantity: 2, price: 70, notes: 'Chilled with ice' }
+      ],
+      totalAmount: 1190,
+      is_jain_satvik: 0,
+      captain: 'KOTI',
+      created_at: new Date(Date.now() - 14 * 60000).toISOString()
+    },
+    {
+      orderId: 'KOT-7515',
+      tableNumber: 'B',
+      guestName: 'Dr. Tripathy',
+      outlet: 'Drop In Bar',
+      orderType: 'table',
+      status: 'Preparing',
+      items: [
+        { name: 'Chicken Dum Biryani (Chef Special)', quantity: 2, price: 260, notes: 'Dum cooked, with raita' },
+        { name: 'Chilli Chicken Dry', quantity: 1, price: 240, notes: 'Crispy starter' }
+      ],
+      totalAmount: 760,
+      is_jain_satvik: 0,
+      captain: 'SADANANDA',
+      created_at: new Date(Date.now() - 18 * 60000).toISOString()
+    }
+  ];
+
+  const [localFoodOrders, setLocalFoodOrders] = useState(DEFAULT_KITCHEN_ORDERS);
+  const currentOrders = (propFoodOrders && propFoodOrders.length > 0) ? propFoodOrders : localFoodOrders;
+
+  // KDS Filters & Sound Controls
+  const [kdsStatusFilter, setKdsStatusFilter] = useState('all'); // 'all', 'Received', 'Preparing', 'Out for Delivery', 'Delivered'
+  const [kdsOutletFilter, setKdsOutletFilter] = useState('all'); // 'all', 'Cannon Kitchen', 'Drop In Bar', 'Room Service', 'Online'
+  const [kdsSearchQuery, setKdsSearchQuery] = useState('');
+  const [kdsSoundEnabled, setKdsSoundEnabled] = useState(true);
+
+  // KOT Slip Printable Ticket Modal
+  const [printKotModalOrder, setPrintKotModalOrder] = useState(null);
+
+  // Live KOT Void Confirmation Modal
+  const [voidKotOrder, setVoidKotOrder] = useState(null);
+  const [voidKotReason, setVoidKotReason] = useState('Guest Changed Mind');
+  const [voidKotCustomNote, setVoidKotCustomNote] = useState('');
 
   // Outlet selection: 'Cannon Kitchen (Dine-In)', 'Bar Outlet', 'Room Service', 'Swiggy / Zomato'
   const [selectedOutlet, setSelectedOutlet] = useState('Cannon Kitchen');
@@ -319,7 +411,114 @@ Thank you for dining at Cannon Kitchen! 🙏`;
   const gst = isNonCommercial ? 0 : taxableSubtotal * 0.05;
   const netTotal = isNonCommercial ? 0 : taxableSubtotal + gst;
 
-  // Handle "Bill to Room" action (fixes MySoft bug)
+  // Live Food Orders status counters
+  const receivedOrdersCount = currentOrders.filter(o => o.status === 'Received').length;
+  const preparingOrdersCount = currentOrders.filter(o => o.status === 'Preparing').length;
+  const outForDeliveryOrdersCount = currentOrders.filter(o => o.status === 'Out for Delivery').length;
+  const deliveredOrdersCount = currentOrders.filter(o => o.status === 'Delivered').length;
+
+  const getElapsedMinutes = (createdAt) => {
+    if (!createdAt) return 0;
+    const diffMs = Date.now() - new Date(createdAt).getTime();
+    return Math.max(0, Math.floor(diffMs / 60000));
+  };
+
+  const handleUpdateKdsStatus = (orderId, newStatus) => {
+    if (propUpdateOrderStatus) {
+      propUpdateOrderStatus(orderId, newStatus);
+    }
+    setLocalFoodOrders(prev => prev.map(o => {
+      if ((o.orderId || o.order_id) === orderId) {
+        return { ...o, status: newStatus };
+      }
+      return o;
+    }));
+
+    // Cloudflare Edge Sync
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'update_order_status',
+        payload: { orderId, status: newStatus }
+      })
+    }).catch(err => console.warn('Offline order status sync:', err));
+
+    if (kdsSoundEnabled && (newStatus === 'Preparing' || newStatus === 'Out for Delivery')) {
+      playOrderAlert();
+    }
+    showPosToast(`✓ Order #${orderId} moved to "${newStatus}"!`);
+  };
+
+  const handleConfirmVoidKot = () => {
+    if (!voidKotOrder) return;
+    const orderId = voidKotOrder.orderId || voidKotOrder.order_id;
+    handleUpdateKdsStatus(orderId, 'Voided');
+
+    // Cloudflare Edge void audit logging
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'log_kot_void',
+        payload: {
+          voidId: `VOID-${Date.now().toString().slice(-6)}`,
+          roomOrTable: voidKotOrder.roomNumber ? `Room ${voidKotOrder.roomNumber}` : `Table ${voidKotOrder.tableNumber || 'Unknown'}`,
+          itemCode: 'KOT-ALL',
+          itemName: `KOT #${orderId} (${voidKotOrder.items?.map(i => i.name).join(', ') || 'Dishes'})`,
+          quantity: voidKotOrder.items?.reduce((s, i) => s + (i.quantity || 1), 0) || 1,
+          amount: voidKotOrder.totalAmount || 0,
+          reason: voidKotReason,
+          notes: voidKotCustomNote || 'Full KOT voided from Kitchen Display System',
+          captain: voidKotOrder.captain || captainName
+        }
+      })
+    }).catch(err => console.warn('Offline void sync:', err));
+
+    showPosToast(`❌ KOT #${orderId} marked VOID (${voidKotReason})`);
+    setVoidKotOrder(null);
+    setVoidKotCustomNote('');
+  };
+
+  const handlePrintAndSendTableKOT = () => {
+    if (cart.length === 0) return;
+    const kotId = `CK-KOT-${Date.now().toString().slice(-4)}`;
+    const newKotOrder = {
+      orderId: kotId,
+      tableNumber,
+      roomNumber: null,
+      guestName: `Table ${tableNumber} Guest`,
+      outlet: selectedOutlet,
+      orderType: 'table',
+      status: 'Received',
+      items: cart.map(c => ({
+        name: c.item.name,
+        quantity: c.quantity,
+        price: getItemPrice(c.item),
+        notes: `${c.notes || ''}${c.cookingTags?.length ? ` [${c.cookingTags.join(', ')}]` : ''}`
+      })),
+      totalAmount: netTotal,
+      is_jain_satvik: cart.some(c => c.cookingTags?.includes('Satvik')) ? 1 : 0,
+      captain: captainName,
+      created_at: new Date().toISOString()
+    };
+
+    if (propAddFoodOrder) {
+      propAddFoodOrder(newKotOrder);
+    }
+    setLocalFoodOrders(prev => [newKotOrder, ...prev]);
+
+    if (kdsSoundEnabled) playOrderAlert();
+    setPrintKotModalOrder(newKotOrder);
+    setCart([]);
+    showPosToast(`✓ KOT #${kotId} for Table ${tableNumber} sent to Kitchen KDS queue!`);
+  };
+
+  // Handle "Bill to Room" action with KDS routing
   const handleTransferToRoom = () => {
     if (cart.length === 0) return;
 
@@ -351,9 +550,36 @@ Thank you for dining at Cannon Kitchen! 🙏`;
       onBillToRoom(payload);
     }
 
+    const newKotOrder = {
+      orderId: kotId,
+      roomNumber: targetRoom,
+      tableNumber: null,
+      guestName: rooms.find(r => r.number === targetRoom)?.guestName || `Room ${targetRoom} Guest`,
+      outlet: selectedOutlet,
+      orderType: 'room',
+      status: 'Received',
+      items: cart.map(c => ({
+        name: c.item.name,
+        quantity: c.quantity,
+        price: getItemPrice(c.item),
+        notes: `${c.notes || ''}${c.cookingTags?.length ? ` [${c.cookingTags.join(', ')}]` : ''}`
+      })),
+      totalAmount: netTotal,
+      is_jain_satvik: cart.some(c => c.cookingTags?.includes('Satvik')) ? 1 : 0,
+      captain: captainName,
+      created_at: new Date().toISOString()
+    };
+
+    if (propAddFoodOrder) {
+      propAddFoodOrder(newKotOrder);
+    }
+    setLocalFoodOrders(prev => [newKotOrder, ...prev]);
+
+    if (kdsSoundEnabled) playOrderAlert();
     setLastOrderDetails(payload);
     setKotSentSuccess(true);
     setCart([]);
+    showPosToast(`✓ In-Room KOT #${kotId} debited to Room ${targetRoom} & routed to Live KDS!`);
   };
 
   // Filtered menu list for visual clicking
@@ -511,6 +737,38 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               📋 Fast Code & Dish Catalog
             </button>
             <button
+              onClick={() => setPosViewMode('liveOrders')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                background: posViewMode === 'liveOrders' ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
+                color: posViewMode === 'liveOrders' ? '#f87171' : 'var(--text-muted)',
+                border: posViewMode === 'liveOrders' ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                position: 'relative'
+              }}
+            >
+              <Flame size={13} color="#f87171" />
+              🍳 Live Food Orders (KDS)
+              {receivedOrdersCount > 0 && (
+                <span style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  padding: '1px 6px',
+                  borderRadius: '10px'
+                }}>
+                  {receivedOrdersCount} New
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => setShowDailySalesModal(true)}
               style={{
                 padding: '0.35rem 0.85rem',
@@ -559,8 +817,703 @@ Thank you for dining at Cannon Kitchen! 🙏`;
 
         {/* Main Content Layout */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {/* Left Column: Menu Items & Short Code Numpad Entry OR Table Grid */}
-          <div style={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          {posViewMode === 'liveOrders' ? (
+            /* ========================================================
+               CANNON KITCHEN DISPLAY SYSTEM (KDS) & LIVE FOOD ORDERS
+               ======================================================== */
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#070b14', overflow: 'hidden' }}>
+              {/* KDS Control Ribbon */}
+              <div style={{
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(90deg, rgba(20,15,10,0.95), rgba(10,14,24,0.98))',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '8px',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid #ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#f87171'
+                  }}>
+                    <ChefHat size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#fff' }}>
+                        Live Kitchen Display System (KDS)
+                      </span>
+                      {receivedOrdersCount > 0 && (
+                        <span style={{
+                          background: '#ef4444',
+                          color: '#fff',
+                          padding: '1px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.7rem',
+                          fontWeight: 800
+                        }}>
+                          {receivedOrdersCount} New Action Required
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Chef Station • 40 In-Room Dining &amp; 12 Dine-In Tables KOT Turnaround Monitor
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status KPI Chips */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'All KOTs', count: currentOrders.length, color: '#94a3b8' },
+                    { id: 'Received', label: '🚨 Received', count: receivedOrdersCount, color: '#ef4444' },
+                    { id: 'Preparing', label: '👨‍🍳 Cooking', count: preparingOrdersCount, color: '#f59e0b' },
+                    { id: 'Out for Delivery', label: '🛵 Ready/Dispatch', count: outForDeliveryOrdersCount, color: '#38bdf8' },
+                    { id: 'Delivered', label: '✓ Delivered', count: deliveredOrdersCount, color: '#10b981' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setKdsStatusFilter(tab.id)}
+                      style={{
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        border: kdsStatusFilter === tab.id ? `1px solid ${tab.color}` : '1px solid rgba(255,255,255,0.1)',
+                        background: kdsStatusFilter === tab.id ? `${tab.color}22` : 'rgba(255,255,255,0.03)',
+                        color: kdsStatusFilter === tab.id ? tab.color : '#cbd5e1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <span>{tab.label}</span>
+                      <span style={{
+                        background: kdsStatusFilter === tab.id ? tab.color : 'rgba(255,255,255,0.1)',
+                        color: kdsStatusFilter === tab.id ? '#000' : '#fff',
+                        padding: '1px 5px',
+                        borderRadius: '8px',
+                        fontSize: '0.65rem',
+                        fontWeight: 800
+                      }}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Right Quick Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => {
+                      playOrderAlert();
+                      showPosToast('🔔 Kitchen Order Bell chimed!');
+                    }}
+                    title="Ring Kitchen Order Bell"
+                    style={{
+                      background: 'rgba(245, 158, 11, 0.15)',
+                      border: '1px solid #f59e0b',
+                      color: '#fbbf24',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <Bell size={13} /> Chime
+                  </button>
+
+                  <button
+                    onClick={() => setKdsSoundEnabled(!kdsSoundEnabled)}
+                    title={kdsSoundEnabled ? "Mute audio chimes" : "Enable audio chimes"}
+                    style={{
+                      background: kdsSoundEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)',
+                      border: kdsSoundEnabled ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                      color: kdsSoundEnabled ? '#34d399' : '#94a3b8',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    {kdsSoundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                    {kdsSoundEnabled ? 'Audio ON' : 'Muted'}
+                  </button>
+
+                  <button
+                    onClick={() => setPosViewMode('tableGrid')}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      border: 'none',
+                      color: '#000',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <Plus size={14} /> + Punch New Order
+                  </button>
+                </div>
+              </div>
+
+              {/* Outlet Filter Bar & Search */}
+              <div style={{
+                padding: '0.5rem 1.5rem',
+                background: 'rgba(0,0,0,0.3)',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginRight: '0.25rem' }}>
+                    <Filter size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '3px' }} />
+                    Outlet:
+                  </span>
+                  {[
+                    { id: 'all', label: 'All Outlets' },
+                    { id: 'Cannon Kitchen', label: '🍽️ Cannon Kitchen' },
+                    { id: 'Room Service', label: '🛏️ In-Room Dining' },
+                    { id: 'Drop In Bar', label: '🍸 Drop In Bar' },
+                    { id: 'Online', label: '🛵 Swiggy / Zomato' }
+                  ].map(out => (
+                    <button
+                      key={out.id}
+                      onClick={() => setKdsOutletFilter(out.id)}
+                      style={{
+                        padding: '0.25rem 0.6rem',
+                        borderRadius: '5px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: kdsOutletFilter === out.id ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.08)',
+                        background: kdsOutletFilter === out.id ? 'rgba(251, 191, 36, 0.15)' : 'transparent',
+                        color: kdsOutletFilter === out.id ? '#fbbf24' : '#94a3b8'
+                      }}
+                    >
+                      {out.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ position: 'relative', width: 260 }}>
+                  <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  <input
+                    type="text"
+                    value={kdsSearchQuery}
+                    onChange={(e) => setKdsSearchQuery(e.target.value)}
+                    placeholder="Search KOT, Room, Table, Dish..."
+                    style={{
+                      width: '100%',
+                      padding: '0.35rem 0.65rem 0.35rem 2rem',
+                      background: '#0d111d',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '6px',
+                      color: '#fff',
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                  {kdsSearchQuery && (
+                    <button
+                      onClick={() => setKdsSearchQuery('')}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94a3b8',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* KDS Ticket Cards Grid */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
+                {(() => {
+                  const filteredList = currentOrders.filter(order => {
+                    if (kdsStatusFilter !== 'all' && order.status !== kdsStatusFilter) return false;
+                    if (kdsOutletFilter !== 'all') {
+                      if (kdsOutletFilter === 'Cannon Kitchen' && order.outlet !== 'Cannon Kitchen') return false;
+                      if (kdsOutletFilter === 'Drop In Bar' && order.outlet !== 'Drop In Bar') return false;
+                      if (kdsOutletFilter === 'Room Service' && order.outlet !== 'Room Service' && order.orderType !== 'room') return false;
+                      if (kdsOutletFilter === 'Online' && !['Swiggy', 'Zomato'].includes(order.outlet)) return false;
+                    }
+                    if (kdsSearchQuery.trim()) {
+                      const q = kdsSearchQuery.toLowerCase();
+                      const idMatch = (order.orderId || order.order_id || '').toLowerCase().includes(q);
+                      const roomMatch = (order.roomNumber || '').toLowerCase().includes(q);
+                      const tableMatch = (order.tableNumber || '').toLowerCase().includes(q);
+                      const guestMatch = (order.guestName || '').toLowerCase().includes(q);
+                      const itemMatch = order.items?.some(i => (i.name || '').toLowerCase().includes(q));
+                      if (!idMatch && !roomMatch && !tableMatch && !guestMatch && !itemMatch) return false;
+                    }
+                    return true;
+                  });
+
+                  if (filteredList.length === 0) {
+                    return (
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '4rem 1rem',
+                        color: 'var(--text-muted)',
+                        textAlign: 'center'
+                      }}>
+                        <UtensilsCrossed size={48} style={{ opacity: 0.3, marginBottom: '1rem', color: '#fbbf24' }} />
+                        <h4 style={{ color: '#fff', margin: '0 0 0.5rem', fontSize: '1.1rem' }}>No Food Orders in this Queue</h4>
+                        <p style={{ fontSize: '0.8rem', maxWidth: 420, margin: '0 0 1.25rem' }}>
+                          There are currently no active KOT tickets matching the selected status or outlet filter.
+                        </p>
+                        <button
+                          onClick={() => setPosViewMode('tableGrid')}
+                          className="btn-primary"
+                          style={{ padding: '0.5rem 1.25rem', fontSize: '0.8rem', fontWeight: 700 }}
+                        >
+                          + Punch New Dining / Room Order
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))',
+                      gap: '1rem'
+                    }}>
+                      {filteredList.map(order => {
+                        const orderId = order.orderId || order.order_id;
+                        const elapsedMins = getElapsedMinutes(order.created_at);
+                        const isDelayed = order.status !== 'Delivered' && elapsedMins >= 20;
+
+                        // Status Color Mapping
+                        let statusColor = '#94a3b8';
+                        let statusBg = 'rgba(148, 163, 184, 0.15)';
+                        let statusLabel = order.status;
+                        if (order.status === 'Received') {
+                          statusColor = '#ef4444';
+                          statusBg = 'rgba(239, 68, 68, 0.2)';
+                          statusLabel = '🚨 Received / New';
+                        } else if (order.status === 'Preparing') {
+                          statusColor = '#f59e0b';
+                          statusBg = 'rgba(245, 158, 11, 0.2)';
+                          statusLabel = '👨‍🍳 In Cooking';
+                        } else if (order.status === 'Out for Delivery') {
+                          statusColor = '#38bdf8';
+                          statusBg = 'rgba(56, 189, 248, 0.2)';
+                          statusLabel = '🛵 Out for Delivery';
+                        } else if (order.status === 'Delivered') {
+                          statusColor = '#10b981';
+                          statusBg = 'rgba(16, 185, 129, 0.2)';
+                          statusLabel = '✓ Delivered & Settled';
+                        }
+
+                        return (
+                          <div
+                            key={orderId}
+                            style={{
+                              background: 'linear-gradient(145deg, #0e1726, #090e18)',
+                              border: order.status === 'Received'
+                                ? '1.5px solid rgba(239, 68, 68, 0.6)'
+                                : order.status === 'Preparing'
+                                ? '1.5px solid rgba(245, 158, 11, 0.5)'
+                                : '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '12px',
+                              padding: '1rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.75rem',
+                              boxShadow: order.status === 'Received'
+                                ? '0 4px 20px rgba(239, 68, 68, 0.15)'
+                                : '0 4px 15px rgba(0,0,0,0.5)',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {/* Card Top: Order ID & Status */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                <span style={{
+                                  fontWeight: 800,
+                                  fontSize: '0.95rem',
+                                  color: '#fff',
+                                  fontFamily: 'monospace'
+                                }}>
+                                  #{orderId}
+                                </span>
+                                <span style={{
+                                  background: 'rgba(255,255,255,0.06)',
+                                  color: '#cbd5e1',
+                                  fontSize: '0.65rem',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px'
+                                }}>
+                                  {order.outlet || 'Cannon Kitchen'}
+                                </span>
+                              </div>
+
+                              <span style={{
+                                background: statusBg,
+                                color: statusColor,
+                                border: `1px solid ${statusColor}44`,
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}>
+                                {statusLabel}
+                              </span>
+                            </div>
+
+                            {/* Destination & Elapsed Time */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              background: 'rgba(255,255,255,0.02)',
+                              padding: '0.45rem 0.65rem',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                {order.roomNumber ? (
+                                  <span style={{ color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                    <Bed size={13} /> Room {order.roomNumber}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                    <UtensilsCrossed size={13} /> Table {order.tableNumber || 'Dining'}
+                                  </span>
+                                )}
+                                <span style={{ color: 'var(--text-muted)' }}>•</span>
+                                <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+                                  {order.guestName || 'Guest'}
+                                </span>
+                              </div>
+
+                              <div>
+                                {isDelayed ? (
+                                  <span style={{
+                                    color: '#ef4444',
+                                    fontWeight: 800,
+                                    fontSize: '0.7rem',
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(239, 68, 68, 0.4)'
+                                  }}>
+                                    ⚠️ {elapsedMins}m (Delayed)
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#94a3b8', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                    <Clock size={11} /> {elapsedMins}m ago
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Dietary / Satvik Warning Badge */}
+                            {order.is_jain_satvik ? (
+                              <div style={{
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                border: '1px solid #10b981',
+                                borderRadius: '6px',
+                                padding: '0.3rem 0.55rem',
+                                color: '#34d399',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem'
+                              }}>
+                                <Sparkles size={13} color="#34d399" />
+                                <span>Satvik Pure Veg • Strict No Onion / No Garlic</span>
+                              </div>
+                            ) : null}
+
+                            {/* Items List */}
+                            <div style={{
+                              background: 'rgba(0,0,0,0.3)',
+                              borderRadius: '8px',
+                              padding: '0.65rem 0.75rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.45rem',
+                              border: '1px solid rgba(255,255,255,0.04)'
+                            }}>
+                              {order.items?.map((it, idx) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '0.8rem' }}>
+                                  <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'flex-start' }}>
+                                    <span style={{
+                                      background: 'rgba(251, 191, 36, 0.18)',
+                                      color: '#fbbf24',
+                                      fontWeight: 800,
+                                      fontSize: '0.72rem',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      marginTop: '1px'
+                                    }}>
+                                      {it.quantity}x
+                                    </span>
+                                    <div>
+                                      <div style={{ fontWeight: 600, color: '#f8fafc' }}>
+                                        {it.name}
+                                      </div>
+                                      {it.notes && (
+                                        <div style={{ fontSize: '0.7rem', color: '#fbbf24', fontStyle: 'italic', marginTop: '1px' }}>
+                                          Note: {it.notes}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <span style={{ color: '#cbd5e1', fontWeight: 600, fontSize: '0.78rem' }}>
+                                    ₹{((it.price || 0) * (it.quantity || 1)).toFixed(0)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Bill Total & Steward Info */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              paddingTop: '0.25rem',
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)'
+                            }}>
+                              <span>Steward: <strong style={{ color: '#cbd5e1' }}>{order.captain || 'KOTI'}</strong></span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <span>Total:</span>
+                                <strong style={{ color: 'var(--gold-glow)', fontSize: '0.95rem' }}>
+                                  ₹{(order.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                                </strong>
+                              </div>
+                            </div>
+
+                            {/* Action Control Buttons */}
+                            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem' }}>
+                              {order.status === 'Received' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateKdsStatus(orderId, 'Preparing')}
+                                    style={{
+                                      flex: 2,
+                                      padding: '0.5rem',
+                                      borderRadius: '6px',
+                                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                      color: '#000',
+                                      border: 'none',
+                                      fontWeight: 800,
+                                      fontSize: '0.78rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '0.35rem'
+                                    }}
+                                  >
+                                    <Flame size={14} /> Start Cooking
+                                  </button>
+                                  <button
+                                    onClick={() => setVoidKotOrder(order)}
+                                    title="Cancel or Void Order"
+                                    style={{
+                                      flex: 0.8,
+                                      padding: '0.5rem',
+                                      borderRadius: '6px',
+                                      background: 'rgba(239, 68, 68, 0.15)',
+                                      color: '#f87171',
+                                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                                      fontWeight: 700,
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Void
+                                  </button>
+                                  <button
+                                    onClick={() => setPrintKotModalOrder(order)}
+                                    title="Print Thermal KOT Ticket"
+                                    style={{
+                                      flex: 0.8,
+                                      padding: '0.5rem',
+                                      borderRadius: '6px',
+                                      background: 'rgba(255,255,255,0.08)',
+                                      color: '#cbd5e1',
+                                      border: '1px solid rgba(255,255,255,0.15)',
+                                      fontWeight: 700,
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    <Printer size={14} />
+                                  </button>
+                                </>
+                              )}
+
+                              {order.status === 'Preparing' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateKdsStatus(orderId, 'Out for Delivery')}
+                                    style={{
+                                      flex: 2,
+                                      padding: '0.5rem',
+                                      borderRadius: '6px',
+                                      background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                                      color: '#fff',
+                                      border: 'none',
+                                      fontWeight: 800,
+                                      fontSize: '0.78rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '0.35rem'
+                                    }}
+                                  >
+                                    <Truck size={14} /> Ready / Dispatch
+                                  </button>
+                                  <button
+                                    onClick={() => setPrintKotModalOrder(order)}
+                                    title="Print Thermal KOT Ticket"
+                                    style={{
+                                      flex: 0.8,
+                                      padding: '0.5rem',
+                                      borderRadius: '6px',
+                                      background: 'rgba(255,255,255,0.08)',
+                                      color: '#cbd5e1',
+                                      border: '1px solid rgba(255,255,255,0.15)',
+                                      fontWeight: 700,
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    <Printer size={14} />
+                                  </button>
+                                </>
+                              )}
+
+                              {order.status === 'Out for Delivery' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateKdsStatus(orderId, 'Delivered')}
+                                    style={{
+                                      flex: 2,
+                                      padding: '0.5rem',
+                                      borderRadius: '6px',
+                                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                                      color: '#fff',
+                                      border: 'none',
+                                      fontWeight: 800,
+                                      fontSize: '0.78rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '0.35rem'
+                                    }}
+                                  >
+                                    <CheckCircle2 size={14} /> Mark Served &amp; Done
+                                  </button>
+                                  <button
+                                    onClick={() => setPrintKotModalOrder(order)}
+                                    title="Print Thermal KOT Ticket"
+                                    style={{
+                                      flex: 0.8,
+                                      padding: '0.5rem',
+                                      borderRadius: '6px',
+                                      background: 'rgba(255,255,255,0.08)',
+                                      color: '#cbd5e1',
+                                      border: '1px solid rgba(255,255,255,0.15)',
+                                      fontWeight: 700,
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    <Printer size={14} />
+                                  </button>
+                                </>
+                              )}
+
+                              {order.status === 'Delivered' && (
+                                <button
+                                  onClick={() => setPrintKotModalOrder(order)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.45rem',
+                                    borderRadius: '6px',
+                                    background: 'rgba(255,255,255,0.06)',
+                                    color: '#cbd5e1',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.35rem'
+                                  }}
+                                >
+                                  <Printer size={13} /> View / Reprint Thermal Slip
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Left Column: Menu Items & Short Code Numpad Entry OR Table Grid */}
+              <div style={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
             {/* Quick Fast Numpad Input Bar */}
             <div style={{
               padding: '1rem 1.5rem',
@@ -1445,10 +2398,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      alert(`KOT for Table ${tableNumber} printed to Kitchen! Total: ${isNonCommercial ? '₹0.00 (NC Comp)' : '₹' + netTotal.toFixed(2)}`);
-                      setCart([]);
-                    }}
+                    onClick={handlePrintAndSendTableKOT}
                     disabled={cart.length === 0}
                     className="btn-primary"
                     style={{ flex: 1.5, padding: '0.7rem', fontWeight: 700, fontSize: '0.85rem' }}
@@ -1484,7 +2434,311 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
+
+        {/* ========================================================
+            MODAL: AUTHENTIC KITCHEN ORDER TICKET (KOT) THERMAL SLIP
+            ======================================================== */}
+        {printKotModalOrder && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              color: '#000000',
+              width: '100%',
+              maxWidth: '380px',
+              padding: '1.5rem',
+              borderRadius: '8px',
+              fontFamily: 'monospace, "Courier New", Courier',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+              maxHeight: '92vh',
+              overflowY: 'auto'
+            }}>
+              {/* Header */}
+              <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase' }}>Sai International Hotel</div>
+                <h3 style={{ margin: '0.2rem 0', fontSize: '1.15rem', fontWeight: 900 }}>CANNON KITCHEN</h3>
+                <div style={{ fontSize: '0.72rem', color: '#333' }}>Near New Bus Stand, Rayagada (Odisha)</div>
+                <div style={{ fontSize: '0.72rem', color: '#333' }}>GSTIN: 21AABCS1234F1Z5</div>
+                <div style={{
+                  margin: '0.5rem 0 0.2rem',
+                  padding: '3px 0',
+                  borderTop: '1px solid #000',
+                  borderBottom: '1px solid #000',
+                  fontSize: '0.8rem',
+                  fontWeight: 900
+                }}>
+                  --- KITCHEN ORDER TICKET (KOT) ---
+                </div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 900 }}>
+                  TOKEN #{printKotModalOrder.orderId || printKotModalOrder.order_id}
+                </div>
+              </div>
+
+              {/* Meta */}
+              <div style={{ fontSize: '0.75rem', lineHeight: '1.45', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span><strong>Date:</strong> {new Date(printKotModalOrder.created_at || Date.now()).toLocaleDateString('en-IN')}</span>
+                  <span><strong>Time:</strong> {new Date(printKotModalOrder.created_at || Date.now()).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div><strong>Outlet:</strong> {printKotModalOrder.outlet || 'Cannon Kitchen'}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, marginTop: '2px', color: '#b91c1c' }}>
+                  {printKotModalOrder.roomNumber ? `ROOM: ${printKotModalOrder.roomNumber} (${printKotModalOrder.guestName || 'In-Room'})` : `TABLE: ${printKotModalOrder.tableNumber || 'Main Dining'}`}
+                </div>
+                <div><strong>Duty Steward:</strong> {printKotModalOrder.captain || captainName}</div>
+                {printKotModalOrder.is_jain_satvik ? (
+                  <div style={{ fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
+                    ** STRICT SATVIK (NO ONION / NO GARLIC) **
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Items Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', marginBottom: '0.75rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px dashed #000', borderTop: '1px dashed #000' }}>
+                    <th style={{ textAlign: 'left', padding: '0.3rem 0' }}>QTY</th>
+                    <th style={{ textAlign: 'left', padding: '0.3rem 0' }}>ITEM DESCRIPTION</th>
+                    <th style={{ textAlign: 'right', padding: '0.3rem 0' }}>AMT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {printKotModalOrder.items?.map((it, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px dotted #ccc' }}>
+                      <td style={{ verticalAlign: 'top', padding: '0.35rem 0', fontWeight: 900, fontSize: '0.85rem' }}>
+                        {it.quantity}x
+                      </td>
+                      <td style={{ verticalAlign: 'top', padding: '0.35rem 0' }}>
+                        <div style={{ fontWeight: 700 }}>{it.name}</div>
+                        {it.notes && (
+                          <div style={{ fontSize: '0.7rem', color: '#555', fontStyle: 'italic', marginTop: '1px' }}>
+                            Prep Note: {it.notes}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ verticalAlign: 'top', padding: '0.35rem 0', textAlign: 'right', fontWeight: 700 }}>
+                        ₹{((it.price || 0) * (it.quantity || 1)).toFixed(0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div style={{
+                borderTop: '1px dashed #000',
+                paddingTop: '0.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.85rem',
+                fontWeight: 900,
+                marginBottom: '0.75rem'
+              }}>
+                <span>TOTAL AMOUNT:</span>
+                <span>₹{(printKotModalOrder.totalAmount || 0).toFixed(2)}</span>
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#444', borderTop: '1px dashed #000', paddingTop: '0.5rem' }}>
+                HOTEL COPY • KITCHEN PRODUCTION ONLY • RAYAGADA
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+                <button
+                  onClick={() => window.print()}
+                  style={{
+                    flex: 1.5,
+                    padding: '0.6rem',
+                    background: '#000',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  <Printer size={15} /> Print Thermal Slip (Ctrl+P)
+                </button>
+                <button
+                  onClick={() => setPrintKotModalOrder(null)}
+                  style={{
+                    flex: 1,
+                    padding: '0.6rem',
+                    background: '#e2e8f0',
+                    color: '#0f172a',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            MODAL: KDS KOT CANCEL & VOID CONFIRMATION
+            ======================================================== */}
+        {voidKotOrder && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#0f172a',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '14px',
+              width: '100%',
+              maxWidth: '440px',
+              padding: '1.5rem',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.8)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#f87171'
+                }}>
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>
+                    Void KOT #{voidKotOrder.orderId || voidKotOrder.order_id}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Mandatory reason required for F&amp;B daily audit register
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                fontSize: '0.8rem',
+                color: '#cbd5e1'
+              }}>
+                <div><strong>Destination:</strong> {voidKotOrder.roomNumber ? `Room ${voidKotOrder.roomNumber}` : `Table ${voidKotOrder.tableNumber}`}</div>
+                <div><strong>Dishes:</strong> {voidKotOrder.items?.map(i => `${i.quantity}x ${i.name}`).join(', ')}</div>
+                <div style={{ color: 'var(--gold-glow)', fontWeight: 700, marginTop: '0.25rem' }}>
+                  Total Value: ₹{(voidKotOrder.totalAmount || 0).toFixed(2)}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.35rem' }}>
+                  Cancellation / Void Reason
+                </label>
+                <select
+                  value={voidKotReason}
+                  onChange={(e) => setVoidKotReason(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem',
+                    background: '#1e293b',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  <option value="Guest Changed Mind">Guest Changed Mind</option>
+                  <option value="Duplicate Order Punched">Duplicate Order Punched</option>
+                  <option value="Kitchen Out of Stock">Kitchen Out of Stock / Ingredient Depleted</option>
+                  <option value="Guest Checked Out Early">Guest Checked Out Early</option>
+                  <option value="Preparation Delay Cancellation">Preparation Delay Cancellation</option>
+                  <option value="MD Non-Commercial Comp">Managing Director VIP Comp</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.35rem' }}>
+                  Custom Supervisor Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={voidKotCustomNote}
+                  onChange={(e) => setVoidKotCustomNote(e.target.value)}
+                  placeholder="e.g. Guest switched to Chinese menu..."
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem',
+                    background: '#1e293b',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={handleConfirmVoidKot}
+                  style={{
+                    flex: 1,
+                    padding: '0.65rem',
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Confirm Void &amp; Log Audit
+                </button>
+                <button
+                  onClick={() => setVoidKotOrder(null)}
+                  style={{
+                    padding: '0.65rem 1rem',
+                    background: 'rgba(255,255,255,0.08)',
+                    color: '#cbd5e1',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MODAL: ITEM VOID / CANCELLATION REASON */}
         {voidTargetIndex !== null && cart[voidTargetIndex] && (
