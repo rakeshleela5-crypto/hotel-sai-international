@@ -3,7 +3,8 @@ import {
   UtensilsCrossed, Plus, Minus, Trash2, Printer, CheckCircle2, 
   Search, Hash, DollarSign, Smartphone, Bed, ShieldCheck, X, 
   Send, Sparkles, Clock, AlertCircle, ArrowRightLeft, MessageCircle, FilePlus,
-  FileSpreadsheet, Download, ChefHat, Bell, Volume2, VolumeX, Truck, Flame, RefreshCw, Eye, AlertTriangle, Filter
+  FileSpreadsheet, Download, ChefHat, Bell, Volume2, VolumeX, Truck, Flame, RefreshCw, Eye, AlertTriangle, Filter,
+  CreditCard, QrCode
 } from 'lucide-react';
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
 import { playOrderAlert, playSuccessChime } from '../utils/soundAlert';
@@ -170,6 +171,16 @@ export default function CannonKitchenPOS({
   const [showDailySalesModal, setShowDailySalesModal] = useState(false);
   const [dailySalesCategoryFilter, setDailySalesCategoryFilter] = useState('all');
 
+  // Direct Table Bill Settlement Modal & Dynamic UPI QR State
+  const [tableSettlementModalOpen, setTableSettlementModalOpen] = useState(false);
+  const [settlementPaymentMode, setSettlementPaymentMode] = useState('cash'); // 'cash', 'upi', 'card', 'split'
+  const [cashTendered, setCashTendered] = useState('');
+  const [splitCashAmount, setSplitCashAmount] = useState('');
+  const [guestPhoneForInvoice, setGuestPhoneForInvoice] = useState('');
+  const [settledTaxReceipt, setSettledTaxReceipt] = useState(null);
+  const [managerVoidPin, setManagerVoidPin] = useState('');
+  const [managerPinError, setManagerPinError] = useState('');
+
   const dailySalesItems = [
     { code: '102', name: 'Chicken Dum Biryani (Chef Special)', cat: 'Food (Non-Veg)', qty: 38, rate: 260, totalSales: 9880 },
     { code: '101', name: 'Butter Chicken Boneless', cat: 'Food (Non-Veg)', qty: 24, rate: 320, totalSales: 7680 },
@@ -228,34 +239,58 @@ export default function CannonKitchenPOS({
     return item.dineInPrice || item.price;
   };
 
-  // Add item by numeric code (Fast Numpad Flow)
+  // Parse code and multiplier (e.g. "54*3", "3*54", "54x2", "2x54")
+  const parseCodeAndQty = (input) => {
+    const raw = (input || '').trim().toLowerCase();
+    if (!raw) return { code: '', qty: 1 };
+    
+    if (raw.includes('*') || raw.includes('x')) {
+      const sep = raw.includes('*') ? '*' : 'x';
+      const parts = raw.split(sep).map(p => p.trim());
+      if (parts.length === 2) {
+        if (RESTAURANT_MENU.some(m => m.itemCode === parts[0])) {
+          return { code: parts[0], qty: Math.max(1, parseInt(parts[1], 10) || 1) };
+        }
+        if (RESTAURANT_MENU.some(m => m.itemCode === parts[1])) {
+          return { code: parts[1], qty: Math.max(1, parseInt(parts[0], 10) || 1) };
+        }
+        return { code: parts[0], qty: Math.max(1, parseInt(parts[1], 10) || 1) };
+      }
+    }
+    return { code: raw, qty: 1 };
+  };
+
+  // Add item by numeric code (Fast Numpad Flow with Multiplier like 54*3)
   const handleCodeSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!codeQuery.trim()) return;
 
-    const matched = RESTAURANT_MENU.find(m => m.itemCode === codeQuery.trim());
+    const { code, qty } = parseCodeAndQty(codeQuery);
+    const matched = RESTAURANT_MENU.find(m => m.itemCode === code);
     if (matched) {
-      addItemToCart(matched);
+      addItemToCart(matched, qty);
       setCodeQuery('');
       // Auto-switch to 'menu' catalog so the user sees the active catalog and item
       if (posViewMode === 'tableGrid') {
         setPosViewMode('menu');
       }
     } else {
-      alert(`Item code "${codeQuery}" not found in Menu. Try 54 (Salt & Pepper Corn), 214 (Mushroom Masala), 307 (Rice) or 116 (Andhra Chicken).`);
+      alert(`Item code "${code}" not found in Menu. Try 54 (Salt & Pepper Corn), 214 (Mushroom Masala), 307 (Rice) or 116 (Andhra Chicken).`);
     }
   };
 
-  const addItemToCart = (item) => {
+  const addItemToCart = (item, qty = 1) => {
+    const quantityToAdd = Math.max(1, qty);
     const existingIndex = cart.findIndex(c => c.item.id === item.id);
     if (existingIndex > -1) {
       const updated = [...cart];
-      updated[existingIndex].quantity += 1;
+      updated[existingIndex].quantity += quantityToAdd;
       setCart(updated);
     } else {
-      setCart([...cart, { item, quantity: 1, notes: '', cookingTags: [] }]);
+      setCart([...cart, { item, quantity: quantityToAdd, notes: '', cookingTags: [] }]);
     }
-    showPosToast(`✓ Added [Code #${item.itemCode || '0'}] ${item.name} (₹${getItemPrice(item)}) to KOT Ticket!`);
+    const unitPrice = getItemPrice(item);
+    showPosToast(`✓ Added ${quantityToAdd > 1 ? `${quantityToAdd}x ` : ''}[Code #${item.itemCode || '0'}] ${item.name} (₹${unitPrice * quantityToAdd}) to KOT Ticket!`);
     playSuccessChime();
   };
 
@@ -522,6 +557,98 @@ Thank you for dining at Cannon Kitchen! 🙏`;
     setPrintKotModalOrder(newKotOrder);
     setCart([]);
     showPosToast(`✓ KOT #${kotId} for Table ${tableNumber} sent to Kitchen KDS queue!`);
+  };
+
+  // Direct Table Bill Settlement (Cash, Dynamic UPI QR, Card, Split)
+  const handleConfirmTableSettlement = () => {
+    if (cart.length === 0) return;
+
+    const invoiceId = `CK-INV-${Date.now().toString().slice(-4)}`;
+    const billItems = cart.map(c => ({
+      name: c.item.name,
+      itemCode: c.item.itemCode || '0',
+      quantity: c.quantity,
+      price: getItemPrice(c.item),
+      amount: getItemPrice(c.item) * c.quantity
+    }));
+    const totalPayable = netTotal;
+
+    const receipt = {
+      invoiceId,
+      tableNumber,
+      outlet: selectedOutlet,
+      items: billItems,
+      subtotal: taxableSubtotal,
+      gst,
+      totalAmount: totalPayable,
+      paymentMode: settlementPaymentMode,
+      cashTendered: settlementPaymentMode === 'cash' ? (parseFloat(cashTendered) || totalPayable) : null,
+      changeDue: settlementPaymentMode === 'cash' ? Math.max(0, (parseFloat(cashTendered) || totalPayable) - totalPayable) : 0,
+      splitDetails: settlementPaymentMode === 'split' ? {
+        cash: parseFloat(splitCashAmount) || 0,
+        upi: Math.max(0, totalPayable - (parseFloat(splitCashAmount) || 0))
+      } : null,
+      captain: captainName,
+      created_at: new Date().toISOString()
+    };
+
+    setSettledTaxReceipt(receipt);
+    setTableSettlementModalOpen(false);
+    setCart([]);
+    showPosToast(`✓ Table ${tableNumber} Settled (₹${totalPayable.toFixed(2)}) via ${settlementPaymentMode.toUpperCase()}!`);
+    playSuccessChime();
+
+    // Log settlement to local orders list as Delivered / Settled
+    const settlementKot = {
+      orderId: invoiceId,
+      tableNumber,
+      guestName: `Table ${tableNumber} Guest`,
+      outlet: selectedOutlet,
+      orderType: 'table',
+      status: 'Delivered',
+      items: billItems,
+      totalAmount: totalPayable,
+      captain: captainName,
+      created_at: new Date().toISOString()
+    };
+    setLocalFoodOrders(prev => [settlementKot, ...prev]);
+
+    // Cloudflare D1 Sync
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'record_table_settlement',
+        payload: receipt
+      })
+    }).catch(err => console.debug('Settlement log:', err));
+  };
+
+  const handleSendSettlementWhatsApp = (customPhone = null) => {
+    const data = settledTaxReceipt || {
+      invoiceId: `CK-EST-${Date.now().toString().slice(-4)}`,
+      tableNumber,
+      totalAmount: netTotal,
+      gst,
+      items: cart.map(c => ({ name: c.item.name, quantity: c.quantity, price: getItemPrice(c.item) })),
+      paymentMode: settlementPaymentMode
+    };
+    const phone = (customPhone || guestPhoneForInvoice || '').replace(/\D/g, '');
+    const itemList = data.items.map(i => `• ${i.quantity}x ${i.name} = ₹${(i.quantity * i.price).toFixed(0)}`).join('\n');
+    const msg = `*HOTEL SAI INTERNATIONAL - CANNON KITCHEN*\n` +
+      `🧾 Tax Invoice: #${data.invoiceId}\n` +
+      `🍽️ Table: ${data.tableNumber} | Rayagada (Odisha)\n` +
+      `--------------------------------\n` +
+      `${itemList}\n` +
+      `--------------------------------\n` +
+      `*Gross Total:* ₹${data.totalAmount.toFixed(2)}\n` +
+      `(Includes 5% Restaurant GST - SAC 996331)\n` +
+      `Payment Status: *PAID (${(data.paymentMode || 'UPI/Cash').toUpperCase()})*\n` +
+      `GSTIN: 21AABCS1234F1Z5\n` +
+      `Thank you for dining with us! 🙏`;
+    
+    const url = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
   };
 
   // Handle "Bill to Room" action with KDS routing
@@ -1531,15 +1658,16 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               flexWrap: 'wrap'
             }}>
               {(() => {
-                const previewItem = codeQuery.trim() ? RESTAURANT_MENU.find(m => m.itemCode === codeQuery.trim()) : null;
+                const { code: pCode, qty: pQty } = parseCodeAndQty(codeQuery);
+                const previewItem = pCode ? RESTAURANT_MENU.find(m => m.itemCode === pCode) : null;
                 return (
                   <form onSubmit={handleCodeSubmit} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', width: 170 }}>
+                    <div style={{ position: 'relative', width: 190 }}>
                       <Hash size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#fbbf24' }} />
                       <input
                         ref={codeInputRef}
                         type="text"
-                        placeholder="Code (e.g. 54)"
+                        placeholder="Code or Code*Qty (e.g. 54*3)"
                         value={codeQuery}
                         onChange={(e) => setCodeQuery(e.target.value)}
                         style={{
@@ -1549,9 +1677,9 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                           border: previewItem ? '1.5px solid #10b981' : '1px solid rgba(245, 158, 11, 0.4)',
                           borderRadius: '8px',
                           color: '#fff',
-                          fontSize: '0.9rem',
+                          fontSize: '0.85rem',
                           fontWeight: 700,
-                          letterSpacing: '1px',
+                          letterSpacing: '0.5px',
                           boxShadow: previewItem ? '0 0 10px rgba(16, 185, 129, 0.35)' : 'none'
                         }}
                       />
@@ -1582,7 +1710,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                           boxShadow: '0 0 12px rgba(16, 185, 129, 0.35)'
                         }}
                       >
-                        <span>✓ #{previewItem.itemCode}: {previewItem.name} (₹{getItemPrice(previewItem)})</span>
+                        <span>✓ {pQty > 1 ? `${pQty}x ` : ''}#{previewItem.itemCode}: {previewItem.name} (₹{getItemPrice(previewItem) * pQty})</span>
                         <span style={{ background: '#10b981', color: '#000', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem' }}>+ Add to Cart</span>
                       </button>
                     )}
@@ -1727,10 +1855,10 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   <span style={{ color: '#94a3b8' }}>Tap any table or room button to select and add dishes</span>
                 </div>
 
-                {/* Section 1: Main Dining Tables (1 - 13) */}
+                {/* Section 1: Main Dining Tables (1 - 18) */}
                 <div>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold-glow)', marginBottom: '0.5rem' }}>
-                    🍽️ Ground Floor Main Dining (Tables 1 – 13)
+                    🍽️ Ground Floor Main Dining (Tables 1 – 18)
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.65rem' }}>
                     {MYPOS_CANNON_KITCHEN_LAYOUT.tables.filter(t => t.section === 'Main Dining').map(table => {
@@ -2483,14 +2611,49 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                     <Bed size={16} /> Bill to Room {targetRoom} Folio
                   </button>
                 ) : (
-                  <button
-                    onClick={handlePrintAndSendTableKOT}
-                    disabled={cart.length === 0}
-                    className="btn-primary"
-                    style={{ flex: 1.5, padding: '0.7rem', fontWeight: 700, fontSize: '0.85rem' }}
-                  >
-                    Print KOT (Table {tableNumber})
-                  </button>
+                  <>
+                    <button
+                      onClick={handlePrintAndSendTableKOT}
+                      disabled={cart.length === 0}
+                      className="btn-outline"
+                      title="Send KOT ticket to kitchen without settling payment yet"
+                      style={{
+                        flex: 1,
+                        padding: '0.7rem 0.4rem',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        background: 'rgba(255,255,255,0.06)',
+                        color: '#cbd5e1',
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        borderRadius: '6px',
+                        cursor: cart.length === 0 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      KOT (T-{tableNumber})
+                    </button>
+                    <button
+                      onClick={() => setTableSettlementModalOpen(true)}
+                      disabled={cart.length === 0}
+                      className="btn-primary"
+                      title="Settle bill immediately with Cash, UPI QR, or Split Tender"
+                      style={{
+                        flex: 1.4,
+                        padding: '0.7rem 0.4rem',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
+                        cursor: cart.length === 0 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <CreditCard size={15} /> Settle T-{tableNumber}
+                    </button>
+                  </>
                 )}
 
                 <button
@@ -2665,6 +2828,469 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   style={{
                     flex: 1,
                     padding: '0.6rem',
+                    background: '#e2e8f0',
+                    color: '#0f172a',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            MODAL: TABLE DIRECT SETTLEMENT & DYNAMIC UPI QR
+            ======================================================== */}
+        {tableSettlementModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#0d1322',
+              color: '#ffffff',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              width: '100%',
+              maxWidth: '520px',
+              padding: '1.5rem',
+              borderRadius: '14px',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.85)',
+              maxHeight: '92vh',
+              overflowY: 'auto'
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <CreditCard size={20} color="#10b981" />
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff', fontWeight: 800 }}>
+                      Table {tableNumber} Settlement
+                    </h3>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Cannon Kitchen Dine-In • Captain: {captainName}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setTableSettlementModalOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Bill Summary Card */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <span>Dishes ({cart.reduce((s, c) => s + c.quantity, 0)} Items):</span>
+                  <span>₹{taxableSubtotal.toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <span>5% GST (2.5% CGST + 2.5% SGST • SAC 996331):</span>
+                  <span>₹{gst.toFixed(2)}</span>
+                </div>
+                {calculatedDiscount > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: '#34d399', display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <span>Discount:</span>
+                    <span>-₹{calculatedDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderTop: '1px dashed rgba(255,255,255,0.15)',
+                  paddingTop: '0.5rem',
+                  marginTop: '0.35rem'
+                }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff' }}>Net Total Due:</span>
+                  <span style={{ fontWeight: 900, fontSize: '1.4rem', color: '#fbbf24' }}>
+                    ₹{netTotal.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tender Switcher */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  Select Tender / Payment Mode:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                  {[
+                    { id: 'cash', label: '💵 Cash' },
+                    { id: 'upi', label: '📱 SBI UPI QR' },
+                    { id: 'card', label: '💳 Card' },
+                    { id: 'split', label: '🔀 Split (Cash+UPI)' }
+                  ].map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setSettlementPaymentMode(m.id)}
+                      style={{
+                        padding: '0.55rem 0.2rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        border: settlementPaymentMode === m.id ? '1.5px solid #10b981' : '1px solid rgba(255,255,255,0.12)',
+                        background: settlementPaymentMode === m.id ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.03)',
+                        color: settlementPaymentMode === m.id ? '#34d399' : '#cbd5e1'
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tab Specific Content */}
+              {settlementPaymentMode === 'cash' && (
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.35rem' }}>
+                    Cash Received from Guest (₹)
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <input
+                      type="number"
+                      placeholder={`e.g. ${Math.ceil(netTotal / 100) * 100}`}
+                      value={cashTendered}
+                      onChange={(e) => setCashTendered(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '0.55rem',
+                        background: '#070b14',
+                        color: '#fff',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '6px',
+                        fontSize: '1rem',
+                        fontWeight: 700
+                      }}
+                    />
+                    {[netTotal, 500, 1000, 2000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setCashTendered(amt.toString())}
+                        style={{
+                          padding: '0.35rem 0.55rem',
+                          fontSize: '0.72rem',
+                          background: 'rgba(255,255,255,0.08)',
+                          color: '#cbd5e1',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ₹{amt}
+                      </button>
+                    ))}
+                  </div>
+
+                  {parseFloat(cashTendered) >= netTotal && (
+                    <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', padding: '0.5rem', borderRadius: '6px', color: '#34d399', fontSize: '0.82rem', fontWeight: 700 }}>
+                      Change to Return: ₹{(parseFloat(cashTendered) - netTotal).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {settlementPaymentMode === 'upi' && (
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '1rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '0.5rem' }}>
+                    Scan with PhonePe, Google Pay, Paytm, or BHIM:
+                  </div>
+                  <div style={{ display: 'inline-block', padding: '8px', background: '#fff', borderRadius: '8px', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`upi://pay?pa=eswara.hotel@sbi&pn=Hotel%20Sai%20International&am=${netTotal.toFixed(2)}&cu=INR&tn=Table%20${tableNumber}%20Food%20Bill`)}`}
+                      alt="SBI UPI QR Code"
+                      style={{ width: 160, height: 160, display: 'block' }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+                    Payee VPA: <strong style={{ color: '#fff' }}>eswara.hotel@sbi</strong> • Amount: <strong style={{ color: '#fbbf24' }}>₹{netTotal.toFixed(2)}</strong>
+                  </div>
+                </div>
+              )}
+
+              {settlementPaymentMode === 'split' && (
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8' }}>Cash Portion (₹)</label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 500"
+                        value={splitCashAmount}
+                        onChange={(e) => setSplitCashAmount(e.target.value)}
+                        style={{ width: '100%', padding: '0.5rem', background: '#070b14', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8' }}>UPI Portion (₹)</label>
+                      <div style={{ padding: '0.5rem', background: '#111827', color: '#fbbf24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontWeight: 800 }}>
+                        ₹{Math.max(0, netTotal - (parseFloat(splitCashAmount) || 0)).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  {parseFloat(splitCashAmount) > 0 && parseFloat(splitCashAmount) < netTotal && (
+                    <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>Scan UPI QR for remaining balance:</span>
+                      <div style={{ display: 'inline-block', padding: '6px', background: '#fff', borderRadius: '6px', marginTop: '4px' }}>
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=eswara.hotel@sbi&pn=Hotel%20Sai%20International&am=${Math.max(0, netTotal - (parseFloat(splitCashAmount) || 0)).toFixed(2)}&cu=INR&tn=Table%20${tableNumber}%20Split%20UPI`)}`}
+                          alt="Split UPI QR"
+                          style={{ width: 120, height: 120, display: 'block' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* WhatsApp e-Bill Dispatch Bar */}
+              <div style={{ marginBottom: '1.25rem', padding: '0.65rem 0.85rem', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: '#4ade80', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  📱 Send Paperless WhatsApp Tax Invoice to Guest:
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="tel"
+                    placeholder="Guest 10-digit mobile number"
+                    value={guestPhoneForInvoice}
+                    onChange={(e) => setGuestPhoneForInvoice(e.target.value)}
+                    style={{ flex: 1, padding: '0.45rem', background: '#070b14', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSendSettlementWhatsApp()}
+                    style={{ padding: '0.45rem 0.75rem', background: '#10b981', color: '#000', border: 'none', borderRadius: '6px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleConfirmTableSettlement}
+                  style={{
+                    flex: 1.5,
+                    padding: '0.75rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.9rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
+                  }}
+                >
+                  ✓ Complete Settlement &amp; Print Bill
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTableSettlementModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    background: 'rgba(255,255,255,0.08)',
+                    color: '#cbd5e1',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            MODAL: AUTHENTIC TAX INVOICE PRINTABLE SLIP
+            ======================================================== */}
+        {settledTaxReceipt && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              color: '#000000',
+              width: '100%',
+              maxWidth: '380px',
+              padding: '1.5rem',
+              borderRadius: '8px',
+              fontFamily: 'monospace, "Courier New", Courier',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+              maxHeight: '92vh',
+              overflowY: 'auto'
+            }}>
+              {/* Header */}
+              <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 800 }}>Hotel Sai International</div>
+                <h3 style={{ margin: '0.2rem 0', fontSize: '1.25rem', fontWeight: 900 }}>CANNON KITCHEN</h3>
+                <div style={{ fontSize: '0.72rem', color: '#333' }}>Near New Bus Stand, Rayagada (Odisha)</div>
+                <div style={{ fontSize: '0.72rem', color: '#333' }}>GSTIN: 21AABCS1234F1Z5 • SAC: 996331</div>
+                <div style={{
+                  margin: '0.5rem 0 0.2rem',
+                  padding: '3px 0',
+                  borderTop: '1px solid #000',
+                  borderBottom: '1px solid #000',
+                  fontSize: '0.85rem',
+                  fontWeight: 900
+                }}>
+                  *** RETAIL TAX INVOICE ***
+                </div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 900 }}>
+                  INVOICE #{settledTaxReceipt.invoiceId}
+                </div>
+              </div>
+
+              {/* Meta */}
+              <div style={{ fontSize: '0.75rem', lineHeight: '1.45', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span><strong>Date:</strong> {new Date(settledTaxReceipt.created_at).toLocaleDateString('en-IN')}</span>
+                  <span><strong>Time:</strong> {new Date(settledTaxReceipt.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div><strong>Outlet:</strong> {settledTaxReceipt.outlet || 'Cannon Kitchen'}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, marginTop: '2px', color: '#000' }}>
+                  TABLE: {settledTaxReceipt.tableNumber} (Dine-In)
+                </div>
+                <div><strong>Payment Tender:</strong> {settledTaxReceipt.paymentMode?.toUpperCase()}</div>
+                <div><strong>Captain / Cashier:</strong> {settledTaxReceipt.captain}</div>
+              </div>
+
+              {/* Items Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', marginBottom: '0.75rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px dashed #000', borderTop: '1px dashed #000' }}>
+                    <th style={{ textAlign: 'left', padding: '0.3rem 0' }}>QTY</th>
+                    <th style={{ textAlign: 'left', padding: '0.3rem 0' }}>ITEM</th>
+                    <th style={{ textAlign: 'right', padding: '0.3rem 0' }}>RATE</th>
+                    <th style={{ textAlign: 'right', padding: '0.3rem 0' }}>AMT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {settledTaxReceipt.items.map((it, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px dotted #ccc' }}>
+                      <td style={{ padding: '0.3rem 0', fontWeight: 700 }}>{it.quantity}</td>
+                      <td style={{ padding: '0.3rem 0' }}>{it.name}</td>
+                      <td style={{ textAlign: 'right', padding: '0.3rem 0' }}>₹{it.price}</td>
+                      <td style={{ textAlign: 'right', padding: '0.3rem 0', fontWeight: 700 }}>₹{it.amount || it.price * it.quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Calculations */}
+              <div style={{ fontSize: '0.78rem', borderTop: '1px dashed #000', paddingTop: '0.5rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span>Taxable Subtotal:</span>
+                  <span>₹{settledTaxReceipt.subtotal?.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span>CGST (2.5%):</span>
+                  <span>₹{(settledTaxReceipt.gst / 2).toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span>SGST (2.5%):</span>
+                  <span>₹{(settledTaxReceipt.gst / 2).toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '0.95rem', borderTop: '1px solid #000', paddingTop: '4px', marginTop: '4px' }}>
+                  <span>TOTAL PAID:</span>
+                  <span>₹{settledTaxReceipt.totalAmount.toFixed(2)}</span>
+                </div>
+                {settledTaxReceipt.cashTendered && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#555', marginTop: '3px' }}>
+                    <span>Cash Tendered / Change:</span>
+                    <span>₹{settledTaxReceipt.cashTendered} / ₹{settledTaxReceipt.changeDue?.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#444', borderTop: '1px dashed #000', paddingTop: '0.5rem' }}>
+                THANK YOU FOR VISITING CANNON KITCHEN! • HAVE A BLESSED JOURNEY
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+                <button
+                  onClick={() => window.print()}
+                  style={{
+                    flex: 1.5,
+                    padding: '0.6rem',
+                    background: '#000',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  <Printer size={15} /> Print Tax Slip (Ctrl+P)
+                </button>
+                <button
+                  onClick={() => handleSendSettlementWhatsApp()}
+                  style={{
+                    flex: 1,
+                    padding: '0.6rem',
+                    background: '#16a34a',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  <MessageCircle size={14} /> WhatsApp
+                </button>
+                <button
+                  onClick={() => setSettledTaxReceipt(null)}
+                  style={{
+                    padding: '0.6rem 0.85rem',
                     background: '#e2e8f0',
                     color: '#0f172a',
                     border: 'none',

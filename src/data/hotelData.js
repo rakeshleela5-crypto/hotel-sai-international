@@ -399,7 +399,7 @@ export const POST_CHARGE_CATEGORIES = [
 export const MYPOS_CANNON_KITCHEN_LAYOUT = {
   tables: [
     // Main Restaurant Dining
-    ...Array.from({ length: 13 }, (_, i) => ({ id: `${i + 1}`, label: `Table ${i + 1}`, section: 'Main Dining', pax: 4 })),
+    ...Array.from({ length: 18 }, (_, i) => ({ id: `${i + 1}`, label: `Table ${i + 1}`, section: 'Main Dining', pax: 4 })),
     // Upper / Window Terrace Section
     ...Array.from({ length: 13 }, (_, i) => ({ id: `${i + 1}A`, label: `Table ${i + 1}A`, section: 'Terrace Dining', pax: 4 })),
     // Bar & Lounge Section
