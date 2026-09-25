@@ -92,6 +92,7 @@ export default function FaqSection({ onOpenBooking }) {
         </div>
 
         {/* Accordion List */}
+        {/* Accordion List with Emil Kowalski Fluid CSS Grid Motion */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           {FAQS.map(faq => {
             const Icon = faq.icon;
@@ -101,18 +102,33 @@ export default function FaqSection({ onOpenBooking }) {
               <div 
                 key={faq.id}
                 style={{
-                  background: isOpen ? 'rgba(12, 24, 43, 0.85)' : 'rgba(6, 14, 26, 0.6)',
-                  border: isOpen ? '1px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '12px',
+                  background: isOpen ? 'linear-gradient(135deg, rgba(12, 24, 43, 0.95), rgba(18, 34, 60, 0.9))' : 'rgba(6, 14, 26, 0.65)',
+                  border: isOpen ? '1px solid var(--gold-glow)' : '1px solid rgba(212, 175, 55, 0.2)',
+                  borderRadius: '14px',
+                  boxShadow: isOpen ? '0 12px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 175, 55, 0.15)' : '0 4px 15px rgba(0, 0, 0, 0.3)',
                   overflow: 'hidden',
-                  transition: 'all 0.25s ease'
+                  transition: 'transform 0.24s var(--ease-luxury), box-shadow 0.24s ease, border-color 0.24s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isOpen) {
+                    e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.45)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isOpen) {
+                    e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.2)';
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
+                  }
                 }}
               >
                 <button
                   onClick={() => toggleFaq(faq.id)}
                   style={{
                     width: '100%',
-                    padding: '1.2rem 1.5rem',
+                    padding: '1.25rem 1.6rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -121,40 +137,57 @@ export default function FaqSection({ onOpenBooking }) {
                     border: 'none',
                     color: '#ffffff',
                     cursor: 'pointer',
-                    textAlign: 'left'
+                    textAlign: 'left',
+                    transition: 'background 0.2s ease'
                   }}
                   aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${faq.id}`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{
-                      padding: '0.45rem',
-                      borderRadius: '8px',
-                      background: isOpen ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                      color: isOpen ? '#d4af37' : '#94a3b8'
+                      padding: '0.5rem',
+                      borderRadius: '10px',
+                      background: isOpen ? 'linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(243, 198, 76, 0.15))' : 'rgba(255, 255, 255, 0.05)',
+                      border: isOpen ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: isOpen ? 'var(--gold-glow)' : '#94a3b8',
+                      transition: 'all 0.24s var(--ease-luxury)'
                     }}>
-                      <Icon size={18} />
+                      <Icon size={19} />
                     </div>
-                    <span style={{ fontSize: '1rem', fontWeight: 600, color: isOpen ? '#fff' : '#e2e8f0' }}>
+                    <span style={{ fontSize: '1.02rem', fontWeight: 700, color: isOpen ? '#fff' : '#e2e8f0', letterSpacing: '0.01em' }}>
                       {faq.question}
                     </span>
                   </div>
 
-                  <div style={{ color: isOpen ? '#d4af37' : '#64748b' }}>
-                    {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  <div style={{
+                    color: isOpen ? 'var(--gold-glow)' : '#64748b',
+                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s var(--ease-spring), color 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <ChevronDown size={22} />
                   </div>
                 </button>
 
-                {isOpen && (
-                  <div style={{
-                    padding: '0 1.5rem 1.25rem 3.8rem',
-                    fontSize: '0.88rem',
-                    lineHeight: 1.6,
-                    color: '#94a3b8',
-                    borderTop: '1px solid rgba(212, 175, 55, 0.1)'
-                  }}>
-                    {faq.answer}
+                {/* Smooth CSS Grid Accordion Drawer */}
+                <div 
+                  id={`faq-answer-${faq.id}`}
+                  className={`accordion-grid ${isOpen ? 'is-open' : ''}`}
+                >
+                  <div className="accordion-inner">
+                    <div style={{
+                      padding: '0.2rem 1.6rem 1.4rem 4.1rem',
+                      fontSize: '0.9rem',
+                      lineHeight: 1.65,
+                      color: '#cbd5e1',
+                      borderTop: '1px solid rgba(212, 175, 55, 0.12)'
+                    }}>
+                      {faq.answer}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Check, Wifi, Tv, Coffee, Wind, Compass, Sparkles, 
   ArrowRight, ShieldCheck, Users, Bed, Layers, Car, Briefcase,
-  Zap, Clock, Utensils, MapPin, Building
+  Zap, Clock, Utensils, MapPin, Building, CheckCircle2
 } from 'lucide-react';
 import { ROOM_TIERS } from '../data/hotelData';
 import { calculateRoomTax } from '../utils/taxUtils';
@@ -82,14 +82,15 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
             </p>
           </div>
 
-          {/* Luxury Sliding Pill Tabs Bar */}
-          <div className="category-tabs-container" ref={tabsContainerRef}>
+          {/* Luxury Sliding Pill Tabs Bar with WCAG Tablist */}
+          <div className="category-tabs-container" ref={tabsContainerRef} role="tablist" aria-label="Floor Categories">
             <div 
               className="sliding-gold-pill" 
               style={{
                 transform: `translateX(${pillStyle.left}px)`,
                 width: `${pillStyle.width}px`,
-                opacity: pillStyle.opacity
+                opacity: pillStyle.opacity,
+                transition: 'transform 0.24s var(--ease-luxury), width 0.24s var(--ease-luxury), opacity 0.2s ease'
               }}
             />
             {filterOptions.map((opt) => (
@@ -97,7 +98,14 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
                 key={opt.id}
                 ref={(el) => (tabRefs.current[opt.id] = el)}
                 onClick={() => setSelectedFloorFilter(opt.id)}
+                role="tab"
+                aria-selected={selectedFloorFilter === opt.id}
                 className={`tab-btn-pill ${selectedFloorFilter === opt.id ? 'active' : ''}`}
+                style={{
+                  transition: 'color 0.2s ease, transform 0.15s ease'
+                }}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
                 {opt.label}
               </button>
@@ -265,23 +273,50 @@ export default function RoomCatalog({ onSelectTier, onOpen3DExplorer, rooms = []
                     ))}
                   </div>
 
-                  {/* Bottom Action */}
-                  <div style={{ marginTop: 'auto', display: 'flex', gap: '0.75rem' }}>
-                    <button 
-                      onClick={() => onSelectTier({ ...tier, tariff: effectiveTariff })}
-                      className="btn-primary-gold"
-                      style={{ flex: 1, justifyContent: 'center' }}
-                    >
-                      Book Room <ArrowRight size={16} />
-                    </button>
-                    <button 
-                      onClick={onOpen3DExplorer}
-                      className="btn-secondary-sapphire"
-                      style={{ padding: '0.75rem' }}
-                      title="View on 3D Floor Model"
-                    >
-                      <Layers size={16} />
-                    </button>
+                  {/* Bottom Action with Emil Kowalski Micro-Interactions */}
+                  <div style={{ marginTop: 'auto' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.74rem',
+                      color: '#38bdf8',
+                      fontWeight: 600,
+                      marginBottom: '0.75rem',
+                      letterSpacing: '0.02em'
+                    }}>
+                      <CheckCircle2 size={13} color="#38bdf8" /> Direct Booking: Zero Broker Markup • Instant SAC 996311 Bill
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <button 
+                        onClick={() => onSelectTier({ ...tier, tariff: effectiveTariff })}
+                        className="btn-primary-gold"
+                        style={{ 
+                          flex: 1, 
+                          justifyContent: 'center', 
+                          fontWeight: 700,
+                          transition: 'transform 0.15s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.97)'}
+                        onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        Instant Reserve <ArrowRight size={16} />
+                      </button>
+                      <button 
+                        onClick={onOpen3DExplorer}
+                        className="btn-secondary-sapphire"
+                        style={{ 
+                          padding: '0.75rem',
+                          transition: 'transform 0.15s ease'
+                        }}
+                        onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+                        onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        title="View on 3D Floor Model"
+                      >
+                        <Layers size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </CardSpotlight>
