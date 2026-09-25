@@ -26,12 +26,15 @@ export default function DirectorPortal({
   const vipHoldCount = rooms.filter(r => r.status === 'VIP Hold').length || 0;
   const occupancyPct = '48.7';
 
-  // Collections Today (Audit Reconciled to ₹0.00 Variance)
-  const todayCashInDrawer = 24500.00;
-  const todayUpiBank = 18747.07;
-  const todayCardPos = 15000.00;
-  const todayCorpCredit = 2912.35;
-  const todayGrossCollection = 61159.42;
+  // Collections Today (Audit Reconciled to ₹0.00 Variance for 2026-09-24)
+  const todayCashInDrawer = 4866.00;
+  const todayUpiBank = 20790.00;
+  const todayCardPos = 0.00;
+  const todayCorpCredit = 45543.00;
+  const todayGrossCollection = 25656.00; // Exact match: Cash 4,866.00 + Bank/UPI 20,790.00
+  const todayRoomRevenue = 42150.00;
+  const todayFnbRevenue = 29049.00;
+  const todayGrossSales = 71199.00; // Room 42,150.00 + F&B 29,049.00 = 71,199.00
 
   // Month-to-Date
   const mtdRevenue = 1842600.00;
@@ -298,41 +301,32 @@ export default function DirectorPortal({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                    <span style={{ color: '#fff' }}>SBI Merchant UPI / QR:</span>
-                    <span style={{ fontWeight: 700, color: '#34d399' }}>₹{todayUpiBank.toLocaleString('en-IN')} (46%)</span>
+                    <span style={{ color: '#fff' }}>SBI Merchant UPI / Bank QR:</span>
+                    <span style={{ fontWeight: 700, color: '#34d399' }}>₹{todayUpiBank.toLocaleString('en-IN')} (81%)</span>
                   </div>
                   <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: '46%', height: '100%', background: '#34d399' }}></div>
+                    <div style={{ width: '81%', height: '100%', background: '#34d399' }}></div>
                   </div>
                 </div>
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
                     <span style={{ color: '#fff' }}>Physical Cash in Safe & Drawer:</span>
-                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>₹{todayCashInDrawer.toLocaleString('en-IN')} (24%)</span>
+                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>₹{todayCashInDrawer.toLocaleString('en-IN')} (19%)</span>
                   </div>
                   <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: '24%', height: '100%', background: '#38bdf8' }}></div>
+                    <div style={{ width: '19%', height: '100%', background: '#38bdf8' }}></div>
                   </div>
                 </div>
 
-                <div>
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                    <span style={{ color: '#fff' }}>Corporate Direct Credit (BTC):</span>
-                    <span style={{ fontWeight: 700, color: '#fbbf24' }}>₹{todayCorpCredit.toLocaleString('en-IN')} (18%)</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Room Revenue (40 Keys):</span>
+                    <span style={{ fontWeight: 700, color: '#fff' }}>₹{todayRoomRevenue.toLocaleString('en-IN')} (59%)</span>
                   </div>
-                  <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: '18%', height: '100%', background: '#fbbf24' }}></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                    <span style={{ color: '#fff' }}>Card Swipe Machines:</span>
-                    <span style={{ fontWeight: 700, color: '#c084fc' }}>₹{todayCardPos.toLocaleString('en-IN')} (12%)</span>
-                  </div>
-                  <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: '12%', height: '100%', background: '#c084fc' }}></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Cannon Kitchen F&amp;B Sales:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--gold-glow)' }}>₹{todayFnbRevenue.toLocaleString('en-IN')} (41%)</span>
                   </div>
                 </div>
               </div>

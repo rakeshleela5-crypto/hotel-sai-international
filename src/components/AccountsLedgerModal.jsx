@@ -6,7 +6,7 @@ import {
   Zap, PieChart, Info, Check, ArrowUpRight, Edit3, PlusCircle,
   Briefcase, Percent, Scale, UtensilsCrossed, Award, CheckCheck, FileSpreadsheet
 } from 'lucide-react';
-import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER } from '../data/hotelData';
+import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_SALES_REPORT_2026_09_24 } from '../data/hotelData';
 import BookingReceiptModal from './BookingReceiptModal';
 
 export default function AccountsLedgerModal({
@@ -27,6 +27,10 @@ export default function AccountsLedgerModal({
   const [selectedCorporate, setSelectedCorporate] = useState('CORP-05'); // Ashok Leyland Limited by default
   const [selectedMonth, setSelectedMonth] = useState('09');
   const [selectedYear, setSelectedYear] = useState('2026');
+
+  // Authentic 2026-09-24 Item Wise Sales Report filters
+  const [itemSalesCategoryFilter, setItemSalesCategoryFilter] = useState('ALL');
+  const [itemSalesSearchQuery, setItemSalesSearchQuery] = useState('');
 
   // Corporate partners and ledger state for dynamic editing & settlement
   const [corporatePartners, setCorporatePartners] = useState(propCorporatePartners || CORPORATE_PARTNERS);
@@ -124,40 +128,40 @@ export default function AccountsLedgerModal({
     document.body.removeChild(link);
   };
 
-  // CSV Generator for Item-Wise Sales (Sheet 1, 2, 3: Food vs Beverage with Total Qty)
+  // CSV Generator for Item-Wise Sales (Hotel Sai International - Item Wise Report 2026-09-24 ~ 2026-09-24)
   const handleDownloadItemSalesCSV = () => {
-    const items = [
-      { code: '102', name: 'Chicken Dum Biryani (Chef Special)', cat: 'Food (Non-Veg)', qty: 38, rate: 260, cost: '32%', margin: '68%' },
-      { code: '101', name: 'Butter Chicken Boneless', cat: 'Food (Non-Veg)', qty: 24, rate: 320, cost: '34%', margin: '66%' },
-      { code: '214', name: 'Mushroom Masala (Code 214)', cat: 'Food (Veg)', qty: 26, rate: 220, cost: '27%', margin: '73%' },
-      { code: '215', name: 'Paneer Butter Masala', cat: 'Food (Veg)', qty: 32, rate: 210, cost: '29%', margin: '71%' },
-      { code: '307', name: 'Plain Steamed Rice (Code 307)', cat: 'Food (Rice & Breads)', qty: 55, rate: 90, cost: '18%', margin: '82%' },
-      { code: '308', name: 'Dal Fry (Yellow Lentils Tadka)', cat: 'Food (Rice & Breads)', qty: 42, rate: 140, cost: '22%', margin: '78%' },
-      { code: '309', name: 'Butter Tandoori Roti', cat: 'Food (Rice & Breads)', qty: 110, rate: 25, cost: '15%', margin: '85%' },
-      { code: '201', name: 'Mutton Kassa (Odisha Style)', cat: 'Food (Non-Veg)', qty: 14, rate: 420, cost: '41%', margin: '59%' },
-      { code: '202', name: 'Mutton Rogan Josh', cat: 'Food (Non-Veg)', qty: 12, rate: 440, cost: '42%', margin: '58%' },
-      { code: '103', name: 'Chilli Chicken Dry', cat: 'Food (Non-Veg)', qty: 18, rate: 240, cost: '31%', margin: '69%' },
-      { code: '401', name: 'Fresh Lime Soda (Sweet/Salt)', cat: 'Beverages', qty: 28, rate: 70, cost: '14%', margin: '86%' },
-      { code: '402', name: 'Packaged Mineral Water (1L)', cat: 'Beverages', qty: 45, rate: 30, cost: '45%', margin: '55%' }
+    const headers = ['Item Code', 'Item Description / Name', 'Section', 'Category', 'Total Qty Sold', 'Unit Rate (INR)', 'Sales Amount (INR)', 'Est Food Cost %', 'Kitchen Margin %'];
+    const rows = ITEM_WISE_SALES_REPORT_2026_09_24.map(i => {
+      const isMeat = i.category.includes('Chicken') || i.category.includes('Mutton') || i.category.includes('Seafood');
+      const isGail = i.category.includes('GAIL');
+      const costPct = i.section === 'BEVERAGE' ? '22%' : (isMeat ? '34%' : (isGail ? '28%' : '25%'));
+      const marginPct = i.section === 'BEVERAGE' ? '78%' : (isMeat ? '66%' : (isGail ? '72%' : '75%'));
+      return [
+        i.itemCode,
+        `"${i.itemName}"`,
+        i.section,
+        `"${i.category}"`,
+        i.totalQty,
+        i.rate.toFixed(2),
+        i.salesAmount.toFixed(2),
+        costPct,
+        marginPct
+      ];
+    });
+
+    const csvLines = [
+      'Hotel Sai International - Rayagada',
+      'Item Wise Report (2026-09-24 ~ 2026-09-24)',
+      'Total Food Sales: INR 64716.00 (353 Qty) | Total Beverage Sales: INR 3130.00 (150 Qty) | Grand Total: INR 67846.00 (503 Qty)',
+      '',
+      headers.join(','),
+      ...rows.map(e => e.join(','))
     ];
 
-    const headers = ['Item Code', 'Item Description / Name', 'Category (Food / Beverage)', 'Units Sold (Total Quantity)', 'Dine-In Rate (INR)', 'Total Sales (INR)', 'Food Cost %', 'Kitchen Margin %'];
-    const rows = items.map(i => [
-      i.code,
-      `"${i.name}"`,
-      i.cat,
-      i.qty,
-      i.rate,
-      i.qty * i.rate,
-      i.cost,
-      i.margin
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvLines.join('\n'));
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Cannon_Kitchen_Item_Wise_Sales_Register_2026.csv`);
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', 'Hotel_Sai_International_Item_Wise_Report_2026-09-24.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1263,132 +1267,247 @@ export default function AccountsLedgerModal({
           </div>
         )}
 
-        {/* Tab 3: Daily Day Book */}
-        {/* Tab 2.5: ITEM & CATEGORY SALES REPORT (KITCHEN COSTING & MENU ANALYSIS) */}
-        {activeTab === 'item-sales' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
-                  Item-Wise &amp; Category Food Sales Analysis
-                </h3>
-                <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                  Daily breakdown across Chicken, Mutton, Veg, Breads, Rice &amp; Bar for <strong>Cannon Kitchen</strong> kitchen costing and menu yield.
-                </p>
+        {/* Tab 2.5: ITEM & CATEGORY SALES REPORT (AUTHENTIC HOTEL SAI INTERNATIONAL ITEM WISE REPORT 2026-09-24) */}
+        {activeTab === 'item-sales' && (() => {
+          const filteredItems = ITEM_WISE_SALES_REPORT_2026_09_24.filter(item => {
+            const matchesCat = itemSalesCategoryFilter === 'ALL'
+              ? true
+              : itemSalesCategoryFilter === 'GAIL'
+                ? item.category === 'GAIL Corporate Meals'
+                : itemSalesCategoryFilter === 'CHICKEN'
+                  ? item.category === 'Chicken Specialities'
+                  : itemSalesCategoryFilter === 'MUTTON_SEAFOOD'
+                    ? item.category === 'Mutton & Seafood'
+                    : itemSalesCategoryFilter === 'VEG_PANEER'
+                      ? (item.category === 'Paneer & Veg Delicacies' || item.category === 'Dal & Curries')
+                      : itemSalesCategoryFilter === 'BREADS_RICE'
+                        ? (item.category === 'Tandoori & Breads' || item.category === 'Rice & Biryani' || item.category === 'Rice & Accompaniments')
+                        : itemSalesCategoryFilter === 'EGGS'
+                          ? item.category === 'Egg Delicacies'
+                          : itemSalesCategoryFilter === 'STARTERS'
+                            ? item.category === 'Soups & Starters'
+                            : itemSalesCategoryFilter === 'BEVERAGES'
+                              ? item.section === 'BEVERAGE'
+                              : true;
+
+            const q = itemSalesSearchQuery.toLowerCase().trim();
+            const matchesSearch = !q || 
+              item.itemName.toLowerCase().includes(q) || 
+              item.itemCode.includes(q) || 
+              item.category.toLowerCase().includes(q);
+
+            return matchesCat && matchesSearch;
+          });
+
+          const totalFilteredQty = filteredItems.reduce((sum, i) => sum + i.totalQty, 0);
+          const totalFilteredSales = filteredItems.reduce((sum, i) => sum + i.salesAmount, 0);
+
+          return (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span className="badge" style={{ background: 'rgba(212, 175, 55, 0.25)', color: 'var(--gold-glow)', border: '1px solid var(--gold-primary)' }}>
+                      AUDITED REPORT: 2026-09-24 ~ 2026-09-24
+                    </span>
+                    <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
+                      Item-Wise &amp; Category Sales Register
+                    </h3>
+                  </div>
+                  <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                    Official POS product mix across 85 items for <strong>Cannon Kitchen &amp; Drop In Bar</strong> (Food: ₹64,716.00 | Beverage: ₹3,130.00 | Grand Total: ₹67,846.00).
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  <button
+                    onClick={handleDownloadItemSalesCSV}
+                    className="btn-primary"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+                  >
+                    <FileSpreadsheet size={15} /> Export 85-Item CSV
+                  </button>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
-                <button
-                  onClick={handleDownloadItemSalesCSV}
-                  className="btn-primary"
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
-                >
-                  <FileSpreadsheet size={15} /> Export Item Sales CSV
-                </button>
-              </div>
-            </div>
+              {/* Category KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#38bdf8' }}>🏢 GAIL Corporate Meals</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹29,865.00</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>96 Corporate Portions + 78 Beverages</div>
+                </div>
 
-            {/* Category KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
-                <div style={{ fontSize: '0.75rem', color: '#f87171' }}>🍗 Non-Veg Chicken Sales</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹26,230.00</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>95 Portions Sold (Top Seller: Dum Biryani)</div>
+                <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#f87171' }}>🍗 Chicken &amp; Meat Specialities</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹17,540.00</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>71 Portions (Hyderabadi, Tandoori, Kebab)</div>
+                </div>
+
+                <div style={{ background: 'rgba(52, 211, 153, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#34d399' }}>🍄 Paneer &amp; Veg Delicacies</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹7,736.00</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>37 Portions (Kaju Curry, Butter Masala)</div>
+                </div>
+
+                <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#fbbf24' }}>🍞 Breads, Rice &amp; Dal</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹9,580.00</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>149 Units (Naan 34, Phulka 28, Steam Rice 11)</div>
+                </div>
+
+                <div style={{ background: 'rgba(168, 85, 247, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.25)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#c084fc' }}>☕ Beverages &amp; Chilled Drinks</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹3,130.00</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>150 Units (Gail Tea 59, Water 38, Soda 12)</div>
+                </div>
               </div>
 
-              <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
-                <div style={{ fontSize: '0.75rem', color: '#fbbf24' }}>🥩 Mutton Delicacies</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹11,160.00</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>26 Portions Sold (Mutton Kassa &amp; Rogan Josh)</div>
+              {/* Filters & Search Toolbar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'ALL', label: 'All (85)' },
+                    { id: 'GAIL', label: 'GAIL Corporate (8)' },
+                    { id: 'CHICKEN', label: 'Chicken (18)' },
+                    { id: 'MUTTON_SEAFOOD', label: 'Mutton & Fish (5)' },
+                    { id: 'VEG_PANEER', label: 'Paneer & Veg (18)' },
+                    { id: 'BREADS_RICE', label: 'Breads & Rice (18)' },
+                    { id: 'EGGS', label: 'Eggs (7)' },
+                    { id: 'STARTERS', label: 'Soups & Starters (11)' },
+                    { id: 'BEVERAGES', label: 'Beverages (10)' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setItemSalesCategoryFilter(tab.id)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: itemSalesCategoryFilter === tab.id ? 'rgba(212, 175, 55, 0.25)' : 'rgba(255,255,255,0.05)',
+                        color: itemSalesCategoryFilter === tab.id ? 'var(--gold-glow)' : 'var(--text-muted)'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Search dish or code (e.g. 563, 116)..."
+                    value={itemSalesSearchQuery}
+                    onChange={(e) => setItemSalesSearchQuery(e.target.value)}
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      color: '#fff',
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      width: 240
+                    }}
+                  />
+                  {itemSalesSearchQuery && (
+                    <button
+                      onClick={() => setItemSalesSearchQuery('')}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div style={{ background: 'rgba(52, 211, 153, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
-                <div style={{ fontSize: '0.75rem', color: '#34d399' }}>🍄 Mushroom &amp; Paneer Veg</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹16,120.00</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>74 Portions Sold (Code 214 Mushroom Masala)</div>
-              </div>
-
-              <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
-                <div style={{ fontSize: '0.75rem', color: '#38bdf8' }}>🍚 Rice, Dal &amp; Tandoori</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>₹16,505.00</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>272 Units Sold (Code 307 Plain Rice)</div>
-              </div>
-            </div>
-
-            {/* Itemized Table */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                  <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                      <th style={{ padding: '0.75rem' }}>Item Code</th>
-                      <th style={{ padding: '0.75rem' }}>Dish / Beverage Name</th>
-                      <th style={{ padding: '0.75rem' }}>Category</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Units Sold</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Dine-In Rate</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Total Sales (₹)</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Food Cost %</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Kitchen Margin</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { code: '102', name: 'Chicken Dum Biryani (Chef Special)', cat: 'Chicken Specialities', qty: 38, rate: 260, cost: '32%', margin: '68% (High)' },
-                      { code: '101', name: 'Butter Chicken Boneless', cat: 'Chicken Specialities', qty: 24, rate: 320, cost: '34%', margin: '66% (High)' },
-                      { code: '214', name: 'Mushroom Masala (Code 214)', cat: 'Mushroom & Paneer (Veg)', qty: 26, rate: 220, cost: '27%', margin: '73% (Top)' },
-                      { code: '215', name: 'Paneer Butter Masala', cat: 'Mushroom & Paneer (Veg)', qty: 32, rate: 210, cost: '29%', margin: '71% (Top)' },
-                      { code: '307', name: 'Plain Steamed Rice (Code 307)', cat: 'Rice & Breads', qty: 55, rate: 90, cost: '18%', margin: '82% (Max)' },
-                      { code: '308', name: 'Dal Fry (Yellow Lentils Tadka)', cat: 'Rice & Breads', qty: 42, rate: 140, cost: '22%', margin: '78% (Max)' },
-                      { code: '309', name: 'Butter Tandoori Roti', cat: 'Rice & Breads', qty: 110, rate: 25, cost: '15%', margin: '85% (Max)' },
-                      { code: '201', name: 'Mutton Kassa (Odisha Style)', cat: 'Mutton Delicacies', qty: 14, rate: 420, cost: '41%', margin: '59% (Standard)' },
-                      { code: '202', name: 'Mutton Rogan Josh', cat: 'Mutton Delicacies', qty: 12, rate: 440, cost: '42%', margin: '58% (Standard)' },
-                      { code: '103', name: 'Chilli Chicken Dry', cat: 'Chicken Specialities', qty: 18, rate: 240, cost: '31%', margin: '69% (High)' },
-                      { code: '401', name: 'Fresh Lime Soda (Sweet/Salt)', cat: 'Beverages & Bar', qty: 28, rate: 70, cost: '14%', margin: '86% (Max)' },
-                      { code: '402', name: 'Packaged Mineral Water (1L)', cat: 'Beverages & Bar', qty: 45, rate: 30, cost: '45%', margin: '55% (Fixed)' }
-                    ].map((row, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <td style={{ padding: '0.65rem 0.75rem', fontFamily: 'monospace', color: 'var(--gold-glow)', fontWeight: 700 }}>
-                          #{row.code}
+              {/* Itemized Table */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '55vh' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgb(20, 24, 40)' }}>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                        <th style={{ padding: '0.75rem' }}>Item Code</th>
+                        <th style={{ padding: '0.75rem' }}>Dish / Beverage Name</th>
+                        <th style={{ padding: '0.75rem' }}>Section</th>
+                        <th style={{ padding: '0.75rem' }}>Category</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center' }}>Total Qty</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Unit Rate</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Sales Amount (₹)</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Est Food Cost</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center' }}>Kitchen Margin</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredItems.map((row, idx) => {
+                        const isMeat = row.category.includes('Chicken') || row.category.includes('Mutton') || row.category.includes('Seafood');
+                        const isGail = row.category.includes('GAIL');
+                        const costPct = row.section === 'BEVERAGE' ? '22%' : (isMeat ? '34%' : (isGail ? '28%' : '25%'));
+                        const marginPct = row.section === 'BEVERAGE' ? '78%' : (isMeat ? '66%' : (isGail ? '72%' : '75%'));
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: idx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                            <td style={{ padding: '0.65rem 0.75rem', fontFamily: 'monospace', color: 'var(--gold-glow)', fontWeight: 700 }}>
+                              #{row.itemCode}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600, color: '#fff' }}>
+                              <span style={{ marginRight: '0.4rem', fontSize: '0.72rem' }}>{row.isVeg ? '🟢' : '🔴'}</span>
+                              {row.itemName}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', color: row.section === 'BEVERAGE' ? '#c084fc' : '#38bdf8', fontWeight: 600 }}>
+                              {row.section}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', color: '#cbd5e1' }}>
+                              {row.category}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', fontWeight: 700, color: '#38bdf8' }}>
+                              {row.totalQty}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: '#cbd5e1' }}>
+                              ₹{row.rate.toFixed(2)}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#34d399' }}>
+                              ₹{row.salesAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: 'var(--text-muted)' }}>
+                              {costPct}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', color: 'var(--gold-champagne)', fontWeight: 600 }}>
+                              {marginPct}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot style={{ position: 'sticky', bottom: 0, zIndex: 5, background: 'rgb(25, 30, 50)' }}>
+                      <tr style={{ borderTop: '2px solid rgba(212, 175, 55, 0.4)', fontWeight: 800 }}>
+                        <td colSpan={4} style={{ padding: '0.85rem', color: 'var(--gold-glow)' }}>
+                          {itemSalesCategoryFilter === 'ALL' && !itemSalesSearchQuery
+                            ? 'GRAND TOTAL (FOOD ₹64,716.00 + BEVERAGES ₹3,130.00)'
+                            : `FILTERED SUB-TOTAL (${filteredItems.length} ITEMS)`}
                         </td>
-                        <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600, color: '#fff' }}>
-                          {row.name}
+                        <td style={{ padding: '0.85rem', textAlign: 'center', color: '#38bdf8' }}>
+                          {totalFilteredQty}
                         </td>
-                        <td style={{ padding: '0.65rem 0.75rem', color: '#cbd5e1' }}>
-                          {row.cat}
+                        <td style={{ padding: '0.85rem', textAlign: 'right' }}>-</td>
+                        <td style={{ padding: '0.85rem', textAlign: 'right', color: '#34d399', fontSize: '0.95rem' }}>
+                          ₹{totalFilteredSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
-                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', fontWeight: 700, color: '#38bdf8' }}>
-                          {row.qty}
+                        <td style={{ padding: '0.85rem', textAlign: 'right', color: 'var(--text-muted)' }}>
+                          Avg 28.5%
                         </td>
-                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: '#cbd5e1' }}>
-                          ₹{row.rate.toFixed(2)}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#34d399' }}>
-                          ₹{(row.qty * row.rate).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: 'var(--text-muted)' }}>
-                          {row.cost}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', color: 'var(--gold-champagne)', fontWeight: 600 }}>
-                          {row.margin}
+                        <td style={{ padding: '0.85rem', textAlign: 'center', color: '#34d399' }}>
+                          71.5% Margin
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: 'rgba(255,255,255,0.05)', fontWeight: 800 }}>
-                      <td colSpan={3} style={{ padding: '0.75rem', color: 'var(--gold-glow)' }}>TOTALS (446 DISHES SOLD)</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center', color: '#38bdf8' }}>446</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>-</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#34d399' }}>₹70,015.00</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: 'var(--text-muted)' }}>Avg 29.8%</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center', color: '#34d399' }}>70.2% Net Margin</td>
-                    </tr>
-                  </tfoot>
-                </table>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {activeTab === 'day-book' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
