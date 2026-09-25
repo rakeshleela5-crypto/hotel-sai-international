@@ -25,9 +25,6 @@ export default function MasterFolioModal({
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   // Active selected room folio (defaults to 402 for the iconic scenario)
   const [selectedRoom, setSelectedRoom] = useState('402');
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger', 'split-bills', 'multi-settle'
@@ -324,6 +321,8 @@ Divine blessings of sacred Maa Majhighariani.`;
       onSettleFolio(selectedRoom, tenderRows);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div style={{

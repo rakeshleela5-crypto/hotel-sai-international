@@ -13,8 +13,6 @@ export default function DirectorPortal({
   bookings = [],
   onOpenRevenueManagement
 }) {
-  if (!isOpen) return null;
-
   const [activeCity, setActiveCity] = useState('All Directors');
   const [lastRefreshed, setLastRefreshed] = useState(new Date().toLocaleTimeString());
 
@@ -46,6 +44,8 @@ export default function DirectorPortal({
   const handleRefresh = () => {
     setLastRefreshed(new Date().toLocaleTimeString());
   };
+
+  if (!isOpen) return null;
 
   return (
     <div style={{

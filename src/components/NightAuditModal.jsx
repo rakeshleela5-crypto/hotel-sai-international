@@ -14,8 +14,6 @@ export default function NightAuditModal({
   transactions = [],
   onExecuteNightAudit
 }) {
-  if (!isOpen) return null;
-
   const [currentStep, setCurrentStep] = useState(1); // 1: Pre-Audit Check, 2: Post Room Charges, 3: Cash Balancing, 4: Day Lock & Rollover, 5: Audit Summary
   const [auditorName, setAuditorName] = useState('Sudhakar Reddy (Front Office Lead)');
   const [managerPin, setManagerPin] = useState('');
@@ -148,6 +146,8 @@ export default function NightAuditModal({
     { step: 4, title: 'Authorize & Day Lock' },
     { step: 5, title: 'Manager Pack Summary' }
   ];
+
+  if (!isOpen) return null;
 
   return (
     <div 

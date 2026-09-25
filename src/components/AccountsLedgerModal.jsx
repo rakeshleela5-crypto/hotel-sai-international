@@ -19,8 +19,6 @@ export default function AccountsLedgerModal({
   corporatePartners: propCorporatePartners = null,
   onAddTransaction
 }) {
-  if (!isOpen) return null;
-
   const [selectedBillBooking, setSelectedBillBooking] = useState(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
@@ -885,6 +883,8 @@ export default function AccountsLedgerModal({
     link.click();
     document.body.removeChild(link);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div style={{

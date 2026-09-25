@@ -977,67 +977,80 @@ export default function App() {
         />
 
         {/* IDS Next Enterprise Operational Modals */}
-        <MasterFolioModal 
-          isOpen={folioModalOpen}
-          onClose={() => setFolioModalOpen(false)}
-          rooms={rooms}
-          bookings={bookings}
-          transactions={transactions}
-          onAddTransaction={handleAddTransaction}
-          onSettleFolio={handleSettleFolio}
-        />
+        {folioModalOpen && (
+          <MasterFolioModal 
+            isOpen={folioModalOpen}
+            onClose={() => setFolioModalOpen(false)}
+            rooms={rooms}
+            bookings={bookings}
+            transactions={transactions}
+            onAddTransaction={handleAddTransaction}
+            onSettleFolio={handleSettleFolio}
+          />
+        )}
 
-        <CannonKitchenPOS 
-          isOpen={posModalOpen}
-          onClose={() => setPosModalOpen(false)}
-          rooms={rooms}
-          onBillToRoom={handleBillToRoomFromPOS}
-          foodOrders={foodOrders}
-          onUpdateOrderStatus={handleUpdateOrderStatus}
-          onAddFoodOrder={handleAddFoodOrder}
-        />
+        {posModalOpen && (
+          <CannonKitchenPOS 
+            isOpen={posModalOpen}
+            onClose={() => setPosModalOpen(false)}
+            rooms={rooms}
+            onBillToRoom={handleBillToRoomFromPOS}
+            foodOrders={foodOrders}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onAddFoodOrder={handleAddFoodOrder}
+          />
+        )}
 
-        <AccountsLedgerModal 
-          isOpen={accountsModalOpen}
-          onClose={() => setAccountsModalOpen(false)}
-          bookings={bookings}
-          rooms={rooms}
-          transactions={transactions}
-          corporatePartners={corporatePartners}
-          onAddTransaction={handleAddTransaction}
-        />
+        {accountsModalOpen && (
+          <AccountsLedgerModal 
+            isOpen={accountsModalOpen}
+            onClose={() => setAccountsModalOpen(false)}
+            bookings={bookings}
+            rooms={rooms}
+            transactions={transactions}
+            corporatePartners={corporatePartners}
+            onAddTransaction={handleAddTransaction}
+          />
+        )}
 
-        <NightAuditModal 
-          isOpen={nightAuditModalOpen}
-          onClose={() => setNightAuditModalOpen(false)}
-          rooms={rooms}
-          bookings={bookings}
-          transactions={transactions}
-          onExecuteNightAudit={handleExecuteNightAudit}
-        />
+        {nightAuditModalOpen && (
+          <NightAuditModal 
+            isOpen={nightAuditModalOpen}
+            onClose={() => setNightAuditModalOpen(false)}
+            rooms={rooms}
+            bookings={bookings}
+            transactions={transactions}
+            onExecuteNightAudit={handleExecuteNightAudit}
+          />
+        )}
 
-        <StoreInventoryModal 
-          isOpen={storeInventoryModalOpen}
-          onClose={() => setStoreInventoryModalOpen(false)}
-        />
+        {storeInventoryModalOpen && (
+          <StoreInventoryModal 
+            isOpen={storeInventoryModalOpen}
+            onClose={() => setStoreInventoryModalOpen(false)}
+          />
+        )}
 
-        <DirectorPortal 
-          isOpen={directorPortalOpen}
-          onClose={() => setDirectorPortalOpen(false)}
-          rooms={rooms}
-          bookings={bookings}
-          onOpenRevenueManagement={() => {
-            setDirectorPortalOpen(false);
-            setRevenueModalOpen(true);
-          }}
-        />
+        {directorPortalOpen && (
+          <DirectorPortal 
+            isOpen={directorPortalOpen}
+            onClose={() => setDirectorPortalOpen(false)}
+            rooms={rooms}
+            bookings={bookings}
+            onOpenRevenueManagement={() => {
+              setDirectorPortalOpen(false);
+              setRevenueModalOpen(true);
+            }}
+          />
+        )}
 
         {/* IDeaS SAS G3 RMS Platform Revenue Director's Console */}
-        <RevenueManagementModal 
-          isOpen={revenueModalOpen}
-          onClose={() => setRevenueModalOpen(false)}
-          currentOccupancy={Math.round((rooms.filter(r => r.status === 'Occupied').length / (rooms.length || 40)) * 100)}
-          activeRates={dynamicRates}
+        {revenueModalOpen && (
+          <RevenueManagementModal 
+            isOpen={revenueModalOpen}
+            onClose={() => setRevenueModalOpen(false)}
+            currentOccupancy={Math.round((rooms.filter(r => r.status === 'Occupied').length / (rooms.length || 40)) * 100)}
+            activeRates={dynamicRates}
           onPublishRates={(newRates) => {
             setDynamicRates(newRates);
             setRooms(prev => prev.map(r => {
@@ -1063,6 +1076,7 @@ export default function App() {
             alert("⚡ IDeaS G3 RMS: Continuous dynamic micro-rates published to live booking engine, room catalog, front desk reception, and synced to Cloudflare D1!");
           }}
         />
+        )}
 
         {/* Statutory Legal & Compliance Modals */}
         <LegalPoliciesModal 

@@ -27,9 +27,6 @@ export default function CannonKitchenPOS({
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   // View Mode: 'tableGrid' | 'menu' | 'liveOrders' (Kitchen Display System)
   const [posViewMode, setPosViewMode] = useState('tableGrid');
 
@@ -781,6 +778,8 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                           m.itemCode.includes(searchQuery);
     return matchesSearch;
   });
+
+  if (!isOpen) return null;
 
   return (
     <div style={{

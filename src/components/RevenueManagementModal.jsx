@@ -35,9 +35,6 @@ export default function RevenueManagementModal({
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   // Active Tab: 'yielding' | 'mar' | 'investigator' | 'sandbox' | 'guardrails' | 'netrevpar'
   const [activeTab, setActiveTab] = useState('yielding');
 
@@ -177,6 +174,8 @@ export default function RevenueManagementModal({
     setSavedRfps(prev => [newEntry, ...prev]);
     alert(`✓ RFP Proposal for ${marResult.companyName} evaluated and recorded in RMS Audit Ledger!`);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" style={{

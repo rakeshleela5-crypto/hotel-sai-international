@@ -9,8 +9,6 @@ export default function StoreInventoryModal({
   isOpen,
   onClose
 }) {
-  if (!isOpen) return null;
-
   const [activeTab, setActiveTab] = useState('purchases'); // 'purchases', 'requisitions', 'vendor-payables'
   const [purchases, setPurchases] = useState(INITIAL_STORE_PURCHASES);
   const [requisitions, setRequisitions] = useState(INITIAL_KITCHEN_REQUISITIONS);
@@ -122,6 +120,8 @@ export default function StoreInventoryModal({
     setItemsSummary('');
     setAmount('');
   };
+
+  if (!isOpen) return null;
 
   return (
     <div style={{
