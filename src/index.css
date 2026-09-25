@@ -462,7 +462,7 @@ button:focus-visible, .btn:focus-visible {
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, #f3c64c 0%, #d4af37 100%);
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.45);
-  transition: transform 0.35s var(--ease-luxury), width 0.3s var(--ease-luxury);
+  transition: transform 0.22s var(--ease-luxury), width 0.2s var(--ease-luxury);
   pointer-events: none;
   z-index: 1;
 }
