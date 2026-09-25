@@ -335,8 +335,12 @@ export default function BookingModal({
                         textAlign: 'left',
                         background: selectedTier.id === t.id ? 'rgba(212, 175, 55, 0.2)' : 'rgba(6, 14, 26, 0.6)',
                         border: selectedTier.id === t.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.1)',
-                        color: selectedTier.id === t.id ? '#fff' : 'var(--text-secondary)'
+                        color: selectedTier.id === t.id ? '#fff' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s ease, border-color 0.2s ease, background 0.2s ease'
                       }}
+                      onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.97)'}
+                      onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
                       <div style={{ fontWeight: 600, fontSize: '0.85rem', color: selectedTier.id === t.id ? 'var(--gold-glow)' : '#fff' }}>
                         {t.name}

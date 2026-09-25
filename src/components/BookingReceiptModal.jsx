@@ -18,6 +18,16 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
     }
   }, [isOpen, initialType]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !booking) return null;
 
   const handlePrint = () => {

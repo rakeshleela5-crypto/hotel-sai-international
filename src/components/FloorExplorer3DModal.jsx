@@ -22,6 +22,16 @@ export default function FloorExplorer3DModal({ isOpen, onClose, rooms = [], onBo
   const prevMousePosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (!isOpen || !mountRef.current) return;
 
     const width = mountRef.current.clientWidth;

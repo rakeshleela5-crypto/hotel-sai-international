@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, Plus, Minus, Trash2, CheckCircle2, Utensils, AlertCircle } from 'lucide-react';
 import { RESTAURANT_MENU, HOTEL_CONFIG } from '../data/hotelData';
 import { playSuccessChime } from '../utils/soundAlert';
@@ -10,6 +10,16 @@ export default function FoodOrderModal({ isOpen, onClose, initialItem = null, ro
   const [billingMode, setBillingMode] = useState('Bill to Room Folio');
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -199,23 +209,51 @@ export default function FoodOrderModal({ isOpen, onClose, initialItem = null, ro
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.price} each</div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                           <button 
                             type="button" 
                             onClick={() => updateQty(item.id, -1)}
-                            style={{ padding: '0.2rem', color: 'var(--text-secondary)' }}
+                            style={{ 
+                              padding: '0.3rem 0.5rem', 
+                              borderRadius: '6px',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
+                              color: 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'transform 0.15s ease'
+                            }}
+                            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.88)'}
+                            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            title="Decrease quantity"
                           >
-                            <Minus size={14} />
+                            <Minus size={13} />
                           </button>
-                          <span style={{ fontWeight: 600, minWidth: '18px', textAlign: 'center' }}>{item.qty}</span>
+                          <span style={{ fontWeight: 700, minWidth: '20px', textAlign: 'center', color: '#fff' }}>{item.qty}</span>
                           <button 
                             type="button" 
                             onClick={() => updateQty(item.id, 1)}
-                            style={{ padding: '0.2rem', color: 'var(--gold-glow)' }}
+                            style={{ 
+                              padding: '0.3rem 0.5rem', 
+                              borderRadius: '6px',
+                              background: 'rgba(212, 175, 55, 0.2)',
+                              border: '1px solid rgba(212, 175, 55, 0.4)',
+                              color: 'var(--gold-glow)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'transform 0.15s ease'
+                            }}
+                            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.88)'}
+                            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            title="Increase quantity"
                           >
-                            <Plus size={14} />
+                            <Plus size={13} />
                           </button>
-                          <span style={{ fontWeight: 700, minWidth: '60px', textAlign: 'right' }}>
+                          <span style={{ fontWeight: 800, minWidth: '65px', textAlign: 'right', color: 'var(--gold-glow)' }}>
                             ₹{item.price * item.qty}
                           </span>
                         </div>
@@ -229,21 +267,22 @@ export default function FoodOrderModal({ isOpen, onClose, initialItem = null, ro
               {cart.length > 0 && (
                 <div style={{
                   background: 'rgba(12, 24, 43, 0.85)',
-                  border: '1px solid rgba(212, 175, 55, 0.2)',
-                  padding: '0.85rem',
-                  borderRadius: '8px',
+                  border: '1px solid rgba(212, 175, 55, 0.25)',
+                  padding: '1rem',
+                  borderRadius: '10px',
                   fontSize: '0.85rem',
-                  marginBottom: '1.25rem'
+                  marginBottom: '1.25rem',
+                  boxShadow: '0 4px 18px rgba(0, 0, 0, 0.35)'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
                     <span>Food Subtotal:</span>
                     <span>₹{subtotal.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
                     <span>Restaurant GST 5% (SAC 996331):</span>
                     <span>₹{gst.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '0.4rem', fontWeight: 700, color: 'var(--gold-glow)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '0.5rem', fontWeight: 800, color: 'var(--gold-glow)', fontSize: '1rem' }}>
                     <span>Total Billed:</span>
                     <span>₹{total.toFixed(2)}</span>
                   </div>
@@ -252,23 +291,28 @@ export default function FoodOrderModal({ isOpen, onClose, initialItem = null, ro
 
               {/* Billing Mode */}
               <div className="form-group">
-                <label className="form-label">Payment Settlement</label>
+                <label className="form-label">Payment Settlement Mode</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {['Bill to Room Folio', 'Pay via UPI on Delivery', 'Cash on Delivery'].map(mode => (
+                  {['Bill to Room Folio', 'UPI on Delivery', 'Cash on Delivery'].map(mode => (
                     <button
                       key={mode}
                       type="button"
                       onClick={() => setBillingMode(mode)}
                       style={{
                         flex: 1,
-                        padding: '0.5rem',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        background: billingMode === mode ? 'var(--gold-glow)' : 'rgba(6, 14, 26, 0.6)',
+                        padding: '0.55rem 0.3rem',
+                        borderRadius: '8px',
+                        fontSize: '0.74rem',
+                        fontWeight: billingMode === mode ? 700 : 500,
+                        background: billingMode === mode ? 'linear-gradient(135deg, var(--gold-glow) 0%, #b8860b 100%)' : 'rgba(6, 14, 26, 0.7)',
                         color: billingMode === mode ? '#060e1a' : '#94a3b8',
-                        border: '1px solid rgba(212, 175, 55, 0.3)'
+                        border: billingMode === mode ? '1px solid var(--gold-glow)' : '1px solid rgba(212, 175, 55, 0.25)',
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s ease, background 0.2s ease',
+                        boxShadow: billingMode === mode ? '0 0 12px rgba(212, 175, 55, 0.3)' : 'none'
                       }}
+                      onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
+                      onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
                       {mode}
                     </button>
@@ -277,14 +321,28 @@ export default function FoodOrderModal({ isOpen, onClose, initialItem = null, ro
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                <button type="button" onClick={onClose} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                <button 
+                  type="button" 
+                  onClick={onClose} 
+                  className="btn-outline-gold" 
+                  style={{ flex: 1, justifyContent: 'center' }}
+                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.97)'}
+                  onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={submitting || cart.length === 0 || !roomNumber}
                   className="btn-primary-gold" 
-                  style={{ flex: 2, justifyContent: 'center', opacity: (cart.length === 0 || !roomNumber) ? 0.6 : 1 }}
+                  style={{ 
+                    flex: 2, 
+                    justifyContent: 'center', 
+                    opacity: (cart.length === 0 || !roomNumber) ? 0.6 : 1,
+                    fontWeight: 700
+                  }}
+                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.97)'}
+                  onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
                   {submitting ? 'Dispatching...' : `Confirm Order • ₹${total.toFixed(2)}`}
                 </button>

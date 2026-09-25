@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, X, Send, Bot, MessageSquare, Compass, ShieldCheck } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { playReceptionChime } from '../utils/soundAlert';
@@ -12,6 +12,16 @@ export default function AiConciergeModal({ isOpen, onClose }) {
   ]);
   const [inputQuery, setInputQuery] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -85,11 +95,11 @@ export default function AiConciergeModal({ isOpen, onClose }) {
 
         {/* Quick Prompts Bar */}
         <div style={{
-          padding: '0.75rem 1.25rem',
-          background: 'rgba(6, 14, 26, 0.6)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          padding: '0.85rem 1.25rem',
+          background: 'rgba(6, 14, 26, 0.65)',
+          borderBottom: '1px solid rgba(212, 175, 55, 0.2)',
           display: 'flex',
-          gap: '0.4rem',
+          gap: '0.5rem',
           overflowX: 'auto',
           whiteSpace: 'nowrap'
         }}>
@@ -98,14 +108,18 @@ export default function AiConciergeModal({ isOpen, onClose }) {
               key={idx}
               onClick={() => handleSend(q)}
               style={{
-                padding: '0.3rem 0.65rem',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                background: 'rgba(12, 24, 43, 0.8)',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                background: 'rgba(12, 24, 43, 0.85)',
                 color: 'var(--sapphire-light)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                whiteSpace: 'nowrap'
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease, border-color 0.2s ease, background 0.2s ease'
               }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
               {q}
             </button>
@@ -124,6 +138,7 @@ export default function AiConciergeModal({ isOpen, onClose }) {
           {messages.map((m, i) => (
             <div
               key={i}
+              className="step-pane-enter"
               style={{
                 display: 'flex',
                 justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start'
@@ -134,14 +149,15 @@ export default function AiConciergeModal({ isOpen, onClose }) {
                 padding: '0.85rem 1.15rem',
                 borderRadius: '12px',
                 fontSize: '0.88rem',
-                lineHeight: 1.5,
+                lineHeight: 1.55,
                 background: m.sender === 'user' 
                   ? 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)' 
-                  : 'rgba(12, 24, 43, 0.85)',
+                  : 'rgba(12, 24, 43, 0.9)',
                 color: '#fff',
                 border: m.sender === 'user' 
                   ? '1px solid #3b82f6' 
-                  : '1px solid rgba(212, 175, 55, 0.25)',
+                  : '1px solid rgba(212, 175, 55, 0.3)',
+                boxShadow: m.sender === 'user' ? '0 4px 15px rgba(29, 78, 216, 0.3)' : '0 4px 15px rgba(0, 0, 0, 0.4)',
                 whiteSpace: 'pre-line'
               }}>
                 {m.text}
@@ -151,15 +167,27 @@ export default function AiConciergeModal({ isOpen, onClose }) {
 
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <div style={{
-                background: 'rgba(12, 24, 43, 0.85)',
-                border: '1px solid rgba(212, 175, 55, 0.25)',
-                padding: '0.75rem 1rem',
-                borderRadius: '12px',
-                fontSize: '0.82rem',
-                color: 'var(--gold-glow)'
-              }}>
-                Consulting Hotel Sai International knowledge base...
+              <div 
+                className="step-pane-enter"
+                style={{
+                  background: 'rgba(12, 24, 43, 0.9)',
+                  border: '1px solid rgba(212, 175, 55, 0.35)',
+                  padding: '0.75rem 1.1rem',
+                  borderRadius: '12px',
+                  fontSize: '0.84rem',
+                  color: 'var(--gold-glow)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem'
+                }}
+              >
+                <div className="soundwave-container">
+                  <span className="soundwave-bar"></span>
+                  <span className="soundwave-bar"></span>
+                  <span className="soundwave-bar"></span>
+                  <span className="soundwave-bar"></span>
+                </div>
+                <span>Consulting Hotel Sai International verified facts & train schedule...</span>
               </div>
             </div>
           )}
