@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Hotel, Layers, Users, Calendar, ShieldCheck, Clock, 
   DollarSign, CheckCircle2, AlertTriangle, Printer, Download, 
@@ -84,6 +84,22 @@ export default function ReceptionAdmin({
   const [backupOpen, setBackupOpen] = useState(false);
   const [liveOrdersOpen, setLiveOrdersOpen] = useState(false);
   const [roomServicesCareOpen, setRoomServicesCareOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (selectedFolioRoom) setSelectedFolioRoom(null);
+        else if (checkoutRoom) setCheckoutRoom(null);
+        else if (isReceiptModalOpen) setIsReceiptModalOpen(false);
+        else if (roomQrOpen) setRoomQrOpen(false);
+        else if (backupOpen) setBackupOpen(false);
+        else if (liveOrdersOpen) setLiveOrdersOpen(false);
+        else if (roomServicesCareOpen) setRoomServicesCareOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedFolioRoom, checkoutRoom, isReceiptModalOpen, roomQrOpen, backupOpen, liveOrdersOpen, roomServicesCareOpen]);
 
   // 1. Rayagada Transit / Fresh-Up Day-Use Engine State (4h / 6h Slots)
   const [transitStays, setTransitStays] = useState([

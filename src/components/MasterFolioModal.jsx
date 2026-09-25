@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, Split, CreditCard, DollarSign, CheckCircle2, 
   Printer, Download, ShieldCheck, Clock, User, Bed, 
@@ -16,6 +16,16 @@ export default function MasterFolioModal({
   onAddTransaction,
   onSettleFolio
 }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Active selected room folio (defaults to 402 for the iconic scenario)

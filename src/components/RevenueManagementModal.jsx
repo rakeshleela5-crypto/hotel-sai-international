@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, Sliders, Shield, Zap, Calculator, HelpCircle, 
   Layers, CheckCircle, AlertTriangle, ArrowUpRight, ArrowDownRight, 
@@ -26,6 +26,16 @@ export default function RevenueManagementModal({
   onPublishRates,
   activeRates = null
 }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Active Tab: 'yielding' | 'mar' | 'investigator' | 'sandbox' | 'guardrails' | 'netrevpar'
