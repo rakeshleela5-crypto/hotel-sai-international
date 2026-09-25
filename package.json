@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "node scripts/test_api_contracts.cjs",
     "deploy": "wrangler pages deploy dist --project-name hotel-sai-international"
   },
   "dependencies": {
