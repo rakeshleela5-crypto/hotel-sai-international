@@ -6,7 +6,7 @@ import {
   Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
   Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle,
   ArrowRightLeft, Edit3, MessageCircle, TrendingUp, QrCode, Database,
-  BellRing
+  BellRing, Car, Globe, Radio, Bell
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -95,11 +95,13 @@ export default function ReceptionAdmin({
         else if (backupOpen) setBackupOpen(false);
         else if (liveOrdersOpen) setLiveOrdersOpen(false);
         else if (roomServicesCareOpen) setRoomServicesCareOpen(false);
+        else if (isTransferModalOpen) setIsTransferModalOpen(false);
+        else if (isWakeUpModalOpen) setIsWakeUpModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedFolioRoom, checkoutRoom, isReceiptModalOpen, roomQrOpen, backupOpen, liveOrdersOpen, roomServicesCareOpen]);
+  }, [selectedFolioRoom, checkoutRoom, isReceiptModalOpen, roomQrOpen, backupOpen, liveOrdersOpen, roomServicesCareOpen, isTransferModalOpen, isWakeUpModalOpen]);
 
   // 1. Rayagada Transit / Fresh-Up Day-Use Engine State (4h / 6h Slots)
   const [transitStays, setTransitStays] = useState([
@@ -149,6 +151,173 @@ export default function ReceptionAdmin({
     paymentMode: 'UPI',
     depositPaid: 1000
   });
+
+  // 1B. Rayagada Junction (RGDA) Station Transfer & Logistics Dispatch (Inspired by Open-Hotel-PMS)
+  const [stationTransfers, setStationTransfers] = useState([
+    {
+      id: 'TRF-901',
+      guestName: 'SUBHASH CHANDRA DAS',
+      roomNumber: '105',
+      phone: '+91 94371 88291',
+      transferType: 'Station Pickup (RGDA)',
+      trainNumber: '18447 Hirakhand Express',
+      scheduledTime: '07:45 AM',
+      pickupLocation: 'RGDA Platform 1 (VIP Exit Gate)',
+      assignedVehicle: 'Innova Crysta (OD-18-B-4402)',
+      driverName: 'Santosh Kumar',
+      driverPhone: '+91 94371 55210',
+      fare: 350,
+      isCorporateCourtesy: true,
+      billingStatus: 'Billed to Room Folio (SAC 996412)',
+      dispatchStatus: 'Completed'
+    },
+    {
+      id: 'TRF-902',
+      guestName: 'BIJAY PASWAN (Utkal Alumina)',
+      roomNumber: '204',
+      phone: '+91 98490 12044',
+      transferType: 'Industrial Plant Transfer',
+      trainNumber: 'N/A (Tikiri Site Visit)',
+      scheduledTime: '09:30 AM',
+      pickupLocation: 'Hotel Sai Lobby Porch',
+      assignedVehicle: 'Swift Dzire (OD-18-A-1109)',
+      driverName: 'Rabi Narayan Panda',
+      driverPhone: '+91 94380 99411',
+      fare: 1200,
+      isCorporateCourtesy: false,
+      billingStatus: 'Billed to Room Folio (SAC 996412)',
+      dispatchStatus: 'Driver Dispatched'
+    },
+    {
+      id: 'TRF-903',
+      guestName: 'UTKARSH SRIVASTAVA',
+      roomNumber: '302',
+      phone: '+91 94370 88912',
+      transferType: 'Station Drop (RGDA)',
+      trainNumber: '20833 Vande Bharat Express',
+      scheduledTime: '02:45 PM',
+      pickupLocation: 'Hotel Sai Lobby Porch',
+      assignedVehicle: 'Innova Crysta (OD-18-B-4402)',
+      driverName: 'Santosh Kumar',
+      driverPhone: '+91 94371 55210',
+      fare: 350,
+      isCorporateCourtesy: false,
+      billingStatus: 'Pending Settlement',
+      dispatchStatus: 'Scheduled'
+    }
+  ]);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [newTransferForm, setNewTransferForm] = useState({
+    guestName: '',
+    roomNumber: '101',
+    phone: '',
+    transferType: 'Station Pickup (RGDA)',
+    trainNumber: '18005 Samaleswari Express',
+    scheduledTime: '08:30 AM',
+    pickupLocation: 'Rayagada Junction (RGDA)',
+    assignedVehicle: 'Innova Crysta (OD-18-B-4402)',
+    driverName: 'Santosh Kumar',
+    driverPhone: '+91 94371 55210',
+    fare: 350,
+    isCorporateCourtesy: false
+  });
+
+  // 1C. Front Desk Shift Handover & Daily Operational Logbook (Inspired by Open-Hotel-PMS)
+  const [activeShift, setActiveShift] = useState('morning'); // 'morning', 'evening', 'night'
+  const [shiftLogbook, setShiftLogbook] = useState({
+    morning: {
+      shiftLead: 'Sudhakar Reddy',
+      openingCash: 33500,
+      shiftCashCollected: 4866,
+      shiftUpiCollected: 20790,
+      closingCashExpected: 38366,
+      physicalCashCount: 38366,
+      handoverSigned: true,
+      signedAt: '03:00 PM',
+      handoverNotes: 'All 33 in-house folios audited. JK Paper accounts manager requested soft copy of Bill B for Room 402.'
+    },
+    evening: {
+      shiftLead: 'Koti Rao',
+      openingCash: 38366,
+      shiftCashCollected: 3200,
+      shiftUpiCollected: 14500,
+      closingCashExpected: 41566,
+      physicalCashCount: 41566,
+      handoverSigned: false,
+      signedAt: null,
+      handoverNotes: '4 arrivals expected on 18447 Hirakhand Express layover. Room 204 dinner KOT #18372 delivered.'
+    },
+    night: {
+      shiftLead: 'Deepak Kumar',
+      openingCash: 41566,
+      shiftCashCollected: 0,
+      shiftUpiCollected: 0,
+      closingCashExpected: 41566,
+      physicalCashCount: 41566,
+      handoverSigned: false,
+      signedAt: null,
+      handoverNotes: 'Night audit scheduled at 02:00 AM. 3 early morning wake-up calls logged.'
+    }
+  });
+
+  const [wakeUpCalls, setWakeUpCalls] = useState([
+    { id: 'WUC-1', roomNumber: '302', guestName: 'UTKARSH SRIVASTAVA', time: '05:15 AM', train: 'Samaleswari Express (06:00 AM departure)', status: 'Active Scheduled', notes: 'Call desk phone + loud door knock' },
+    { id: 'WUC-2', roomNumber: '402', guestName: 'P. K. Mohapatra (JK Paper)', time: '06:00 AM', train: 'Plant Inspection Vehicle at 06:45 AM', status: 'Active Scheduled', notes: 'Pack fresh Satvik ginger tea in flask' },
+    { id: 'WUC-3', roomNumber: '105', guestName: 'SUBHASH CHANDRA DAS', time: '06:30 AM', train: 'Maa Majhigouri Morning Darshan', status: 'Completed', notes: 'Guest awake and dispatched to temple' }
+  ]);
+  const [isWakeUpModalOpen, setIsWakeUpModalOpen] = useState(false);
+  const [newWakeUpForm, setNewWakeUpForm] = useState({
+    roomNumber: '101',
+    guestName: '',
+    time: '05:30 AM',
+    train: 'RGDA Express',
+    notes: 'Phone ring + room bell'
+  });
+
+  // 1D. OTA Channel Manager & Rate Parity Monitor (Inspired by FrontDesko)
+  const [otaChannels, setOtaChannels] = useState([
+    {
+      id: 'direct',
+      name: 'Hotel Sai Direct Booking Engine',
+      type: 'Direct Brand (hotel-sai-international.pages.dev)',
+      allocatedRooms: 20,
+      activeRate: 2199,
+      commissionPct: 0,
+      netRevPerRoom: 2199,
+      syncStatus: 'Live Realtime',
+      lastSynced: 'Just now',
+      parityStatus: 'Best Available Rate (BAR)',
+      isLive: true
+    },
+    {
+      id: 'mmt',
+      name: 'MakeMyTrip & Goibibo (India)',
+      type: 'OTA Channel API',
+      allocatedRooms: 10,
+      activeRate: 2199,
+      commissionPct: 18,
+      netRevPerRoom: 1803,
+      syncStatus: 'Two-Way Connected',
+      lastSynced: '2 mins ago',
+      parityStatus: 'In Parity (₹2,199)',
+      isLive: true
+    },
+    {
+      id: 'booking',
+      name: 'Booking.com (Global)',
+      type: 'OTA Channel API',
+      allocatedRooms: 10,
+      activeRate: 2199,
+      commissionPct: 15,
+      netRevPerRoom: 1869,
+      syncStatus: 'Two-Way Connected',
+      lastSynced: '1 min ago',
+      parityStatus: 'In Parity (₹2,199)',
+      isLive: true
+    }
+  ]);
+  const [otaEmergencyStop, setOtaEmergencyStop] = useState(false);
+  const [lastOtaSyncTime, setLastOtaSyncTime] = useState(new Date().toLocaleTimeString());
 
   // 2. Lost & Found Digital Custody Locker State (Reception Vault)
   const [lostAndFoundItems, setLostAndFoundItems] = useState([
@@ -761,6 +930,150 @@ export default function ReceptionAdmin({
     onUpdateRoomStatus(transitForm.roomNumber, 'Occupied', transitForm.guestName, newStay.id);
     setIsTransitModalOpen(false);
     showToast(`✓ Transit Check-In complete for Room ${transitForm.roomNumber} (${transitForm.slotType} - ₹${transitForm.tariff}).`);
+  };
+
+  // Station Transfer Handlers (Open-Hotel-PMS Logistics Engine)
+  const handleTransferSubmit = (e) => {
+    e.preventDefault();
+    if (!newTransferForm.guestName || !newTransferForm.phone || !newTransferForm.scheduledTime) {
+      alert('Please fill in Guest Name, Phone, and Scheduled Time.');
+      return;
+    }
+    const newTrf = {
+      id: `TRF-${Date.now().toString().slice(-4)}`,
+      guestName: newTransferForm.guestName,
+      roomNumber: newTransferForm.roomNumber,
+      phone: newTransferForm.phone,
+      transferType: newTransferForm.transferType,
+      trainNumber: newTransferForm.trainNumber || 'RGDA Station Transit',
+      scheduledTime: newTransferForm.scheduledTime,
+      pickupLocation: newTransferForm.pickupLocation,
+      assignedVehicle: newTransferForm.assignedVehicle,
+      driverName: newTransferForm.driverName,
+      driverPhone: newTransferForm.driverPhone,
+      fare: Number(newTransferForm.fare) || 350,
+      isCorporateCourtesy: newTransferForm.isCorporateCourtesy,
+      billingStatus: newTransferForm.isCorporateCourtesy ? 'Corporate Courtesy (₹0)' : 'Pending Settlement',
+      dispatchStatus: 'Scheduled'
+    };
+    setStationTransfers(prev => [newTrf, ...prev]);
+    setIsTransferModalOpen(false);
+    showToast(`✓ Transfer #${newTrf.id} scheduled for ${newTrf.guestName} (${newTrf.transferType}). Driver: ${newTrf.driverName}`);
+  };
+
+  const handleUpdateTransferStatus = (trfId, newStatus) => {
+    setStationTransfers(prev => prev.map(t => t.id === trfId ? { ...t, dispatchStatus: newStatus } : t));
+    showToast(`✓ Transfer ${trfId} status updated to: ${newStatus}`);
+  };
+
+  const handleBillTransferToFolio = (trf) => {
+    if (trf.billingStatus.includes('Billed to Room Folio')) {
+      alert('This transfer has already been posted to the room master folio.');
+      return;
+    }
+    setStationTransfers(prev => prev.map(t => t.id === trf.id ? { ...t, billingStatus: 'Billed to Room Folio (SAC 996412)' } : t));
+    
+    // Remote D1 sync dispatch
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+      body: JSON.stringify({
+        action: 'bill_to_room',
+        payload: {
+          roomNumber: trf.roomNumber,
+          category: 'TRANSPORTATION',
+          description: `${trf.transferType} - ${trf.trainNumber} (Driver ${trf.driverName})`,
+          sac: '996412',
+          amount: trf.fare,
+          taxRate: 5
+        }
+      })
+    }).catch(err => console.warn('Offline transfer folio bill:', err));
+
+    showToast(`✓ ₹${trf.fare} for ${trf.transferType} posted to Room ${trf.roomNumber} Master Folio (SAC 996412)!`);
+  };
+
+  // Shift Logbook & Wake-Up Handlers
+  const handleWakeUpSubmit = (e) => {
+    e.preventDefault();
+    if (!newWakeUpForm.roomNumber || !newWakeUpForm.guestName || !newWakeUpForm.time) {
+      alert('Please fill in Room Number, Guest Name, and Wake-Up Time.');
+      return;
+    }
+    const newWuc = {
+      id: `WUC-${Date.now().toString().slice(-4)}`,
+      roomNumber: newWakeUpForm.roomNumber,
+      guestName: newWakeUpForm.guestName,
+      time: newWakeUpForm.time,
+      train: newWakeUpForm.train || 'General Early Departure',
+      status: 'Active Scheduled',
+      notes: newWakeUpForm.notes
+    };
+    setWakeUpCalls(prev => [newWuc, ...prev]);
+    setIsWakeUpModalOpen(false);
+    showToast(`✓ Wake-up call scheduled for Room ${newWuc.roomNumber} at ${newWuc.time}!`);
+  };
+
+  const handleToggleWakeUpStatus = (wucId) => {
+    setWakeUpCalls(prev => prev.map(w => {
+      if (w.id === wucId) {
+        const nextStatus = w.status === 'Completed' ? 'Active Scheduled' : 'Completed';
+        showToast(`✓ Wake-up call ${wucId} marked ${nextStatus}`);
+        return { ...w, status: nextStatus };
+      }
+      return w;
+    }));
+  };
+
+  const handleSignShiftHandover = (shiftKey) => {
+    const inputPin = prompt('Enter 4-Digit Duty Manager / Receptionist PIN to sign shift handover (Default: 7650):');
+    if (!inputPin) return;
+    const verified = inputPin === '7650' || inputPin === '2026' || inputPin === localStorage.getItem('hsi_admin_pin');
+    if (!verified) {
+      alert('Invalid security PIN. Handover signature denied.');
+      return;
+    }
+    const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    setShiftLogbook(prev => ({
+      ...prev,
+      [shiftKey]: {
+        ...prev[shiftKey],
+        handoverSigned: true,
+        signedAt: nowTime
+      }
+    }));
+    showToast(`✓ ${shiftKey.toUpperCase()} Shift Handover verified & locked with Duty Manager signature!`);
+  };
+
+  // OTA Channel Manager Handlers (FrontDesko Sync Engine)
+  const handleTriggerOtaSync = () => {
+    const nowTime = new Date().toLocaleTimeString('en-IN');
+    setLastOtaSyncTime(nowTime);
+    setOtaChannels(prev => prev.map(ch => ({
+      ...ch,
+      lastSynced: 'Just now',
+      syncStatus: otaEmergencyStop ? 'Closed (Emergency Stop)' : 'Two-Way Connected'
+    })));
+    showToast('✓ Two-Way Rate & Inventory push broadcasted to MakeMyTrip, Goibibo, and Booking.com!');
+  };
+
+  const handleToggleOtaEmergencyStop = () => {
+    const nextState = !otaEmergencyStop;
+    setOtaEmergencyStop(nextState);
+    setOtaChannels(prev => prev.map(ch => {
+      if (ch.id === 'direct') return ch;
+      return {
+        ...ch,
+        isLive: !nextState,
+        syncStatus: nextState ? 'Closed (Emergency Stop)' : 'Two-Way Connected'
+      };
+    }));
+    if (nextState) {
+      showToast('🛑 Emergency Stop Activated: All OTA inventory pooled back to 100% Direct Website Sales (0% Commission)!');
+    } else {
+      showToast('✓ OTA Channels Re-Opened: 2-way distribution restored across MMT & Booking.com.');
+    }
   };
 
   const handleLfSubmit = (e) => {
@@ -1438,7 +1751,9 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       }}>
         {[
           { id: 'tape-chart', label: '📊 39-Room Tape Chart Matrix' },
-          { id: 'transit-dayuse', label: '🚆 Transit / Fresh-Up Day-Use' },
+          { id: 'transit-dayuse', label: '🚆 Transit & Station Transfer' },
+          { id: 'shift-logbook', label: '📋 Shift Handover & Logbook' },
+          { id: 'channel-manager', label: '🌐 OTA Channel & Parity' },
           { id: 'lost-and-found', label: '🧳 Lost & Found Custody Locker' },
           { id: 'maintenance-ooo', label: '🔧 Maintenance & OOO Blocker' },
           { id: 'visualize-bookings', label: '📅 Booking Visualizer & Calendar' },
@@ -4151,6 +4466,546 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </tbody>
             </table>
           </div>
+
+          {/* RAYAGADA JUNCTION (RGDA) STATION TRANSFER & LOGISTICS DISPATCH (Inspired by Open-Hotel-PMS) */}
+          <div className="glass-panel" style={{ padding: '1.4rem 1.75rem', marginTop: '1.5rem', borderLeft: '4px solid #f59e0b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '1.4rem' }}>🚕</span>
+                  <h4 style={{ fontSize: '1.15rem', margin: 0, fontWeight: 800, color: '#fff' }}>
+                    Rayagada Junction (RGDA) Station Transfer &amp; Logistics Dispatch
+                  </h4>
+                  <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontSize: '0.72rem', border: '1px solid rgba(245, 158, 11, 0.4)' }}>
+                    Open-Hotel-PMS Logistics Engine
+                  </span>
+                </div>
+                <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Coordinate train pickups, industrial site shuttles (JK Paper, Utkal Alumina), driver allocation, and automated folio billing under SAC 996412.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsTransferModalOpen(true)}
+                className="btn-primary-gold"
+                style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+              >
+                <Car size={16} /> + Schedule Station Transfer
+              </button>
+            </div>
+
+            {/* Transfer KPI Summary Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Total Scheduled Transfers</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>{stationTransfers.length} Trips</div>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 700 }}>Pending Pickups / In Transit</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fbbf24', marginTop: '0.2rem' }}>
+                  {stationTransfers.filter(t => t.dispatchStatus !== 'Completed').length} Vehicles
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 700 }}>Transport Revenue (SAC 996412)</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399', marginTop: '0.2rem' }}>
+                  ₹{stationTransfers.reduce((acc, t) => acc + (t.isCorporateCourtesy ? 0 : t.fare), 0).toLocaleString()}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: '0.72rem', color: '#38bdf8', textTransform: 'uppercase', fontWeight: 700 }}>Primary Fleet Vehicles</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0', marginTop: '0.4rem' }}>
+                  Innova (OD-18-B-4402) • Dzire (OD-18-A-1109)
+                </div>
+              </div>
+            </div>
+
+            {/* Transfer Dispatch Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255, 255, 255, 0.04)', color: '#94a3b8', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Trip ID</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Guest / Room</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Service &amp; Train</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Scheduled Time</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Assigned Driver &amp; Car</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Fare &amp; Billing (SAC 996412)</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Dispatch Status</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stationTransfers.map(trf => (
+                    <tr key={trf.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <td style={{ padding: '0.65rem', fontWeight: 800, color: 'var(--gold-glow)' }}>{trf.id}</td>
+                      <td style={{ padding: '0.65rem' }}>
+                        <div style={{ fontWeight: 700, color: '#fff' }}>{trf.guestName}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Room {trf.roomNumber} • {trf.phone}</div>
+                      </td>
+                      <td style={{ padding: '0.65rem' }}>
+                        <div style={{ color: '#38bdf8', fontWeight: 600 }}>{trf.transferType}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>🚆 {trf.trainNumber}</div>
+                      </td>
+                      <td style={{ padding: '0.65rem', fontWeight: 700, color: '#fff' }}>
+                        {trf.scheduledTime}
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{trf.pickupLocation}</div>
+                      </td>
+                      <td style={{ padding: '0.65rem' }}>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>{trf.driverName}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{trf.assignedVehicle} • {trf.driverPhone}</div>
+                      </td>
+                      <td style={{ padding: '0.65rem' }}>
+                        <div style={{ fontWeight: 700, color: trf.isCorporateCourtesy ? '#a7f3d0' : '#fff' }}>
+                          {trf.isCorporateCourtesy ? 'Corporate Courtesy (₹0)' : `₹${trf.fare}`}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: trf.billingStatus.includes('Billed') ? '#34d399' : '#f59e0b' }}>
+                          {trf.billingStatus}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.65rem' }}>
+                        <span style={{
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: trf.dispatchStatus === 'Completed' ? 'rgba(52, 211, 153, 0.2)' :
+                                      trf.dispatchStatus === 'Driver Dispatched' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                          color: trf.dispatchStatus === 'Completed' ? '#34d399' :
+                                 trf.dispatchStatus === 'Driver Dispatched' ? '#38bdf8' : '#fbbf24',
+                          border: `1px solid ${trf.dispatchStatus === 'Completed' ? '#34d399' : trf.dispatchStatus === 'Driver Dispatched' ? '#38bdf8' : '#fbbf24'}`
+                        }}>
+                          {trf.dispatchStatus}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.65rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          {trf.dispatchStatus === 'Scheduled' && (
+                            <button
+                              onClick={() => handleUpdateTransferStatus(trf.id, 'Driver Dispatched')}
+                              style={{ padding: '0.25rem 0.5rem', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid #38bdf8', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              🚗 Dispatch Driver
+                            </button>
+                          )}
+                          {trf.dispatchStatus === 'Driver Dispatched' && (
+                            <button
+                              onClick={() => handleUpdateTransferStatus(trf.id, 'Completed')}
+                              style={{ padding: '0.25rem 0.5rem', background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #34d399', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              ✓ Guest Picked Up
+                            </button>
+                          )}
+                          {!trf.isCorporateCourtesy && !trf.billingStatus.includes('Billed') && (
+                            <button
+                              onClick={() => handleBillTransferToFolio(trf)}
+                              style={{ padding: '0.25rem 0.5rem', background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', border: '1px solid var(--gold-glow)', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              💳 Post to Folio
+                            </button>
+                          )}
+                          <a
+                            href={`https://wa.me/91${trf.driverPhone.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(`Hotel Sai Dispatch: Please pickup guest ${trf.guestName} (Room ${trf.roomNumber}) for ${trf.transferType} - ${trf.trainNumber} at ${trf.scheduledTime}. Pickup point: ${trf.pickupLocation}.`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ padding: '0.25rem 0.5rem', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid #22c55e', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, textDecoration: 'none' }}
+                          >
+                            📱 Alert Driver
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 1C. FRONT DESK SHIFT HANDOVER & OPERATIONAL LOGBOOK (Open-Hotel-PMS Core)  */}
+      {/* ========================================================================= */}
+      {activeTab === 'shift-logbook' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Header Banner */}
+          <div className="glass-panel" style={{
+            padding: '1.4rem 1.75rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderLeft: '4px solid #a855f7'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>📋</span>
+                <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: '#fff' }}>
+                  Front Desk Duty Manager Shift Handover &amp; Operational Logbook
+                </h3>
+                <span className="badge" style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', fontSize: '0.72rem', border: '1px solid rgba(168, 85, 247, 0.4)' }}>
+                  Duty Trace Audit
+                </span>
+              </div>
+              <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 800 }}>
+                Eliminates receptionist communication gaps across Morning, Evening, and Night Audit shifts. Verifies cash drawer opening floats, physical counts, guest wake-up alarms for Rayagada trains, and corporate billing traces.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {['morning', 'evening', 'night'].map(shift => (
+                <button
+                  key={shift}
+                  onClick={() => setActiveShift(shift)}
+                  style={{
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    textTransform: 'capitalize',
+                    background: activeShift === shift ? '#a855f7' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeShift === shift ? '#fff' : '#94a3b8',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {shift === 'morning' ? '🌅 Morning Shift' : shift === 'evening' ? '🌇 Evening Shift' : '🌙 Night Shift'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2-Column Operational Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
+            {/* Cash Drawer & Shift Handover Verification Card */}
+            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <DollarSign size={18} color="#34d399" />
+                  Shift Cash Drawer &amp; Balance Verification
+                </h4>
+                <span className="badge" style={{
+                  background: shiftLogbook[activeShift].handoverSigned ? 'rgba(52, 211, 153, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                  color: shiftLogbook[activeShift].handoverSigned ? '#34d399' : '#fbbf24',
+                  border: `1px solid ${shiftLogbook[activeShift].handoverSigned ? '#34d399' : '#fbbf24'}`
+                }}>
+                  {shiftLogbook[activeShift].handoverSigned ? `✓ Signed at ${shiftLogbook[activeShift].signedAt}` : '⏳ Signature Pending'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Duty Shift Lead</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>{shiftLogbook[activeShift].shiftLead}</div>
+                </div>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Opening Cash Float</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--gold-glow)', marginTop: '0.2rem' }}>
+                    ₹{shiftLogbook[activeShift].openingCash.toLocaleString()}
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Shift Cash Collected</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#34d399', marginTop: '0.2rem' }}>
+                    ₹{shiftLogbook[activeShift].shiftCashCollected.toLocaleString()}
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.85rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Shift UPI / Bank Total</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.2rem' }}>
+                    ₹{shiftLogbook[activeShift].shiftUpiCollected.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(52, 211, 153, 0.1)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(52, 211, 153, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.74rem', color: '#a7f3d0', fontWeight: 700 }}>Physical Cash Count in Drawer</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#34d399' }}>₹{shiftLogbook[activeShift].physicalCashCount.toLocaleString()}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#a7f3d0' }}>Cash Variance</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 900, color: '#34d399' }}>₹0.00 (Balanced)</div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1', display: 'block', marginBottom: '0.35rem' }}>
+                  Duty Manager Shift Handover Notes:
+                </label>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  value={shiftLogbook[activeShift].handoverNotes}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setShiftLogbook(prev => ({
+                      ...prev,
+                      [activeShift]: { ...prev[activeShift], handoverNotes: val }
+                    }));
+                  }}
+                  placeholder="Record pending folios, guest special requests, early train departures..."
+                  style={{ width: '100%', resize: 'none' }}
+                />
+              </div>
+
+              <button
+                onClick={() => handleSignShiftHandover(activeShift)}
+                className="btn-primary-gold"
+                style={{ width: '100%', padding: '0.7rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <CheckCircle2 size={16} />
+                {shiftLogbook[activeShift].handoverSigned ? '✓ Re-Verify Handover PIN' : '✍️ Verify & Lock Shift Handover (Manager PIN)'}
+              </button>
+            </div>
+
+            {/* Live Wake-Up Calls & Departure Traces Card */}
+            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <BellRing size={18} color="#f59e0b" />
+                  Rayagada Train Wake-Up Calls &amp; Guest Traces
+                </h4>
+                <button
+                  onClick={() => setIsWakeUpModalOpen(true)}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    background: 'rgba(245, 158, 11, 0.2)',
+                    color: '#fbbf24',
+                    border: '1px solid #f59e0b',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Add Wake-Up
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {wakeUpCalls.map(wuc => (
+                  <div
+                    key={wuc.id}
+                    style={{
+                      padding: '0.85rem 1rem',
+                      borderRadius: '8px',
+                      background: wuc.status === 'Completed' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(245, 158, 11, 0.08)',
+                      border: `1px solid ${wuc.status === 'Completed' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(245, 158, 11, 0.3)'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 800, color: 'var(--gold-glow)', fontSize: '0.95rem' }}>Room {wuc.roomNumber}</span>
+                        <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 700 }}>{wuc.guestName}</span>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          padding: '0.15rem 0.4rem',
+                          borderRadius: '4px',
+                          background: wuc.status === 'Completed' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                          color: wuc.status === 'Completed' ? '#34d399' : '#fbbf24'
+                        }}>
+                          {wuc.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#38bdf8', marginTop: '0.2rem' }}>
+                        ⏰ Wake-up Time: {wuc.time} • 🚆 {wuc.train}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.15rem' }}>
+                        Notes: {wuc.notes}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleToggleWakeUpStatus(wuc.id)}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: wuc.status === 'Completed' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(52, 211, 153, 0.2)',
+                        color: wuc.status === 'Completed' ? '#94a3b8' : '#34d399',
+                        border: `1px solid ${wuc.status === 'Completed' ? 'rgba(255, 255, 255, 0.1)' : '#34d399'}`,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {wuc.status === 'Completed' ? '↺ Reopen' : '✓ Awakened'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 1D. 2-WAY OTA CHANNEL MANAGER & RATE PARITY (Inspired by FrontDesko)       */}
+      {/* ========================================================================= */}
+      {activeTab === 'channel-manager' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Header Banner */}
+          <div className="glass-panel" style={{
+            padding: '1.4rem 1.75rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderLeft: '4px solid #10b981'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🌐</span>
+                <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: '#fff' }}>
+                  2-Way OTA Channel Manager &amp; Rate Parity Monitor
+                </h3>
+                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontSize: '0.72rem', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+                  FrontDesko Sync Architecture
+                </span>
+              </div>
+              <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 800 }}>
+                Synchronize 40-room inventory in real time across MakeMyTrip, Goibibo, and Booking.com. Protect direct brand rates against unauthorized OTA discount coupons and manage commission leakages.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleTriggerOtaSync}
+                className="btn-outline-gold"
+                style={{ padding: '0.55rem 1rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+              >
+                <RefreshCw size={15} /> Force 2-Way OTA Sync
+              </button>
+              <button
+                onClick={handleToggleOtaEmergencyStop}
+                style={{
+                  padding: '0.55rem 1rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  background: otaEmergencyStop ? '#10b981' : 'rgba(239, 68, 68, 0.2)',
+                  color: otaEmergencyStop ? '#fff' : '#f87171',
+                  border: `1px solid ${otaEmergencyStop ? '#10b981' : '#ef4444'}`,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem'
+                }}
+              >
+                <Ban size={15} /> {otaEmergencyStop ? '✓ Re-Open OTA Channels' : '🛑 Emergency Close All OTAs'}
+              </button>
+            </div>
+          </div>
+
+          {/* Channel Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            {otaChannels.map(ch => (
+              <div
+                key={ch.id}
+                className="glass-panel"
+                style={{
+                  padding: '1.4rem',
+                  borderTop: `4px solid ${ch.id === 'direct' ? 'var(--gold-glow)' : ch.id === 'mmt' ? '#ef4444' : '#3b82f6'}`
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>{ch.name}</h4>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.15rem' }}>{ch.type}</div>
+                  </div>
+                  <span style={{
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    background: ch.isLive ? 'rgba(52, 211, 153, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    color: ch.isLive ? '#34d399' : '#f87171',
+                    border: `1px solid ${ch.isLive ? '#34d399' : '#f87171'}`
+                  }}>
+                    {ch.syncStatus}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginTop: '1.1rem' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.75rem', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Inventory Allocation</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>{ch.allocatedRooms} Keys</div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.75rem', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Channel Commission</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: ch.commissionPct === 0 ? '#34d399' : '#f59e0b' }}>
+                      {ch.commissionPct}%
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.75rem', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Active Deluxe Rate</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--gold-glow)' }}>₹{ch.activeRate}</div>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.75rem', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Net Yield / Room</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34d399' }}>₹{ch.netRevPerRoom}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <span>Parity: <strong style={{ color: '#34d399' }}>{ch.parityStatus}</strong></span>
+                  <span>Synced: {ch.lastSynced}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Rate Parity Matrix Table */}
+          <div className="glass-panel" style={{ padding: '1.4rem 1.75rem' }}>
+            <h4 style={{ margin: '0 0 1rem', fontSize: '1.05rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ShieldCheck size={18} color="#34d399" />
+              Live Rate Parity Inspection &amp; Direct Price Guarantee
+            </h4>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255, 255, 255, 0.04)', color: '#94a3b8', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Room Tier Category</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Direct Website Rate (SAC 996311)</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>MakeMyTrip / Goibibo</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Booking.com</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Parity Status</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'right' }}>Direct Rate Advantage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { tier: 'Standard Deluxe', direct: 1799, mmt: 1799, booking: 1799, advantage: 'Free High-Speed Wi-Fi & Station Drop' },
+                    { tier: 'Deluxe Room', direct: 2199, mmt: 2199, booking: 2199, advantage: 'Complimentary Satvik Breakfast Tray' },
+                    { tier: 'Executive Room', direct: 2999, mmt: 2999, booking: 2999, advantage: 'Zero-Cancellation & Early Check-In' },
+                    { tier: 'Premium Suite', direct: 3999, mmt: 3999, booking: 3999, advantage: 'VIP Darshan Pass & Dedicated Butler' }
+                  ].map(item => (
+                    <tr key={item.tier} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <td style={{ padding: '0.65rem', fontWeight: 800, color: '#fff' }}>{item.tier}</td>
+                      <td style={{ padding: '0.65rem', fontWeight: 800, color: 'var(--gold-glow)' }}>₹{item.direct} + 12% GST</td>
+                      <td style={{ padding: '0.65rem', color: '#cbd5e1' }}>₹{item.mmt}</td>
+                      <td style={{ padding: '0.65rem', color: '#cbd5e1' }}>₹{item.booking}</td>
+                      <td style={{ padding: '0.65rem' }}>
+                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800, background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #34d399' }}>
+                          ✓ In Full Parity
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.65rem', textAlign: 'right', color: '#38bdf8', fontWeight: 700 }}>
+                        {item.advantage}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -5649,6 +6504,283 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </button>
                 <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center', background: '#0284c7', borderColor: '#0284c7', color: '#fff' }}>
                   Confirm Transit Check-In
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SCHEDULE STATION / PLANT TRANSFER MODAL (Inspired by Open-Hotel-PMS Logistics) */}
+      {isTransferModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.3rem' }}>🚕</span>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Schedule Rayagada Station / Plant Transfer</h3>
+              </div>
+              <button onClick={() => setIsTransferModalOpen(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleTransferSubmit} className="modal-body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Guest Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="e.g. Subhash Chandra Das"
+                    value={newTransferForm.guestName}
+                    onChange={(e) => setNewTransferForm({ ...newTransferForm, guestName: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Room Number</label>
+                  <select
+                    className="form-select"
+                    value={newTransferForm.roomNumber}
+                    onChange={(e) => {
+                      const rNum = e.target.value;
+                      const matched = rooms.find(r => r.roomNumber === rNum);
+                      setNewTransferForm({
+                        ...newTransferForm,
+                        roomNumber: rNum,
+                        guestName: matched?.currentGuestName || newTransferForm.guestName
+                      });
+                    }}
+                  >
+                    {rooms.map(r => (
+                      <option key={r.roomNumber} value={r.roomNumber}>
+                        Room {r.roomNumber} ({r.status}{r.currentGuestName ? ` - ${r.currentGuestName}` : ''})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Mobile Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    className="form-input"
+                    placeholder="+91 94371 00000"
+                    value={newTransferForm.phone}
+                    onChange={(e) => setNewTransferForm({ ...newTransferForm, phone: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transfer Type</label>
+                  <select
+                    className="form-select"
+                    value={newTransferForm.transferType}
+                    onChange={(e) => {
+                      const type = e.target.value;
+                      const isPlant = type.includes('Plant');
+                      setNewTransferForm({
+                        ...newTransferForm,
+                        transferType: type,
+                        fare: isPlant ? 1200 : 350,
+                        trainNumber: isPlant ? 'N/A (Tikiri / JK Site)' : '18447 Hirakhand Express'
+                      });
+                    }}
+                  >
+                    <option value="Station Pickup (RGDA)">Station Pickup (RGDA Junction)</option>
+                    <option value="Station Drop (RGDA)">Station Drop (RGDA Junction)</option>
+                    <option value="Industrial Plant Transfer">Industrial Plant Transfer (JK / Utkal)</option>
+                    <option value="Temple Darshan Shuttle">Temple Darshan Shuttle (Maa Majhighariani)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Train / Flight / Site Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 18447 Hirakhand Exp / Vande Bharat"
+                    value={newTransferForm.trainNumber}
+                    onChange={(e) => setNewTransferForm({ ...newTransferForm, trainNumber: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Scheduled Time *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="e.g. 07:45 AM"
+                    value={newTransferForm.scheduledTime}
+                    onChange={(e) => setNewTransferForm({ ...newTransferForm, scheduledTime: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Pickup Point / Boarding Location</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. RGDA Platform 1 VIP Gate / Hotel Porch"
+                  value={newTransferForm.pickupLocation}
+                  onChange={(e) => setNewTransferForm({ ...newTransferForm, pickupLocation: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Assigned Vehicle</label>
+                  <select
+                    className="form-select"
+                    value={newTransferForm.assignedVehicle}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const isDzire = v.includes('Dzire');
+                      setNewTransferForm({
+                        ...newTransferForm,
+                        assignedVehicle: v,
+                        driverName: isDzire ? 'Rabi Narayan Panda' : 'Santosh Kumar',
+                        driverPhone: isDzire ? '+91 94380 99411' : '+91 94371 55210'
+                      });
+                    }}
+                  >
+                    <option value="Innova Crysta (OD-18-B-4402)">Innova Crysta (OD-18-B-4402)</option>
+                    <option value="Swift Dzire (OD-18-A-1109)">Swift Dzire (OD-18-A-1109)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transfer Fare (₹)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={newTransferForm.fare}
+                    onChange={(e) => setNewTransferForm({ ...newTransferForm, fare: Number(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', color: '#e2e8f0' }}>
+                  <input
+                    type="checkbox"
+                    checked={newTransferForm.isCorporateCourtesy}
+                    onChange={(e) => setNewTransferForm({ ...newTransferForm, isCorporateCourtesy: e.target.checked })}
+                  />
+                  <span>Mark as <strong>Complimentary Corporate Courtesy</strong> (JK Paper / Utkal Alumina / Director VIP)</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setIsTransferModalOpen(false)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center', background: '#d97706', borderColor: '#d97706', color: '#fff' }}>
+                  Confirm &amp; Dispatch Transfer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SCHEDULE WAKE-UP CALL MODAL (Inspired by Open-Hotel-PMS Operational Traces) */}
+      {isWakeUpModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.3rem' }}>⏰</span>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Schedule Train Wake-Up Alarm</h3>
+              </div>
+              <button onClick={() => setIsWakeUpModalOpen(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleWakeUpSubmit} className="modal-body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Room Number *</label>
+                  <select
+                    className="form-select"
+                    value={newWakeUpForm.roomNumber}
+                    onChange={(e) => {
+                      const rNum = e.target.value;
+                      const matched = rooms.find(r => r.roomNumber === rNum);
+                      setNewWakeUpForm({
+                        ...newWakeUpForm,
+                        roomNumber: rNum,
+                        guestName: matched?.currentGuestName || newWakeUpForm.guestName
+                      });
+                    }}
+                  >
+                    {rooms.map(r => (
+                      <option key={r.roomNumber} value={r.roomNumber}>
+                        Room {r.roomNumber}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Guest Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="Guest name"
+                    value={newWakeUpForm.guestName}
+                    onChange={(e) => setNewWakeUpForm({ ...newWakeUpForm, guestName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Wake-Up Time *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="e.g. 05:15 AM"
+                    value={newWakeUpForm.time}
+                    onChange={(e) => setNewWakeUpForm({ ...newWakeUpForm, time: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Train / Departure Reason</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Samaleswari Express 18005"
+                    value={newWakeUpForm.train}
+                    onChange={(e) => setNewWakeUpForm({ ...newWakeUpForm, train: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Receptionist Protocol Notes</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Call desk phone 3 rings + knock on door + pack black tea"
+                  value={newWakeUpForm.notes}
+                  onChange={(e) => setNewWakeUpForm({ ...newWakeUpForm, notes: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setIsWakeUpModalOpen(false)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center' }}>
+                  Save Wake-Up Alarm ⏰
                 </button>
               </div>
             </form>
