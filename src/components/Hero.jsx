@@ -47,7 +47,7 @@ export default function Hero({
       />
 
       <div style={{ maxWidth: 1300, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* Top Trust & Regional Badges */}
+        {/* Top Trust & Regional Badges with Visible Craft Edition Badge */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -55,6 +55,25 @@ export default function Hero({
           flexWrap: 'wrap',
           marginBottom: '1.5rem'
         }}>
+          {/* Visible Emil Kowalski Design Craft Indicator */}
+          <div 
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.25), rgba(79, 70, 229, 0.25))',
+              border: '1px solid rgba(168, 85, 247, 0.55)',
+              padding: '0.35rem 0.85rem',
+              borderRadius: '9999px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: '#c084fc',
+              boxShadow: '0 0 16px rgba(147, 51, 234, 0.35)'
+            }}
+          >
+            <Sparkles size={14} /> ⚡ 2026 Production Edition • Emil Kowalski Craft Active
+          </div>
+
           <div 
             className="aura-breathing"
             style={{
@@ -70,7 +89,7 @@ export default function Hero({
               color: 'var(--gold-glow)'
             }}
           >
-            <Sparkles size={14} /> Rayagada's Premier <span style={{ color: '#fff', margin: '0 3px' }}><NumberTicker value={40} /></span>-Room Hospitality Landmark
+            <ShieldCheck size={14} /> Rayagada's Premier <span style={{ color: '#fff', margin: '0 3px' }}><NumberTicker value={40} /></span>-Room Hospitality Landmark
           </div>
 
           <div style={{
@@ -108,7 +127,7 @@ export default function Hero({
         </div>
 
         {/* Hero Main Headline & Subtitle with Aceternity SparklesCore */}
-        <div style={{ maxWidth: 880, marginBottom: '2.5rem', position: 'relative' }}>
+        <div style={{ maxWidth: 900, marginBottom: '2.5rem', position: 'relative' }}>
           <div className="absolute -inset-x-10 -top-10 h-[220px] pointer-events-none opacity-40">
             <SparklesCore
               minSize={0.8}
@@ -118,19 +137,21 @@ export default function Hero({
             />
           </div>
           <h1 style={{
-            fontSize: 'clamp(2.3rem, 5vw, 3.8rem)',
+            fontSize: 'clamp(2.4rem, 5.2vw, 4rem)',
             lineHeight: 1.15,
             marginBottom: '1.25rem',
             position: 'relative',
-            zIndex: 1
+            zIndex: 1,
+            fontWeight: 800,
+            letterSpacing: '0.01em'
           }}>
-            Experience Imperial Serenity in the <span className="gold-gradient-text">Heart of Rayagada</span>
+            Divine Serenity &amp; Corporate Prestige in the <span className="gold-gradient-text">Heart of Rayagada</span>
           </h1>
           <p style={{
-            fontSize: '1.15rem',
+            fontSize: '1.18rem',
             color: 'var(--text-secondary)',
             lineHeight: 1.6,
-            maxWidth: 760,
+            maxWidth: 780,
             position: 'relative',
             zIndex: 1
           }}>
@@ -142,33 +163,51 @@ export default function Hero({
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '1rem',
+          gap: '1.25rem',
           marginBottom: '2.5rem'
         }}>
           {/* Floor 1: Standard Deluxe */}
-          <div className="glass-panel waterfall-item waterfall-delay-1" style={{ padding: '1.2rem 1.4rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div 
+            className="glass-panel waterfall-item waterfall-delay-1" 
+            style={{ 
+              padding: '1.35rem 1.5rem',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+              transition: 'transform 0.22s var(--ease-luxury), box-shadow 0.22s ease, border-color 0.22s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 16px 36px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.2)';
+              e.currentTarget.style.borderColor = 'var(--gold-glow)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.45)';
+              e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 700, letterSpacing: '0.06em' }}>
                 1ST FLOOR (101 - 110)
               </span>
               <span className={`badge-status ${fl1.available > 0 ? 'badge-available' : 'badge-occupied'}`}>
-                {fl1.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 3 }}></span>}
+                {fl1.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 4 }}></span>}
                 {fl1.available} / 10 Free
               </span>
             </div>
-            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Standard Deluxe</h4>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+            <h4 style={{ fontSize: '1.15rem', marginBottom: '0.25rem', color: '#fff', fontWeight: 700 }}>Standard Deluxe</h4>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
               King Bed • AC • Free Buffet Breakfast
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>₹1,699</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>₹1,699</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}> / night + GST</span>
               </div>
               <button 
                 onClick={() => onOpenBooking(ROOM_TIERS[0])}
-                className="btn-outline-gold"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                className="btn-primary-gold"
+                style={{ padding: '0.45rem 0.95rem', fontSize: '0.82rem' }}
               >
                 Book Tier
               </button>
@@ -176,29 +215,47 @@ export default function Hero({
           </div>
 
           {/* Floor 2: Deluxe Room */}
-          <div className="glass-panel waterfall-item waterfall-delay-2" style={{ padding: '1.2rem 1.4rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div 
+            className="glass-panel waterfall-item waterfall-delay-2" 
+            style={{ 
+              padding: '1.35rem 1.5rem',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+              transition: 'transform 0.22s var(--ease-luxury), box-shadow 0.22s ease, border-color 0.22s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 16px 36px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.2)';
+              e.currentTarget.style.borderColor = 'var(--gold-glow)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.45)';
+              e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 700, letterSpacing: '0.06em' }}>
                 2ND FLOOR (201 - 210)
               </span>
               <span className={`badge-status ${fl2.available > 0 ? 'badge-available' : 'badge-occupied'}`}>
-                {fl2.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 3 }}></span>}
+                {fl2.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 4 }}></span>}
                 {fl2.available} / 10 Free
               </span>
             </div>
-            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Deluxe Room</h4>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+            <h4 style={{ fontSize: '1.15rem', marginBottom: '0.25rem', color: '#fff', fontWeight: 700 }}>Deluxe Room</h4>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
               Balcony • Premium AC • In-Room Dining
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>₹2,199</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>₹2,199</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}> / night + GST</span>
               </div>
               <button 
                 onClick={() => onOpenBooking(ROOM_TIERS[1])}
-                className="btn-outline-gold"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                className="btn-primary-gold"
+                style={{ padding: '0.45rem 0.95rem', fontSize: '0.82rem' }}
               >
                 Book Tier
               </button>
@@ -206,29 +263,47 @@ export default function Hero({
           </div>
 
           {/* Floor 3: Executive Room */}
-          <div className="glass-panel waterfall-item waterfall-delay-3" style={{ padding: '1.2rem 1.4rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div 
+            className="glass-panel waterfall-item waterfall-delay-3" 
+            style={{ 
+              padding: '1.35rem 1.5rem',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+              transition: 'transform 0.22s var(--ease-luxury), box-shadow 0.22s ease, border-color 0.22s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 16px 36px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.2)';
+              e.currentTarget.style.borderColor = 'var(--gold-glow)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.45)';
+              e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 700, letterSpacing: '0.06em' }}>
                 3RD FLOOR (301 - 310)
               </span>
               <span className={`badge-status ${fl3.available > 0 ? 'badge-available' : 'badge-occupied'}`}>
-                {fl3.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 3 }}></span>}
+                {fl3.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 4 }}></span>}
                 {fl3.available} / 10 Free
               </span>
             </div>
-            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Executive Room</h4>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+            <h4 style={{ fontSize: '1.15rem', marginBottom: '0.25rem', color: '#fff', fontWeight: 700 }}>Executive Room</h4>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
               Workstation • Mini Bar • Station Transit
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>₹2,899</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>₹2,899</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}> / night + GST</span>
               </div>
               <button 
                 onClick={() => onOpenBooking(ROOM_TIERS[2])}
-                className="btn-outline-gold"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                className="btn-primary-gold"
+                style={{ padding: '0.45rem 0.95rem', fontSize: '0.82rem' }}
               >
                 Book Tier
               </button>
@@ -236,29 +311,47 @@ export default function Hero({
           </div>
 
           {/* Floor 4: Premium Suite */}
-          <div className="glass-panel waterfall-item waterfall-delay-4" style={{ padding: '1.2rem 1.4rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div 
+            className="glass-panel waterfall-item waterfall-delay-4" 
+            style={{ 
+              padding: '1.35rem 1.5rem',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+              transition: 'transform 0.22s var(--ease-luxury), box-shadow 0.22s ease, border-color 0.22s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 16px 36px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.2)';
+              e.currentTarget.style.borderColor = 'var(--gold-glow)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.45)';
+              e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--gold-glow)', fontWeight: 700, letterSpacing: '0.06em' }}>
                 4TH FLOOR (401 - 410)
               </span>
               <span className={`badge-status ${fl4.available > 0 ? 'badge-available' : 'badge-occupied'}`}>
-                {fl4.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 3 }}></span>}
+                {fl4.available > 0 && <span className="ripple-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--status-available)', marginRight: 4 }}></span>}
                 {fl4.available} / 10 Free
               </span>
             </div>
-            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Premium Suite</h4>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+            <h4 style={{ fontSize: '1.15rem', marginBottom: '0.25rem', color: '#fff', fontWeight: 700 }}>Premium Suite</h4>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
               Living Room • Master Suite • Local Shuttle
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>₹3,999</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>₹3,999</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}> / night + GST</span>
               </div>
               <button 
                 onClick={() => onOpenBooking(ROOM_TIERS[3])}
-                className="btn-outline-gold"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                className="btn-primary-gold"
+                style={{ padding: '0.45rem 0.95rem', fontSize: '0.82rem' }}
               >
                 Book Tier
               </button>
@@ -266,12 +359,40 @@ export default function Hero({
           </div>
         </div>
 
-        {/* Live Booking Engine Bar */}
+        {/* Live Booking Engine Bar with Luxury Trust Ribbon */}
         <div className="glass-panel" style={{
-          padding: '1.5rem 2rem',
-          border: '1px solid rgba(212, 175, 55, 0.4)',
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(212, 175, 55, 0.15)'
+          padding: '1.75rem 2rem',
+          border: '1px solid rgba(212, 175, 55, 0.45)',
+          borderRadius: '18px',
+          boxShadow: '0 16px 45px rgba(0, 0, 0, 0.7), 0 0 35px rgba(212, 175, 55, 0.18)'
         }}>
+          {/* Trust Ribbon */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            marginBottom: '1.25rem',
+            paddingBottom: '0.75rem',
+            borderBottom: '1px solid rgba(212, 175, 55, 0.2)'
+          }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              color: 'var(--gold-glow)',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase'
+            }}>
+              <CheckCircle2 size={16} color="var(--gold-glow)" /> Direct Reservation Engine • Best Rate Guarantee (Zero Broker Commission)
+            </span>
+            <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 600 }}>
+              ● Instant SAC 996311 GST Invoice • RGDA Station Shuttle
+            </span>
+          </div>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',

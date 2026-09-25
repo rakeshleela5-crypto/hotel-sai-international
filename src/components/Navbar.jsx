@@ -369,7 +369,7 @@ export default function Navbar({
               <Hotel size={26} color="#060e1a" strokeWidth={2.2} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', letterSpacing: '0.04em' }}>
                   HOTEL SAI INTERNATIONAL
                 </span>
@@ -384,9 +384,22 @@ export default function Navbar({
                 }}>
                   RAYAGADA
                 </span>
+                <span style={{
+                  fontSize: '0.65rem',
+                  background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(212, 175, 55, 0.25))',
+                  color: '#e9d5ff',
+                  border: '1px solid rgba(192, 132, 252, 0.65)',
+                  padding: '0.12rem 0.55rem',
+                  borderRadius: '9999px',
+                  fontWeight: 800,
+                  boxShadow: '0 0 12px rgba(168, 85, 247, 0.4)',
+                  letterSpacing: '0.04em'
+                }}>
+                  ✨ 2026 CRAFT ED.
+                </span>
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Premier 40-Room Executive & Pilgrim Hotel • Sai Priya Nagar
+                Premier 40-Room Executive & Pilgrim Hotel • Sai Priya Nagar • Emil Kowalski UI Motion
               </div>
             </div>
           </div>
