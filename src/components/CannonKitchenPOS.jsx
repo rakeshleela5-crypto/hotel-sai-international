@@ -6,7 +6,7 @@ import {
   FileSpreadsheet, Download, ChefHat, Bell, Volume2, VolumeX, Truck, Flame, RefreshCw, Eye, AlertTriangle, Filter
 } from 'lucide-react';
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
-import { playOrderAlert } from '../utils/soundAlert';
+import { playOrderAlert, playSuccessChime } from '../utils/soundAlert';
 
 export default function CannonKitchenPOS({
   isOpen,
@@ -230,15 +230,19 @@ export default function CannonKitchenPOS({
 
   // Add item by numeric code (Fast Numpad Flow)
   const handleCodeSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!codeQuery.trim()) return;
 
     const matched = RESTAURANT_MENU.find(m => m.itemCode === codeQuery.trim());
     if (matched) {
       addItemToCart(matched);
       setCodeQuery('');
+      // Auto-switch to 'menu' catalog so the user sees the active catalog and item
+      if (posViewMode === 'tableGrid') {
+        setPosViewMode('menu');
+      }
     } else {
-      alert(`Item code "${codeQuery}" not found in Menu. Try 214 (Mushroom Masala) or 307 (Rice).`);
+      alert(`Item code "${codeQuery}" not found in Menu. Try 54 (Salt & Pepper Corn), 214 (Mushroom Masala), 307 (Rice) or 116 (Andhra Chicken).`);
     }
   };
 
@@ -251,6 +255,8 @@ export default function CannonKitchenPOS({
     } else {
       setCart([...cart, { item, quantity: 1, notes: '', cookingTags: [] }]);
     }
+    showPosToast(`✓ Added [Code #${item.itemCode || '0'}] ${item.name} (₹${getItemPrice(item)}) to KOT Ticket!`);
+    playSuccessChime();
   };
 
   const updateQuantity = (itemId, delta) => {
@@ -1521,46 +1527,81 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               borderBottom: '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               gap: '0.75rem',
-              alignItems: 'center'
+              alignItems: 'center',
+              flexWrap: 'wrap'
             }}>
-              <form onSubmit={handleCodeSubmit} style={{ display: 'flex', gap: '0.5rem', flex: '0 0 280px' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <Hash size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#fbbf24' }} />
-                  <input
-                    ref={codeInputRef}
-                    type="text"
-                    placeholder="Code (e.g. 214)"
-                    value={codeQuery}
-                    onChange={(e) => setCodeQuery(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.55rem 0.75rem 0.55rem 2.25rem',
-                      background: '#0d111d',
-                      border: '1px solid rgba(245, 158, 11, 0.4)',
-                      borderRadius: '8px',
-                      color: '#fff',
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      letterSpacing: '1px'
-                    }}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem', fontWeight: 700, background: '#f59e0b', color: '#000' }}
-                >
-                  Enter [↵]
-                </button>
-              </form>
+              {(() => {
+                const previewItem = codeQuery.trim() ? RESTAURANT_MENU.find(m => m.itemCode === codeQuery.trim()) : null;
+                return (
+                  <form onSubmit={handleCodeSubmit} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', width: 170 }}>
+                      <Hash size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#fbbf24' }} />
+                      <input
+                        ref={codeInputRef}
+                        type="text"
+                        placeholder="Code (e.g. 54)"
+                        value={codeQuery}
+                        onChange={(e) => setCodeQuery(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.75rem 0.55rem 2.25rem',
+                          background: '#0d111d',
+                          border: previewItem ? '1.5px solid #10b981' : '1px solid rgba(245, 158, 11, 0.4)',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontSize: '0.9rem',
+                          fontWeight: 700,
+                          letterSpacing: '1px',
+                          boxShadow: previewItem ? '0 0 10px rgba(16, 185, 129, 0.35)' : 'none'
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem', fontWeight: 700, background: '#f59e0b', color: '#000', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      Enter [↵]
+                    </button>
+                    {previewItem && (
+                      <button
+                        type="button"
+                        onClick={handleCodeSubmit}
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.2)',
+                          border: '1px solid #10b981',
+                          color: '#34d399',
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          boxShadow: '0 0 12px rgba(16, 185, 129, 0.35)'
+                        }}
+                      >
+                        <span>✓ #{previewItem.itemCode}: {previewItem.name} (₹{getItemPrice(previewItem)})</span>
+                        <span style={{ background: '#10b981', color: '#000', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem' }}>+ Add to Cart</span>
+                      </button>
+                    )}
+                  </form>
+                );
+              })()}
 
-              <div style={{ position: 'relative', flex: 1 }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
                 <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="Or search by dish name, category..."
+                  placeholder="Or search by dish name, code (e.g. 54), category..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (e.target.value.trim() && posViewMode === 'tableGrid') {
+                      setPosViewMode('menu');
+                    }
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.55rem 0.75rem 0.55rem 2.25rem',
@@ -1596,25 +1637,70 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               </button>
             </div>
 
-            {/* Quick Reference Code Strip */}
+            {/* Quick Reference Code Strip (Interactive Click-to-Add) */}
             <div style={{
               padding: '0.5rem 1.5rem',
               background: 'rgba(245, 158, 11, 0.05)',
               borderBottom: '1px solid rgba(255,255,255,0.06)',
               display: 'flex',
-              gap: '1rem',
+              alignItems: 'center',
+              gap: '0.65rem',
               fontSize: '0.75rem',
               color: 'var(--text-muted)',
               overflowX: 'auto',
               whiteSpace: 'nowrap'
             }}>
-              <span style={{ fontWeight: 600, color: '#fbbf24' }}>Quick Codes:</span>
-              <span><strong style={{ color: '#fff' }}>214:</strong> Mushroom Masala</span>
-              <span><strong style={{ color: '#fff' }}>215:</strong> Paneer Butter</span>
-              <span><strong style={{ color: '#fff' }}>216:</strong> Desi Chicken</span>
-              <span><strong style={{ color: '#fff' }}>307:</strong> Plain Rice</span>
-              <span><strong style={{ color: '#fff' }}>101:</strong> Chhena Poda</span>
-              <span><strong style={{ color: '#fff' }}>401:</strong> Masala Chai</span>
+              <span style={{ fontWeight: 700, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Sparkles size={13} /> Quick Codes:
+              </span>
+              {[
+                { code: '54', label: 'Salt & Pepper Corn' },
+                { code: '214', label: 'Mushroom Masala' },
+                { code: '215', label: 'Paneer Butter' },
+                { code: '307', label: 'Steam Rice' },
+                { code: '347', label: 'Butter Naan' },
+                { code: '116', label: 'Andhra Chicken' },
+                { code: '1', label: 'Tea' }
+              ].map(qc => {
+                const item = RESTAURANT_MENU.find(m => m.itemCode === qc.code);
+                return (
+                  <button
+                    key={qc.code}
+                    type="button"
+                    onClick={() => {
+                      if (item) {
+                        addItemToCart(item);
+                        if (posViewMode === 'tableGrid') setPosViewMode('menu');
+                      }
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: '6px',
+                      padding: '0.2rem 0.55rem',
+                      color: '#cbd5e1',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#fbbf24';
+                      e.currentTarget.style.color = '#fff';
+                      e.currentTarget.style.background = 'rgba(245,158,11,0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                      e.currentTarget.style.color = '#cbd5e1';
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                    }}
+                  >
+                    <strong style={{ color: '#fbbf24' }}>#{qc.code}</strong> {qc.label} {item ? `(₹${getItemPrice(item)})` : ''}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Conditional Content: Authentic MySoft Table Grid OR Fast Dish Catalog */}
