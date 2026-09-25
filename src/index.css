@@ -78,8 +78,9 @@
 
   --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-smooth: transform 0.2s var(--ease-luxury), opacity 0.2s var(--ease-luxury), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  --transition-spring: transform 0.28s var(--ease-spring), opacity 0.2s ease, box-shadow 0.2s ease;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -379,8 +380,28 @@ button:focus-visible, .btn:focus-visible {
 }
 
 @keyframes modalSpringIn {
-  0% { opacity: 0; transform: scale(0.95) translateY(14px); }
+  0% { opacity: 0; transform: scale(0.96) translateY(8px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes stepFadeSlide {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.step-pane-enter {
+  animation: stepFadeSlide 0.22s var(--ease-luxury) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes sealPulse {
+  0% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.7)); }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+
+.seal-pulse {
+  animation: sealPulse 1.2s ease-in-out infinite;
 }
 
 .modal-header {
@@ -1030,7 +1051,39 @@ button:focus-visible, .btn:focus-visible {
     border: none !important;
   }
 
+  .printable-audit-pack, .printable-audit-pack * {
+    visibility: visible;
+  }
+
+  .printable-audit-pack {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    margin: 0;
+    padding: 10mm;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+
   .invoice-action-bar, .no-print, .modal-close-btn {
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   EMIL KOWALSKI ACCESSIBILITY: PREFERS REDUCED MOTION
+   Honors user vestibular preferences by disabling spatial movement while
+   preserving instantaneous opacity transitions.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
