@@ -1792,10 +1792,11 @@ export const RESTAURANT_MENU = [
 
 // Authentic GST FOM Register Dataset (Front Office Management Report 25/09/2026)
 // Captured from Hotel Sai International Rayagada (Cashier: Sudhakar)
-// Solves:
-// 1. Buggy negative taxes (-209.52, -48.74, -6%, -12%) completely eradicated with strictly positive balanced math
-// 2. Strict statutory rule: If GSTIN is missing, invoice is classified as B2C even if corporate name (e.g. PRADAN) is present
-// 3. Gross revenue matches the live register exactly: ₹48,621.41
+// Client Requirement:
+// 1. Strictly DELETED: SGST 6%, CGST 6%, and Taxable 12% (Rooms are Non-GST / 0% Taxable)
+// 2. Only Food & Beverage carries 5% GST (SGST 2.5% + CGST 2.5%)
+// 3. Strict statutory rule: If GSTIN is missing, invoice is classified as B2C even if corporate name (e.g. PRADAN) is present
+// 4. Gross revenue matches the live register exactly: ₹48,621.41
 export const GST_FOM_RECORDS_2026_09_25 = [
   {
     slNo: 1,
@@ -1811,16 +1812,13 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Plot 12, Industrial Estate, Rayagada, Odisha",
     stateCode: "21 (Odisha)",
     isB2B: true,
-    taxable0: 0.00,
+    taxable0: 3000.00, // Non-GST Room Tariff
     taxable5: 0.00,
     sgst2_5: 0.00,
     cgst2_5: 0.00,
-    taxable12: 2678.57,
-    sgst6: 160.71,
-    cgst6: 160.71,
     totalAmount: 3000.00,
     paymentMode: "Direct Credit",
-    remarks: "Accommodation stay"
+    remarks: "Non-GST accommodation stay"
   },
   {
     slNo: 2,
@@ -1840,12 +1838,9 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     taxable5: 476.19,
     sgst2_5: 11.90,
     cgst2_5: 11.90,
-    taxable12: 0.00,
-    sgst6: 0.00,
-    cgst6: 0.00,
     totalAmount: 500.00,
     paymentMode: "Direct Credit",
-    remarks: "In-room food service"
+    remarks: "In-room food service (5% GST)"
   },
   {
     slNo: 3,
@@ -1861,13 +1856,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Rayagada Field Office, Rayagada - 765001",
     stateCode: "21 (Odisha)",
     isB2B: false, // No GSTIN = Strictly B2C
-    taxable0: 0.00,
+    taxable0: 5000.00,
     taxable5: 476.19,
     sgst2_5: 11.90,
     cgst2_5: 11.90,
-    taxable12: 4464.29,
-    sgst6: 267.86,
-    cgst6: 267.86,
     totalAmount: 5500.00,
     paymentMode: "BTC (Bill to Company)",
     remarks: "Corporate guest without GSTIN - Registered under B2C per statutory rules"
@@ -1886,13 +1878,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Rayagada Field Office, Rayagada - 765001",
     stateCode: "21 (Odisha)",
     isB2B: false,
-    taxable0: 0.00,
+    taxable0: 4000.00,
     taxable5: 285.71,
     sgst2_5: 7.14,
     cgst2_5: 7.14,
-    taxable12: 3571.43,
-    sgst6: 214.29,
-    cgst6: 214.29,
     totalAmount: 4300.00,
     paymentMode: "BTC (Bill to Company)",
     remarks: "B2C Consumer invoice"
@@ -1911,13 +1900,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Rayagada Field Office, Rayagada - 765001",
     stateCode: "21 (Odisha)",
     isB2B: false,
-    taxable0: 0.00,
+    taxable0: 4000.00,
     taxable5: 190.48,
     sgst2_5: 4.76,
     cgst2_5: 4.76,
-    taxable12: 3571.43,
-    sgst6: 214.29,
-    cgst6: 214.29,
     totalAmount: 4200.00,
     paymentMode: "BTC (Bill to Company)",
     remarks: "B2C Consumer invoice"
@@ -1936,13 +1922,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Rayagada Field Office, Rayagada - 765001",
     stateCode: "21 (Odisha)",
     isB2B: false,
-    taxable0: 0.00,
+    taxable0: 4000.00,
     taxable5: 0.00,
     sgst2_5: 0.00,
     cgst2_5: 0.00,
-    taxable12: 3571.43,
-    sgst6: 214.29,
-    cgst6: 214.29,
     totalAmount: 4000.00,
     paymentMode: "BTC (Bill to Company)",
     remarks: "B2C Consumer invoice"
@@ -1961,13 +1944,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Rayagada Field Office, Rayagada - 765001",
     stateCode: "21 (Odisha)",
     isB2B: false,
-    taxable0: 0.00,
+    taxable0: 4000.00,
     taxable5: 238.10,
     sgst2_5: 5.95,
     cgst2_5: 5.95,
-    taxable12: 3571.43,
-    sgst6: 214.29,
-    cgst6: 214.29,
     totalAmount: 4250.00,
     paymentMode: "BTC (Bill to Company)",
     remarks: "B2C Consumer invoice"
@@ -1986,13 +1966,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Rayagada Field Office, Rayagada - 765001",
     stateCode: "21 (Odisha)",
     isB2B: false,
-    taxable0: 0.00,
+    taxable0: 2000.00,
     taxable5: 380.95,
     sgst2_5: 9.52,
     cgst2_5: 9.52,
-    taxable12: 1785.71,
-    sgst6: 107.14,
-    cgst6: 107.14,
     totalAmount: 2400.00,
     paymentMode: "BTC (Bill to Company)",
     remarks: "B2C Consumer invoice"
@@ -2011,16 +1988,13 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "RITES Bhawan, Sector 29, Gurgaon / Rayagada Project Office",
     stateCode: "21 (Odisha)",
     isB2B: true,
-    taxable0: 0.00,
+    taxable0: 8000.00,
     taxable5: 0.00,
     sgst2_5: 0.00,
     cgst2_5: 0.00,
-    taxable12: 7142.86,
-    sgst6: 428.57,
-    cgst6: 428.57,
     totalAmount: 8000.00,
     paymentMode: "Corporate Bill to Company",
-    remarks: "Room stay (Fixed MySoft negative bug: strictly positive 12% & 6% SGST/CGST)"
+    remarks: "Non-GST room stay (6% and 12% deleted)"
   },
   {
     slNo: 10,
@@ -2040,12 +2014,9 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     taxable5: 1877.53,
     sgst2_5: 46.94,
     cgst2_5: 46.94,
-    taxable12: 0.00,
-    sgst6: 0.00,
-    cgst6: 0.00,
     totalAmount: 1971.41,
     paymentMode: "Corporate Bill to Company",
-    remarks: "Restaurant KOTs (Fixed MySoft negative bug: strictly positive 5% & 2.5% SGST/CGST)"
+    remarks: "Restaurant KOTs (5% Food GST)"
   },
   {
     slNo: 11,
@@ -2061,13 +2032,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Main Road, Sai Priya Nagar, Rayagada",
     stateCode: "21 (Odisha)",
     isB2B: true,
-    taxable0: 0.00,
+    taxable0: 6000.00,
     taxable5: 857.14,
     sgst2_5: 21.43,
     cgst2_5: 21.43,
-    taxable12: 5357.14,
-    sgst6: 321.43,
-    cgst6: 321.43,
     totalAmount: 6900.00,
     paymentMode: "UPI / Bank Transfer",
     remarks: "Verified Corporate B2B"
@@ -2086,13 +2054,10 @@ export const GST_FOM_RECORDS_2026_09_25 = [
     billingAddress: "Rayagada Field Office, Rayagada - 765001",
     stateCode: "21 (Odisha)",
     isB2B: false,
-    taxable0: 0.00,
+    taxable0: 2000.00,
     taxable5: 0.00,
     sgst2_5: 0.00,
     cgst2_5: 0.00,
-    taxable12: 1785.71,
-    sgst6: 107.14,
-    cgst6: 107.14,
     totalAmount: 2000.00,
     paymentMode: "BTC (Bill to Company)",
     remarks: "B2C Consumer invoice"

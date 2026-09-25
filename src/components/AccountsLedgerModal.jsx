@@ -47,9 +47,8 @@ export default function AccountsLedgerModal({
     gstin: '',
     billingAddress: '',
     stateCode: '21 (Odisha)',
-    taxable12: 0,
-    taxable5: 0,
     taxable0: 0,
+    taxable5: 0,
     totalAmount: 0,
     remarks: ''
   });
@@ -344,16 +343,14 @@ export default function AccountsLedgerModal({
     return true;
   });
 
-  const gstFomTotalTaxable12 = gstFomRecords.reduce((s, r) => s + (r.taxable12 || 0), 0);
-  const gstFomTotalSgst6 = gstFomRecords.reduce((s, r) => s + (r.sgst6 || 0), 0);
-  const gstFomTotalCgst6 = gstFomRecords.reduce((s, r) => s + (r.cgst6 || 0), 0);
+  const gstFomTotalTaxable0 = gstFomRecords.reduce((s, r) => s + (r.taxable0 || 0), 0);
   const gstFomTotalTaxable5 = gstFomRecords.reduce((s, r) => s + (r.taxable5 || 0), 0);
   const gstFomTotalSgst2_5 = gstFomRecords.reduce((s, r) => s + (r.sgst2_5 || 0), 0);
   const gstFomTotalCgst2_5 = gstFomRecords.reduce((s, r) => s + (r.cgst2_5 || 0), 0);
   const gstFomGrandTotal = gstFomRecords.reduce((s, r) => s + (r.totalAmount || 0), 0);
   const gstFomB2bCount = gstFomRecords.filter(r => r.isB2B).length;
   const gstFomB2cCount = gstFomRecords.filter(r => !r.isB2B).length;
-  const gstFomTotalTaxes = gstFomTotalSgst6 + gstFomTotalCgst6 + gstFomTotalSgst2_5 + gstFomTotalCgst2_5;
+  const gstFomTotalTaxes = gstFomTotalSgst2_5 + gstFomTotalCgst2_5;
 
   const handleOpenGstAmend = (rec) => {
     setEditingGstRecord(rec);
@@ -367,9 +364,8 @@ export default function AccountsLedgerModal({
       gstin: rec.gstin || '',
       billingAddress: rec.billingAddress || '',
       stateCode: rec.stateCode || '21 (Odisha)',
-      taxable12: rec.taxable12 || 0,
-      taxable5: rec.taxable5 || 0,
       taxable0: rec.taxable0 || 0,
+      taxable5: rec.taxable5 || 0,
       totalAmount: rec.totalAmount || 0,
       remarks: rec.remarks || ''
     });
@@ -384,16 +380,15 @@ export default function AccountsLedgerModal({
     // Strict GST Rule: Exactly 15 characters = B2B. Otherwise B2C!
     const isB2B = cleanGstin.length === 15;
 
-    // Recalculate taxes strictly positive
-    const tax12 = Math.max(0, Number(gstAmendForm.taxable12) || 0);
-    const sgst6 = Math.round(tax12 * 0.06 * 100) / 100;
-    const cgst6 = Math.round(tax12 * 0.06 * 100) / 100;
+    // Room is Non-GST / 0% Taxable (No 6% or 12%)
+    const roomTariff = Math.max(0, Number(gstAmendForm.taxable0) || 0);
 
+    // Food is 5% (2.5% SGST + 2.5% CGST)
     const tax5 = Math.max(0, Number(gstAmendForm.taxable5) || 0);
     const sgst2_5 = Math.round(tax5 * 0.025 * 100) / 100;
     const cgst2_5 = Math.round(tax5 * 0.025 * 100) / 100;
 
-    const computedTotal = Math.round((tax12 + sgst6 + cgst6 + tax5 + sgst2_5 + cgst2_5) * 100) / 100;
+    const computedTotal = Math.round((roomTariff + tax5 + sgst2_5 + cgst2_5) * 100) / 100;
 
     const updatedRecord = {
       ...editingGstRecord,
@@ -403,9 +398,7 @@ export default function AccountsLedgerModal({
       billingAddress: gstAmendForm.billingAddress,
       stateCode: gstAmendForm.stateCode,
       isB2B,
-      taxable12: tax12,
-      sgst6,
-      cgst6,
+      taxable0: roomTariff,
       taxable5: tax5,
       sgst2_5,
       cgst2_5,
@@ -450,8 +443,8 @@ export default function AccountsLedgerModal({
     const headers = [
       "Sl No", "Bill No", "Date", "Ref No", "Guest Name", "Check In", "Check Out", 
       "Room No", "Company", "GSTIN", "Tax Classification", 
-      "Taxable 0% (INR)", "Taxable 5% (INR)", "SGST 2.5% (INR)", "CGST 2.5% (INR)",
-      "Taxable 12% (INR)", "SGST 6% (INR)", "CGST 6% (INR)", "Total Bill Amount (INR)", "Settlement Mode"
+      "Room Tariff 0% Non-GST (INR)", "Food Taxable 5% (INR)", "Food SGST 2.5% (INR)", "Food CGST 2.5% (INR)",
+      "Total Bill Amount (INR)", "Settlement Mode"
     ];
     const rows = filteredGstRecords.map(r => [
       r.slNo,
@@ -469,16 +462,13 @@ export default function AccountsLedgerModal({
       (r.taxable5 || 0).toFixed(2),
       (r.sgst2_5 || 0).toFixed(2),
       (r.cgst2_5 || 0).toFixed(2),
-      (r.taxable12 || 0).toFixed(2),
-      (r.sgst6 || 0).toFixed(2),
-      (r.cgst6 || 0).toFixed(2),
       (r.totalAmount || 0).toFixed(2),
       `"${r.paymentMode}"`
     ]);
     const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent([
       `HOTEL SAI INTERNATIONAL - RAYAGADA`,
       `GST FOM REPORT & STATUTORY TAX REGISTER (25/09/2026)`,
-      `Cashier: Sudhakar | Strictly Positive Taxes | Zero Negative Discrepancy`,
+      `Cashier: Sudhakar | Strictly Non-GST Room Tariff (6% & 12% Deleted) | Food 5% GST`,
       headers.join(","),
       ...rows.map(e => e.join(","))
     ].join("\n"));
@@ -506,10 +496,10 @@ export default function AccountsLedgerModal({
       checkInDate: rec.checkIn?.split(' ')[0] || rec.date,
       checkOutDate: rec.checkOut?.split(' ')[0] || rec.date,
       totalAmount: rec.totalAmount,
-      roomTariff: rec.taxable12,
+      roomTariff: rec.taxable0,
       fbAmount: rec.taxable5,
-      cgstAmount: (rec.cgst6 || 0) + (rec.cgst2_5 || 0),
-      sgstAmount: (rec.sgst6 || 0) + (rec.sgst2_5 || 0),
+      cgstAmount: rec.cgst2_5 || 0,
+      sgstAmount: rec.sgst2_5 || 0,
       paymentStatus: 'PAID',
       paymentMode: rec.paymentMode
     });
@@ -1441,19 +1431,19 @@ export default function AccountsLedgerModal({
 
               <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '10px', padding: '1rem' }}>
                 <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Room Taxable (12%)
+                  Room Accommodation (0% Non-GST)
                 </div>
                 <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#fff', marginTop: '0.25rem' }}>
-                  ₹{gstFomTotalTaxable12.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹{gstFomTotalTaxable0.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#93c5fd', marginTop: '0.2rem' }}>
-                  SGST 6%: ₹{gstFomTotalSgst6.toFixed(2)} | CGST 6%: ₹{gstFomTotalCgst6.toFixed(2)}
+                  Statutory Non-GST / 0% Tax • ₹42,000.00
                 </div>
               </div>
 
               <div style={{ background: 'rgba(248, 113, 113, 0.08)', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '10px', padding: '1rem' }}>
                 <div style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Food / KOT Taxable (5%)
+                  Food / Dining Taxable (5%)
                 </div>
                 <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#fff', marginTop: '0.25rem' }}>
                   ₹{gstFomTotalTaxable5.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -1465,13 +1455,13 @@ export default function AccountsLedgerModal({
 
               <div style={{ background: 'rgba(52, 211, 153, 0.08)', border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '10px', padding: '1rem' }}>
                 <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Total Output GST Liability
+                  Total Output GST (5% Food)
                 </div>
                 <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#34d399', marginTop: '0.25rem' }}>
                   ₹{gstFomTotalTaxes.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
                 <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '0.2rem' }}>
-                  Zero negative taxes • 100% Statutory Balance
+                  SGST: ₹{gstFomTotalSgst2_5.toFixed(2)} + CGST: ₹{gstFomTotalCgst2_5.toFixed(2)} (₹315.12)
                 </div>
               </div>
 
@@ -1593,12 +1583,10 @@ export default function AccountsLedgerModal({
                       <th style={{ padding: '0.65rem 0.7rem', textAlign: 'left' }}>COMPANY</th>
                       <th style={{ padding: '0.65rem 0.6rem', textAlign: 'left' }}>GSTIN</th>
                       <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>CLASSIFICATION</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'right' }}>TAXABLE 12%</th>
-                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right' }}>SGST 6%</th>
-                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right' }}>CGST 6%</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'right' }}>FOOD 5%</th>
-                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right' }}>SGST 2.5%</th>
-                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right' }}>CGST 2.5%</th>
+                      <th style={{ padding: '0.65rem 0.7rem', textAlign: 'right', color: '#38bdf8' }}>ROOM TARIFF (0% NON-GST)</th>
+                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'right', color: '#f87171' }}>FOOD TAXABLE (5%)</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>SGST 2.5%</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>CGST 2.5%</th>
                       <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>TOTAL (₹)</th>
                       <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>SETTLEMENT</th>
                       <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>STATUTORY ACTIONS</th>
@@ -1607,7 +1595,7 @@ export default function AccountsLedgerModal({
                   <tbody>
                     {filteredGstRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={18} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td colSpan={16} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                           No GST records match the current filter or search criteria.
                         </td>
                       </tr>
@@ -1664,17 +1652,11 @@ export default function AccountsLedgerModal({
                               </span>
                             )}
                           </td>
-                          <td style={{ padding: '0.6rem', textAlign: 'right', color: '#cbd5e1' }}>
-                            {r.taxable12 > 0 ? `₹${r.taxable12.toFixed(2)}` : '—'}
-                          </td>
-                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right', color: '#93c5fd' }}>
-                            {r.sgst6 > 0 ? `₹${r.sgst6.toFixed(2)}` : '—'}
-                          </td>
-                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right', color: '#93c5fd' }}>
-                            {r.cgst6 > 0 ? `₹${r.cgst6.toFixed(2)}` : '—'}
+                          <td style={{ padding: '0.6rem 0.7rem', textAlign: 'right', color: '#38bdf8', fontWeight: 600 }}>
+                            {r.taxable0 > 0 ? `₹${r.taxable0.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                           </td>
                           <td style={{ padding: '0.6rem', textAlign: 'right', color: '#cbd5e1' }}>
-                            {r.taxable5 > 0 ? `₹${r.taxable5.toFixed(2)}` : '—'}
+                            {r.taxable5 > 0 ? `₹${r.taxable5.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
                           </td>
                           <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>
                             {r.sgst2_5 > 0 ? `₹${r.sgst2_5.toFixed(2)}` : '—'}
@@ -1736,28 +1718,22 @@ export default function AccountsLedgerModal({
                   <tfoot>
                     <tr style={{ background: 'rgba(212, 175, 55, 0.12)', fontWeight: 800, fontSize: '0.8rem', borderTop: '2px solid rgba(212, 175, 55, 0.4)' }}>
                       <td colSpan={9} style={{ padding: '0.8rem', color: 'var(--gold-glow)' }}>
-                        TOTAL REGISTER BALANCES (STRICTLY POSITIVE • ZERO DISCREPANCY)
+                        TOTAL REGISTER BALANCES (NON-GST ROOM TARIFF • 5% FOOD GST)
                       </td>
-                      <td style={{ padding: '0.8rem', textAlign: 'right', color: '#fff' }}>
-                        ₹{gstFomTotalTaxable12.toFixed(2)}
+                      <td style={{ padding: '0.8rem 0.7rem', textAlign: 'right', color: '#38bdf8', fontWeight: 800 }}>
+                        ₹{gstFomTotalTaxable0.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', color: '#93c5fd' }}>
-                        ₹{gstFomTotalSgst6.toFixed(2)}
+                      <td style={{ padding: '0.8rem', textAlign: 'right', color: '#fff', fontWeight: 700 }}>
+                        ₹{gstFomTotalTaxable5.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', color: '#93c5fd' }}>
-                        ₹{gstFomTotalCgst6.toFixed(2)}
-                      </td>
-                      <td style={{ padding: '0.8rem', textAlign: 'right', color: '#fff' }}>
-                        ₹{gstFomTotalTaxable5.toFixed(2)}
-                      </td>
-                      <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>
+                      <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', color: '#fca5a5', fontWeight: 700 }}>
                         ₹{gstFomTotalSgst2_5.toFixed(2)}
                       </td>
-                      <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>
+                      <td style={{ padding: '0.8rem 0.5rem', textAlign: 'right', color: '#fca5a5', fontWeight: 700 }}>
                         ₹{gstFomTotalCgst2_5.toFixed(2)}
                       </td>
-                      <td style={{ padding: '0.8rem 0.75rem', textAlign: 'right', color: '#34d399', fontSize: '0.92rem' }}>
-                        ₹{gstFomGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      <td style={{ padding: '0.8rem 0.75rem', textAlign: 'right', color: '#34d399', fontSize: '0.95rem', fontWeight: 900 }}>
+                        ₹{gstFomGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td colSpan={2} style={{ padding: '0.8rem', textAlign: 'center', color: '#34d399' }}>
                         ✓ 100% Balanced
@@ -3757,18 +3733,46 @@ export default function AccountsLedgerModal({
                   </div>
                 </div>
 
-                {/* Audited Tax Recalculation Breakdown Card (Direct Proof of Bug Fix) */}
+                {/* Room Tariff & Food Tariff Amounts */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600, marginBottom: '0.35rem' }}>
+                      Room Accommodation Tariff (0% Non-GST / Exempt)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={gstAmendForm.taxable0}
+                      onChange={(e) => setGstAmendForm({ ...gstAmendForm, taxable0: parseFloat(e.target.value) || 0 })}
+                      style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#38bdf8', fontWeight: 700, border: '1px solid rgba(56,189,248,0.3)', borderRadius: '6px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#f87171', fontWeight: 600, marginBottom: '0.35rem' }}>
+                      Food / Dining Charges (5% GST: 2.5% SGST + 2.5% CGST)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={gstAmendForm.taxable5}
+                      onChange={(e) => setGstAmendForm({ ...gstAmendForm, taxable5: parseFloat(e.target.value) || 0 })}
+                      style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#f87171', fontWeight: 700, border: '1px solid rgba(248,113,113,0.3)', borderRadius: '6px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Audited Tax Recalculation Breakdown Card (Non-GST Room & 5% Food Only) */}
                 {(() => {
-                  const t12 = Math.max(0, Number(gstAmendForm.taxable12) || 0);
-                  const sgst6 = Math.round(t12 * 0.06 * 100) / 100;
-                  const cgst6 = Math.round(t12 * 0.06 * 100) / 100;
+                  const t0 = Math.max(0, Number(gstAmendForm.taxable0) || 0);
 
                   const t5 = Math.max(0, Number(gstAmendForm.taxable5) || 0);
                   const sgst2_5 = Math.round(t5 * 0.025 * 100) / 100;
                   const cgst2_5 = Math.round(t5 * 0.025 * 100) / 100;
 
-                  const netGross = Math.round((t12 + sgst6 + cgst6 + t5 + sgst2_5 + cgst2_5) * 100) / 100;
-                  const totalTax = Math.round((sgst6 + cgst6 + sgst2_5 + cgst2_5) * 100) / 100;
+                  const netGross = Math.round((t0 + t5 + sgst2_5 + cgst2_5) * 100) / 100;
+                  const totalTax = Math.round((sgst2_5 + cgst2_5) * 100) / 100;
 
                   return (
                     <div style={{
@@ -3780,25 +3784,25 @@ export default function AccountsLedgerModal({
                       fontSize: '0.8rem'
                     }}>
                       <div style={{ fontWeight: 700, color: '#38bdf8', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Scale size={15} /> Statutory Tax Recalculation (Strictly Positive Values Only)
+                        <Scale size={15} /> Statutory Tax Recalculation (0% Non-GST Room • 5% Food GST)
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                         <div>
-                          <span style={{ color: 'var(--text-muted)' }}>Room Accommodation (12%):</span>
-                          <div style={{ fontWeight: 600, color: '#fff' }}>
-                            Taxable ₹{t12.toFixed(2)} + SGST 6% (₹{sgst6.toFixed(2)}) + CGST 6% (₹{cgst6.toFixed(2)})
+                          <span style={{ color: 'var(--text-muted)' }}>Room Accommodation (0% Non-GST):</span>
+                          <div style={{ fontWeight: 700, color: '#38bdf8', marginTop: '0.15rem' }}>
+                            Tariff ₹{t0.toFixed(2)} (Non-GST / Exempt)
                           </div>
                         </div>
                         <div>
-                          <span style={{ color: 'var(--text-muted)' }}>Cannon Food / KOT (5%):</span>
-                          <div style={{ fontWeight: 600, color: '#fff' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Cannon Food / Dining (5% GST):</span>
+                          <div style={{ fontWeight: 600, color: '#fff', marginTop: '0.15rem' }}>
                             Taxable ₹{t5.toFixed(2)} + SGST 2.5% (₹{sgst2_5.toFixed(2)}) + CGST 2.5% (₹{cgst2_5.toFixed(2)})
                           </div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed rgba(255,255,255,0.1)', marginTop: '0.6rem', paddingTop: '0.5rem' }}>
                         <div>
-                          <span style={{ color: 'var(--text-muted)' }}>Total Output GST: </span>
+                          <span style={{ color: 'var(--text-muted)' }}>Total Output GST (5% Food only): </span>
                           <strong style={{ color: '#34d399' }}>₹{totalTax.toFixed(2)}</strong>
                         </div>
                         <div>
