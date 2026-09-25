@@ -5,7 +5,7 @@ import {
   TrendingUp, CreditCard, Clock, AlertTriangle, Search,
   Zap, PieChart, Info, Check, ArrowUpRight, Edit3, PlusCircle,
   Briefcase, Percent, Scale, UtensilsCrossed, Award, CheckCheck, FileSpreadsheet,
-  FilePlus, RefreshCw, FileCheck
+  FilePlus, RefreshCw, FileCheck, Send, Mail
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_SALES_REPORT_2026_09_24, GST_FOM_RECORDS_2026_09_25 } from '../data/hotelData';
 import BookingReceiptModal from './BookingReceiptModal';
@@ -80,6 +80,14 @@ export default function AccountsLedgerModal({
 
   // Food Costing Simulation % State (Default: 32.5% standard hospitality benchmark)
   const [foodCostingPct, setFoodCostingPct] = useState(32.5);
+
+  // Corporate Consolidated Monthly Billing Generator (Section 194C / 194-I TDS)
+  const [isConsolidatedBillOpen, setIsConsolidatedBillOpen] = useState(false);
+  const [consolidatedTdsSection, setConsolidatedTdsSection] = useState('194C_2'); // '194C_2' (2%), '194C_1' (1%), '194I_10' (10%), 'NONE' (0%)
+  const [consolidatedMonth, setConsolidatedMonth] = useState('09');
+  const [consolidatedYear, setConsolidatedYear] = useState('2026');
+  const [consolidatedPoNumber, setConsolidatedPoNumber] = useState('PO-AL-2026-SEP-0941');
+  const [consolidatedEmailSent, setConsolidatedEmailSent] = useState(false);
 
   useEffect(() => {
     if (propCorporatePartners && propCorporatePartners.length > 0) {
@@ -2450,6 +2458,29 @@ export default function AccountsLedgerModal({
                   <DollarSign size={15} /> Post Settlement &amp; TDS
                 </button>
                 <button
+                  onClick={() => {
+                    setIsConsolidatedBillOpen(true);
+                    setConsolidatedEmailSent(false);
+                  }}
+                  className="btn-primary"
+                  style={{ 
+                    padding: '0.5rem 0.85rem', 
+                    fontSize: '0.8rem', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    border: 'none',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <FileSpreadsheet size={15} /> 📑 Generate Monthly B2B Bill Pack (TDS 194C)
+                </button>
+                <button
                   onClick={() => alert(`Printing Official Statement of Account for ${currentCorp.name}`)}
                   className="btn-outline"
                   style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
@@ -3874,6 +3905,468 @@ export default function AccountsLedgerModal({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* CORPORATE MONTHLY CONSOLIDATED B2B TAX INVOICE & TDS 194C MODAL */}
+        {isConsolidatedBillOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(5, 7, 15, 0.94)',
+            backdropFilter: 'blur(12px)',
+            zIndex: 3500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}>
+            <div className="glass-panel" style={{
+              width: '100%',
+              maxWidth: 1100,
+              maxHeight: '94vh',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '16px',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              boxShadow: '0 25px 70px rgba(0,0,0,0.95)',
+              background: '#0d111d',
+              overflow: 'hidden'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                padding: '1.2rem 1.8rem',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(12, 16, 32, 0.98))',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: '10px',
+                    background: 'rgba(16, 185, 129, 0.25)',
+                    border: '1px solid #10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#34d399'
+                  }}>
+                    <FileSpreadsheet size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: '1px solid #10b981', fontSize: '0.72rem', fontWeight: 700 }}>
+                        MONTHLY B2B CONSOLIDATED PACK
+                      </span>
+                      <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid #f59e0b', fontSize: '0.72rem', fontWeight: 700 }}>
+                        SEC 194C / 194-I TDS DEDUCTIBLE
+                      </span>
+                    </div>
+                    <h3 style={{ margin: '0.2rem 0 0', color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>
+                      Consolidated Monthly Tax Invoice — {currentCorp.name}
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsConsolidatedBillOpen(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: 'none',
+                    color: '#fff',
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 1.8rem' }}>
+                {/* Notice Banner */}
+                {consolidatedEmailSent && (
+                  <div style={{
+                    background: 'rgba(52, 211, 153, 0.2)',
+                    border: '1px solid #34d399',
+                    color: '#34d399',
+                    padding: '0.75rem 1.25rem',
+                    borderRadius: '8px',
+                    marginBottom: '1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    fontSize: '0.85rem'
+                  }}>
+                    <CheckCircle2 size={18} />
+                    <span>
+                      ✓ Consolidated B2B Invoice Pack &amp; TDS Form 16A Request emailed directly to corporate accounts officer at <strong>{currentCorp.contactEmail || 'finance@corporate.com'}</strong>!
+                    </span>
+                  </div>
+                )}
+
+                {/* Corporate & Configuration Controls */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '12px',
+                  padding: '1.2rem',
+                  marginBottom: '1.25rem',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '1rem'
+                }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                      Billed Corporate Partner
+                    </label>
+                    <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>{currentCorp.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#fbbf24', fontFamily: 'monospace', marginTop: '2px' }}>
+                      GSTIN: {currentCorp.gstin}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {currentCorp.location}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                      Billing Month &amp; Year
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <select
+                        value={consolidatedMonth}
+                        onChange={(e) => setConsolidatedMonth(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '0.45rem',
+                          background: '#070a14',
+                          color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '6px',
+                          fontSize: '0.82rem'
+                        }}
+                      >
+                        <option value="08">August 2026</option>
+                        <option value="09">September 2026</option>
+                        <option value="10">October 2026</option>
+                      </select>
+                      <select
+                        value={consolidatedYear}
+                        onChange={(e) => setConsolidatedYear(e.target.value)}
+                        style={{
+                          width: 85,
+                          padding: '0.45rem',
+                          background: '#070a14',
+                          color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '6px',
+                          fontSize: '0.82rem'
+                        }}
+                      >
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                      </select>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#38bdf8', marginTop: '4px' }}>
+                      Invoice Date: 30/{consolidatedMonth}/{consolidatedYear}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                      Corporate Purchase Order / WO Ref
+                    </label>
+                    <input
+                      type="text"
+                      value={consolidatedPoNumber}
+                      onChange={(e) => setConsolidatedPoNumber(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem 0.65rem',
+                        background: '#070a14',
+                        color: '#fff',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem',
+                        fontFamily: 'monospace'
+                      }}
+                      placeholder="e.g. PO-AL-2026-SEP-0941"
+                    />
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Contact: {currentCorp.contactPerson || 'Logistics Lead'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#fbbf24', fontWeight: 700, marginBottom: '0.3rem' }}>
+                      Section TDS Deduction Option
+                    </label>
+                    <select
+                      value={consolidatedTdsSection}
+                      onChange={(e) => setConsolidatedTdsSection(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem 0.65rem',
+                        background: '#161d31',
+                        color: '#fbbf24',
+                        border: '1px solid rgba(245, 158, 11, 0.5)',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      <option value="194C_2">Sec 194C (2%) — Company / Firm / LLP</option>
+                      <option value="194C_1">Sec 194C (1%) — Individual / HUF</option>
+                      <option value="194I_10">Sec 194-I (10%) — Hotel Rent / Long Lease</option>
+                      <option value="NONE">0% — Nil TDS (Exemption Certificate / B2C)</option>
+                    </select>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      PAN: <strong>AAFFH1234K</strong> (Hotel Sai International)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stays Calculation Engine */}
+                {(() => {
+                  const stays = [
+                    { billNo: `INV-26-${currentCorp.id}-01`, date: `2026-${consolidatedMonth}-04`, guestName: `${currentCorp.contactPerson?.split(' ')[0] || 'Executive'} & Site Team`, roomNo: '201 (Exec)', nights: 3, roomTariff: 7200, foodTaxable: 1450, foodGst: 72.50, total: 8722.50 },
+                    { billNo: `INV-26-${currentCorp.id}-02`, date: `2026-${consolidatedMonth}-11`, guestName: 'Regional Plant Audit Delegation', roomNo: '305 (Exec)', nights: 4, roomTariff: 9600, foodTaxable: 2100, foodGst: 105.00, total: 11805.00 },
+                    { billNo: `INV-26-${currentCorp.id}-03`, date: `2026-${consolidatedMonth}-18`, guestName: 'Site Plant Mechanical Engineers', roomNo: '402 (Suite)', nights: 5, roomTariff: 16000, foodTaxable: 3400, foodGst: 170.00, total: 19570.00 },
+                    { billNo: `INV-26-${currentCorp.id}-04`, date: `2026-${consolidatedMonth}-24`, guestName: 'Procurement & Logistics Head', roomNo: '108 (Deluxe)', nights: 2, roomTariff: 3800, foodTaxable: 950, foodGst: 47.50, total: 4797.50 }
+                  ];
+
+                  const totalRoom = stays.reduce((sum, s) => sum + s.roomTariff, 0);
+                  const totalFoodTaxable = stays.reduce((sum, s) => sum + s.foodTaxable, 0);
+                  const totalFoodGst = stays.reduce((sum, s) => sum + s.foodGst, 0);
+                  const grossTotal = totalRoom + totalFoodTaxable + totalFoodGst;
+
+                  let tdsRate = 0.02;
+                  let tdsLabel = '2% (Sec 194C - Companies & LLPs)';
+                  if (consolidatedTdsSection === '194C_1') {
+                    tdsRate = 0.01;
+                    tdsLabel = '1% (Sec 194C - Individual / HUF)';
+                  } else if (consolidatedTdsSection === '194I_10') {
+                    tdsRate = 0.10;
+                    tdsLabel = '10% (Sec 194-I - Hotel Rent)';
+                  } else if (consolidatedTdsSection === 'NONE') {
+                    tdsRate = 0.00;
+                    tdsLabel = '0% (Nil TDS)';
+                  }
+
+                  const tdsAmount = Math.round(grossTotal * tdsRate * 100) / 100;
+                  const netReceivable = grossTotal - tdsAmount;
+
+                  return (
+                    <div>
+                      {/* Itemized Folios Table */}
+                      <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                          <thead>
+                            <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                              <th style={{ padding: '0.75rem 1rem' }}>Folio / Invoice #</th>
+                              <th style={{ padding: '0.75rem 1rem' }}>Stay Date</th>
+                              <th style={{ padding: '0.75rem 1rem' }}>Guest / Delegation</th>
+                              <th style={{ padding: '0.75rem 1rem' }}>Room #</th>
+                              <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Room (0% Non-GST)</th>
+                              <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Dining (5% Taxable)</th>
+                              <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Food GST (5%)</th>
+                              <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Bill Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {stays.map(s => (
+                              <tr key={s.billNo} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: '#38bdf8', fontWeight: 600 }}>{s.billNo}</td>
+                                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{s.date}</td>
+                                <td style={{ padding: '0.75rem 1rem', color: '#fff', fontWeight: 600 }}>{s.guestName}</td>
+                                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{s.roomNo} ({s.nights} N)</td>
+                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#38bdf8', fontWeight: 600 }}>₹{s.roomTariff.toLocaleString('en-IN')}</td>
+                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#34d399' }}>₹{s.foodTaxable.toLocaleString('en-IN')}</td>
+                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#fbbf24' }}>₹{s.foodGst.toFixed(2)}</td>
+                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#fff', fontWeight: 700 }}>₹{s.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Financial Reconciliation & TDS Computation Summary Cards */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: '1rem',
+                        marginBottom: '1.25rem'
+                      }}>
+                        <div style={{ background: 'rgba(56, 189, 248, 0.06)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>SAC 996311 (Exempt Room Tariff)</span>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#38bdf8' }}>₹{totalRoom.toLocaleString('en-IN')}</div>
+                          <span style={{ fontSize: '0.7rem', color: '#38bdf8' }}>0% GST as per Notif 12/2017</span>
+                        </div>
+
+                        <div style={{ background: 'rgba(52, 211, 153, 0.06)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(52, 211, 153, 0.2)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>SAC 996331 (Dining &amp; In-Room)</span>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34d399' }}>₹{totalFoodTaxable.toLocaleString('en-IN')}</div>
+                          <span style={{ fontSize: '0.7rem', color: '#34d399' }}>+ 5% GST (₹{totalFoodGst.toFixed(2)})</span>
+                        </div>
+
+                        <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                          <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Gross Monthly Invoiced Value</span>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fbbf24' }}>₹{grossTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Prior to statutory TDS</span>
+                        </div>
+
+                        <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                          <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700 }}>Less: TDS Deducted ({tdsLabel.split(' ')[0]})</span>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f87171' }}>- ₹{tdsAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Corporate Form 16A Credit</span>
+                        </div>
+
+                        <div style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3))', padding: '1rem', borderRadius: '10px', border: '2px solid #10b981' }}>
+                          <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Net Bank Remittance Due</span>
+                          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>₹{netPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                          <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 600 }}>Payable via RTGS / NEFT</span>
+                        </div>
+                      </div>
+
+                      {/* Bank Remittance Details & Statutory Declarations */}
+                      <div style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '10px',
+                        padding: '1.1rem',
+                        marginBottom: '1rem',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '1rem'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Building2 size={15} color="#fbbf24" /> NEFT / RTGS Remittance Bank Details
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                            <div>Account Name: <strong style={{ color: '#fff' }}>{HOTEL_CONFIG.legalName}</strong></div>
+                            <div>Current A/C No: <strong style={{ color: '#fbbf24', fontFamily: 'monospace' }}>3982010004921</strong></div>
+                            <div>Bank &amp; Branch: <strong style={{ color: '#fff' }}>State Bank of India, Rayagada Main (00169)</strong></div>
+                            <div>IFSC Code: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>SBIN0000169</strong></div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <ShieldCheck size={15} color="#34d399" /> Statutory Certification &amp; Declarations
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                            <div>1. Certified that particulars given above are true and correct.</div>
+                            <div>2. Room tariff is exempt under 0% GST (Notification No. 12/2017-CT Rate). Food is taxed @ 5% with no ITC.</div>
+                            <div>3. Please furnish Form 16A quarterly TDS certificate against PAN: <strong style={{ color: '#fbbf24' }}>AAFFH1234K</strong>.</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div style={{
+                padding: '1rem 1.8rem',
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(10, 14, 25, 0.95)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '0.8rem'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setIsConsolidatedBillOpen(false)}
+                  className="btn-outline"
+                  style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem' }}
+                >
+                  Close
+                </button>
+
+                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Generate CSV of Consolidated Stays
+                      const csvHeader = ["Invoice No", "Date", "Guest Delegation", "Room No", "Room Tariff 0% (INR)", "Dining 5% Taxable (INR)", "Food GST 5% (INR)", "Total (INR)", "TDS Section", "Net Payable (INR)"];
+                      const csvRows = [
+                        [`INV-26-${currentCorp.id}-01`, `2026-${consolidatedMonth}-04`, `"${currentCorp.contactPerson || 'Delegation'}"`, "201", 7200, 1450, 72.50, 8722.50, consolidatedTdsSection, (8722.50 * 0.98).toFixed(2)],
+                        [`INV-26-${currentCorp.id}-02`, `2026-${consolidatedMonth}-11`, "Audit Delegation", "305", 9600, 2100, 105.00, 11805.00, consolidatedTdsSection, (11805.00 * 0.98).toFixed(2)],
+                        [`INV-26-${currentCorp.id}-03`, `2026-${consolidatedMonth}-18`, "Plant Engineers", "402", 16000, 3400, 170.00, 19570.00, consolidatedTdsSection, (19570.00 * 0.98).toFixed(2)],
+                        [`INV-26-${currentCorp.id}-04`, `2026-${consolidatedMonth}-24`, "Procurement Head", "108", 3800, 950, 47.50, 4797.50, consolidatedTdsSection, (4797.50 * 0.98).toFixed(2)]
+                      ];
+                      const csvContent = "data:text/csv;charset=utf-8," + [csvHeader.join(','), ...csvRows.map(r => r.join(','))].join('\n');
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", `Consolidated_B2B_Invoice_${currentCorp.id}_${consolidatedMonth}_${consolidatedYear}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="btn-outline"
+                    style={{ padding: '0.55rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', borderColor: '#38bdf8' }}
+                  >
+                    <Download size={15} /> Export B2B CSV Schedule
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConsolidatedEmailSent(true);
+                      setTimeout(() => setConsolidatedEmailSent(false), 6000);
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      padding: '0.55rem 1.1rem',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    <Send size={15} color="#34d399" /> Email Bill &amp; Form 16A Request
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    style={{
+                      background: 'linear-gradient(135deg, #059669, #10b981)',
+                      border: 'none',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      padding: '0.55rem 1.3rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <Printer size={15} /> Print Official B2B Bill Pack
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

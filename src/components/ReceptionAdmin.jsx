@@ -85,6 +85,149 @@ export default function ReceptionAdmin({
   const [liveOrdersOpen, setLiveOrdersOpen] = useState(false);
   const [roomServicesCareOpen, setRoomServicesCareOpen] = useState(false);
 
+  // 1. Rayagada Transit / Fresh-Up Day-Use Engine State (4h / 6h Slots)
+  const [transitStays, setTransitStays] = useState([
+    {
+      id: 'TR-1081',
+      roomNumber: '105',
+      guestName: 'SUBHASH CHANDRA DAS',
+      phone: '+91 94371 88291',
+      origin: 'Bhubaneswar (Express Train 18447)',
+      purpose: 'JK Paper Plant Technical Review',
+      slotType: '4-Hour Transit',
+      hoursAllowed: 4,
+      checkInTime: '07:30 AM',
+      expectedCheckoutTime: '11:30 AM',
+      tariff: 899,
+      paymentMode: 'UPI (PhonePe)',
+      status: 'Active In-Stay',
+      depositPaid: 1000
+    },
+    {
+      id: 'TR-1082',
+      roomNumber: '206',
+      guestName: 'K. RAMA MURTHY',
+      phone: '+91 98480 33119',
+      origin: 'Visakhapatnam (Tirupati Spl 07488)',
+      purpose: 'Maa Majhighariani Sacred Darshan',
+      slotType: '6-Hour Transit',
+      hoursAllowed: 6,
+      checkInTime: '06:15 AM',
+      expectedCheckoutTime: '12:15 PM',
+      tariff: 1199,
+      paymentMode: 'Cash',
+      status: 'Active In-Stay',
+      depositPaid: 1500
+    }
+  ]);
+  const [isTransitModalOpen, setIsTransitModalOpen] = useState(false);
+  const [transitForm, setTransitForm] = useState({
+    roomNumber: '',
+    guestName: '',
+    phone: '',
+    origin: '',
+    purpose: 'Maa Majhighariani Pilgrimage',
+    slotType: '4-Hour Transit',
+    hoursAllowed: 4,
+    tariff: 899,
+    paymentMode: 'UPI',
+    depositPaid: 1000
+  });
+
+  // 2. Lost & Found Digital Custody Locker State (Reception Vault)
+  const [lostAndFoundItems, setLostAndFoundItems] = useState([
+    {
+      id: 'LF-2026-0041',
+      dateFound: '24/09/2026',
+      roomNumber: '302',
+      itemDescription: 'Samsung 45W Fast Charger + Fastrack Digital Watch (Black Strap)',
+      category: 'Electronics',
+      foundByStaff: 'Anita Majhi (Housekeeping)',
+      lockerNumber: 'Locker B-04 (Reception Safe)',
+      guestName: 'UTKARSH SRIVASTAVA',
+      guestPhone: '+91 94370 88912',
+      status: 'In Custody',
+      notes: 'Item tagged and sealed in zip-lock bag. Guest notified via phone.'
+    },
+    {
+      id: 'LF-2026-0042',
+      dateFound: '25/09/2026',
+      roomNumber: '204',
+      itemDescription: 'Titan Gold Dial Spectacles in hard leather case',
+      category: 'Personal Accessories',
+      foundByStaff: 'Babula Sahu (Housekeeping)',
+      lockerNumber: 'Locker B-07 (Reception Safe)',
+      guestName: 'BIJAY PASWAN',
+      guestPhone: '+91 98610 33812',
+      status: 'In Custody',
+      notes: 'Left on nightstand during morning checkout. Awaiting collection.'
+    },
+    {
+      id: 'LF-2026-0040',
+      dateFound: '22/09/2026',
+      roomNumber: '401',
+      itemDescription: 'HP Wireless Mouse + Ray-Ban Aviator Sunglasses',
+      category: 'Electronics',
+      foundByStaff: 'Kailash Sabar',
+      lockerNumber: 'Locker B-02',
+      guestName: 'MR. P ASHOK',
+      guestPhone: '+91 6305202068',
+      status: 'Handed Over',
+      notes: 'Handed over in person to guest colleague Mr. Sahoo on 23/09/2026.'
+    }
+  ]);
+  const [isLfModalOpen, setIsLfModalOpen] = useState(false);
+  const [lfForm, setLfForm] = useState({
+    roomNumber: '101',
+    itemDescription: '',
+    category: 'Electronics',
+    foundByStaff: 'Anita Majhi',
+    lockerNumber: 'Locker B-05',
+    guestName: '',
+    guestPhone: '',
+    notes: ''
+  });
+
+  // 3. Room Maintenance & Out-of-Order (OOO / OOS) Management State
+  const [maintenanceTickets, setMaintenanceTickets] = useState([
+    {
+      ticketId: 'MNT-8041',
+      roomNumber: '205',
+      category: 'Air Conditioning',
+      severity: 'High',
+      issueDescription: 'Carrier 1.5T AC cooling coil leaking water onto desk. Filter needs descaling.',
+      reportedBy: 'Babula Sahu',
+      reportedAt: '25/09/2026 10:15 AM',
+      assignedTech: 'Naveen Kumar (AC Specialist)',
+      blockType: 'OOO (Out of Order)',
+      status: 'In Progress',
+      costEst: 450
+    },
+    {
+      ticketId: 'MNT-8042',
+      roomNumber: '307',
+      category: 'Plumbing & Geyser',
+      severity: 'Medium',
+      issueDescription: 'Geyser pilot element tripped. Thermostat replaced; final inspection pending.',
+      reportedBy: 'Kailash Sabar',
+      reportedAt: '25/09/2026 11:45 AM',
+      assignedTech: 'Bishnu Prasad (Plumber)',
+      blockType: 'OOS (Out of Service)',
+      status: 'In Progress',
+      costEst: 200
+    }
+  ]);
+  const [isMntModalOpen, setIsMntModalOpen] = useState(false);
+  const [mntForm, setMntForm] = useState({
+    roomNumber: '101',
+    category: 'Air Conditioning',
+    severity: 'Medium',
+    issueDescription: '',
+    assignedTech: 'Naveen Kumar (AC Specialist)',
+    blockType: 'OOO (Out of Order)',
+    costEst: 250
+  });
+
   // Live Food Orders & Room Services Data State (2 New, 4 Pending defaults matching live reference)
   const [internalFoodOrdersList, setInternalFoodOrdersList] = useState([
     {
@@ -574,6 +717,86 @@ export default function ReceptionAdmin({
 
   // Police Register Dispatch State
   const [policeDispatchSent, setPoliceDispatchSent] = useState(false);
+
+  // Operational Modal Submit Handlers
+  const handleTransitSubmit = (e) => {
+    e.preventDefault();
+    if (!transitForm.roomNumber || !transitForm.guestName || !transitForm.phone) {
+      alert('Please fill in Room Number, Guest Name, and Mobile Number.');
+      return;
+    }
+    const newStay = {
+      id: `TR-${Date.now().toString().slice(-4)}`,
+      roomNumber: transitForm.roomNumber,
+      guestName: transitForm.guestName,
+      phone: transitForm.phone,
+      origin: transitForm.origin || 'Rayagada Railway Junction Transit',
+      purpose: transitForm.purpose,
+      slotType: transitForm.slotType,
+      hoursAllowed: transitForm.hoursAllowed,
+      checkInTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      expectedCheckoutTime: `In ${transitForm.hoursAllowed} Hours`,
+      tariff: Number(transitForm.tariff) || 899,
+      paymentMode: transitForm.paymentMode,
+      status: 'Active In-Stay',
+      depositPaid: Number(transitForm.depositPaid) || 1000
+    };
+    setTransitStays(prev => [newStay, ...prev]);
+    onUpdateRoomStatus(transitForm.roomNumber, 'Occupied', transitForm.guestName, newStay.id);
+    setIsTransitModalOpen(false);
+    showToast(`✓ Transit Check-In complete for Room ${transitForm.roomNumber} (${transitForm.slotType} - ₹${transitForm.tariff}).`);
+  };
+
+  const handleLfSubmit = (e) => {
+    e.preventDefault();
+    if (!lfForm.roomNumber || !lfForm.itemDescription) {
+      alert('Please enter Room Number and Article Description.');
+      return;
+    }
+    const newArticle = {
+      id: `LF-2026-${Date.now().toString().slice(-4)}`,
+      dateFound: new Date().toLocaleDateString('en-GB'),
+      roomNumber: lfForm.roomNumber,
+      itemDescription: lfForm.itemDescription,
+      category: lfForm.category,
+      foundByStaff: lfForm.foundByStaff || 'Anita Majhi (Housekeeping)',
+      lockerNumber: lfForm.lockerNumber,
+      guestName: lfForm.guestName || 'In-House Guest',
+      guestPhone: lfForm.guestPhone || '+91 94370 00000',
+      status: 'In Custody',
+      notes: lfForm.notes || 'Tagged and placed in reception custody vault.'
+    };
+    setLostAndFoundItems(prev => [newArticle, ...prev]);
+    setIsLfModalOpen(false);
+    showToast(`✓ Found article logged in ${lfForm.lockerNumber} (ID: ${newArticle.id}).`);
+  };
+
+  const handleMntSubmit = (e) => {
+    e.preventDefault();
+    if (!mntForm.roomNumber || !mntForm.issueDescription) {
+      alert('Please enter Room Number and Issue Description.');
+      return;
+    }
+    const newTkt = {
+      ticketId: `MNT-${Date.now().toString().slice(-4)}`,
+      roomNumber: mntForm.roomNumber,
+      category: mntForm.category,
+      severity: mntForm.severity,
+      issueDescription: mntForm.issueDescription,
+      reportedBy: 'Front Desk Lead',
+      reportedAt: new Date().toLocaleString('en-GB'),
+      assignedTech: mntForm.assignedTech,
+      blockType: mntForm.blockType,
+      status: 'In Progress',
+      costEst: Number(mntForm.costEst) || 250
+    };
+    setMaintenanceTickets(prev => [newTkt, ...prev]);
+    if (mntForm.blockType === 'OOO (Out of Order)') {
+      onUpdateRoomStatus(mntForm.roomNumber, 'Maintenance', null, null);
+    }
+    setIsMntModalOpen(false);
+    showToast(`✓ Work order ${newTkt.ticketId} created. Room ${mntForm.roomNumber} blocked as ${mntForm.blockType}.`);
+  };
 
   // Counts for the 39 physical inventory across 5-stage lifecycle
   const totalCount = rooms.length;
@@ -1199,6 +1422,9 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       }}>
         {[
           { id: 'tape-chart', label: '📊 39-Room Tape Chart Matrix' },
+          { id: 'transit-dayuse', label: '🚆 Transit / Fresh-Up Day-Use' },
+          { id: 'lost-and-found', label: '🧳 Lost & Found Custody Locker' },
+          { id: 'maintenance-ooo', label: '🔧 Maintenance & OOO Blocker' },
           { id: 'visualize-bookings', label: '📅 Booking Visualizer & Calendar' },
           { id: 'occupancy-report', label: '📈 Occupancy Report (Day/Mo/Yr)' },
           { id: 'cashier-audit', label: '💰 Cashier Shift Handover & Night Audit' },
@@ -3707,6 +3933,541 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* 1. TRANSIT / FRESH-UP DAY-USE ENGINE TAB (Screens 14-22 Operational Upgrade) */}
+      {/* ========================================================================= */}
+      {activeTab === 'transit-dayuse' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Header Banner */}
+          <div className="glass-panel" style={{
+            padding: '1.4rem 1.75rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderLeft: '4px solid #38bdf8'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🚆</span>
+                <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: '#fff' }}>
+                  Rayagada Transit &amp; Temple Fresh-Up Engine (Day-Use Slots)
+                </h3>
+                <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', fontSize: '0.72rem', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
+                  150%+ Daily Occupancy Booster
+                </span>
+              </div>
+              <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 760 }}>
+                Engineered for Rayagada Railway Junction express layovers (Howrah–Chennai &amp; Raipur–Vizag trains) and sacred Maa Majhighariani darshan pilgrims. Sell rooms on 4-Hour (₹899) and 6-Hour (₹1,199) slots during the day, release to housekeeping, and re-sell to overnight corporate guests at 2:00 PM!
+              </p>
+            </div>
+            <button
+              onClick={() => setIsTransitModalOpen(true)}
+              className="btn-primary-gold"
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <UserCheck size={16} /> + New Transit Check-In
+            </button>
+          </div>
+
+          {/* KPI Statistics Bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #38bdf8' }}>
+              <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700, textTransform: 'uppercase' }}>
+                Active Transit Stays
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>
+                {transitStays.filter(t => t.status === 'Active In-Stay').length} Rooms
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                Occupying Room 105 &amp; 206 currently
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #34d399' }}>
+              <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, textTransform: 'uppercase' }}>
+                Daytime Transit Revenue
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#34d399', marginTop: '0.2rem' }}>
+                ₹{transitStays.reduce((sum, t) => sum + t.tariff, 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '0.15rem' }}>
+                Pure incremental daytime cashflow
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid var(--gold-glow)' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--gold-glow)', fontWeight: 700, textTransform: 'uppercase' }}>
+                Effective Turnover Multiplier
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>
+                118.2%
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                Rooms turned over twice in 24 hours
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #c084fc' }}>
+              <div style={{ fontSize: '0.72rem', color: '#c084fc', fontWeight: 700, textTransform: 'uppercase' }}>
+                Standard Pricing Slots
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginTop: '0.35rem' }}>
+                4h: ₹899 | 6h: ₹1,199
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                Includes complimentary Wi-Fi &amp; fresh linen
+              </div>
+            </div>
+          </div>
+
+          {/* Active Transit Stays Table */}
+          <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Clock size={16} color="#38bdf8" /> Live Transit &amp; Fresh-Up Register (25/09/2026)
+              </h4>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Auto-releasing rooms for evening corporate arrivals
+              </span>
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              <thead>
+                <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>GUEST NAME &amp; PHONE</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>TRAIN / ORIGIN &amp; PURPOSE</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>SLOT</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CHECK-IN</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>EXPECTED OUT</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'right' }}>TARIFF (₹)</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>MODE</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>STATUS</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>OPERATIONAL ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transitStays.map(stay => (
+                  <tr key={stay.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', fontWeight: 800 }}>
+                        Room {stay.roomNumber}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem' }}>
+                      <div style={{ fontWeight: 700, color: '#fff' }}>{stay.guestName}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{stay.phone}</div>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem' }}>
+                      <div style={{ color: '#cbd5e1' }}>{stay.origin}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--gold-glow)' }}>{stay.purpose}</div>
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', fontWeight: 600, color: '#fbbf24' }}>
+                      {stay.slotType}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', color: '#cbd5e1' }}>
+                      {stay.checkInTime}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', color: '#34d399', fontWeight: 700 }}>
+                      {stay.expectedCheckoutTime}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>
+                      ₹{stay.tariff.toFixed(2)}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', fontSize: '0.74rem', color: '#94a3b8' }}>
+                      {stay.paymentMode}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        background: stay.status === 'Active In-Stay' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(255,255,255,0.08)',
+                        color: stay.status === 'Active In-Stay' ? '#34d399' : '#94a3b8'
+                      }}>
+                        {stay.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                        {stay.status === 'Active In-Stay' ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                onUpdateRoomStatus(stay.roomNumber, 'Vacant Dirty', null, null);
+                                setTransitStays(prev => prev.map(t => t.id === stay.id ? { ...t, status: 'Checked Out & Cleaned' } : t));
+                                showToast(`✓ Room ${stay.roomNumber} Transit checkout completed. Key released to Housekeeping.`);
+                              }}
+                              className="btn-primary-gold"
+                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', fontWeight: 700 }}
+                            >
+                              ⚡ Express Out
+                            </button>
+                            <button
+                              onClick={() => {
+                                setTransitStays(prev => prev.map(t => t.id === stay.id ? { ...t, slotType: 'Overnight Regular', tariff: stay.tariff + 999, expectedCheckoutTime: 'Tomorrow 11:00 AM' } : t));
+                                showToast(`✓ Room ${stay.roomNumber} stay upgraded to Overnight (+₹999).`);
+                              }}
+                              style={{
+                                background: 'rgba(168, 85, 247, 0.2)',
+                                border: '1px solid rgba(168, 85, 247, 0.4)',
+                                color: '#c084fc',
+                                borderRadius: '4px',
+                                padding: '0.25rem 0.55rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              🌙 Extend Overnight (+₹999)
+                            </button>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Folio Closed</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. LOST & FOUND DIGITAL CUSTODY LOCKER TAB (Statutory Property Vault)     */}
+      {/* ========================================================================= */}
+      {activeTab === 'lost-and-found' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Header Banner */}
+          <div className="glass-panel" style={{
+            padding: '1.4rem 1.75rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderLeft: '4px solid #fbbf24'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🧳</span>
+                <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: '#fff' }}>
+                  Lost &amp; Found Digital Custody Locker (Reception Vault)
+                </h3>
+                <span className="badge" style={{ background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', fontSize: '0.72rem', border: '1px solid rgba(251, 191, 36, 0.4)' }}>
+                  Statutory Innkeepers Act Compliance
+                </span>
+              </div>
+              <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 760 }}>
+                Secure custody protocol for articles left behind in hotel guest rooms. Every recovered charger, watch, or document is logged with photographic tag, placed into numbered reception vault locker (Lockers B-01 to B-12), and audited until returned to the verified guest.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsLfModalOpen(true)}
+              className="btn-primary-gold"
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <PlusCircle size={16} /> + Log Found Article
+            </button>
+          </div>
+
+          {/* KPI Statistics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #fbbf24' }}>
+              <div style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700, textTransform: 'uppercase' }}>
+                Articles in Safe Custody
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>
+                {lostAndFoundItems.filter(i => i.status === 'In Custody').length} Items
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                Stored in Reception Lockers B-04 &amp; B-07
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #34d399' }}>
+              <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, textTransform: 'uppercase' }}>
+                Successfully Returned
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#34d399', marginTop: '0.2rem' }}>
+                {lostAndFoundItems.filter(i => i.status === 'Handed Over').length} Items
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '0.15rem' }}>
+                100% verified handover rate this month
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #38bdf8' }}>
+              <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700, textTransform: 'uppercase' }}>
+                Vault Locker Capacity
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>
+                {lostAndFoundItems.filter(i => i.status === 'In Custody').length} / 12 Lockers
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                10 secure lockers currently empty and ready
+              </div>
+            </div>
+          </div>
+
+          {/* Lost & Found Register Table */}
+          <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              <thead>
+                <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>LOG ID</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>DATE</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>ARTICLE DESCRIPTION</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CATEGORY</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>RECOVERED BY (STAFF)</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>VAULT LOCKER</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>GUEST NAME &amp; PHONE</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CUSTODY STATUS</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lostAndFoundItems.map(item => (
+                  <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', fontFamily: 'monospace', color: '#94a3b8' }}>
+                      {item.id}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', color: '#cbd5e1' }}>
+                      {item.dateFound}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                      <span style={{ padding: '2px 7px', borderRadius: '4px', background: 'rgba(255,255,255,0.08)', fontWeight: 700, color: '#fff' }}>
+                        Room {item.roomNumber}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', fontWeight: 600, color: '#fff', whiteSpace: 'normal', maxWidth: 280 }}>
+                      {item.itemDescription}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', color: '#fbbf24', fontSize: '0.72rem' }}>
+                      {item.category}
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', color: '#38bdf8' }}>
+                      {item.foundByStaff}
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', color: 'var(--gold-glow)', fontWeight: 700 }}>
+                      {item.lockerNumber}
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem' }}>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>{item.guestName}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{item.guestPhone}</div>
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        background: item.status === 'In Custody' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(52, 211, 153, 0.15)',
+                        color: item.status === 'In Custody' ? '#fbbf24' : '#34d399',
+                        border: `1px solid ${item.status === 'In Custody' ? 'rgba(251, 191, 36, 0.3)' : 'rgba(52, 211, 153, 0.3)'}`
+                      }}>
+                        {item.status === 'In Custody' ? '🟡 In Custody Vault' : '🟢 Handed Over'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center' }}>
+                      {item.status === 'In Custody' ? (
+                        <button
+                          onClick={() => {
+                            setLostAndFoundItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'Handed Over', notes: `Handed over on ${new Date().toLocaleDateString('en-GB')}` } : i));
+                            showToast(`✓ Article ${item.id} marked as Handed Over to ${item.guestName}. Locker vacated.`);
+                          }}
+                          className="btn-primary-gold"
+                          style={{ padding: '0.25rem 0.65rem', fontSize: '0.72rem', fontWeight: 700 }}
+                        >
+                          🤝 Hand Over to Guest
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Archived ✓</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. ROOM MAINTENANCE & OUT-OF-ORDER (OOO / OOS) MANAGEMENT TAB             */}
+      {/* ========================================================================= */}
+      {activeTab === 'maintenance-ooo' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Header Banner */}
+          <div className="glass-panel" style={{
+            padding: '1.4rem 1.75rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderLeft: '4px solid #ef4444'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🔧</span>
+                <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: '#fff' }}>
+                  Room Maintenance &amp; Out-of-Order (OOO / OOS) Management
+                </h3>
+                <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.72rem', border: '1px solid rgba(239, 68, 68, 0.4)' }}>
+                  Inventory Protection Guard
+                </span>
+              </div>
+              <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 760 }}>
+                Controls active engineering work orders (AC leakage, geyser servicing, plumbing). Blocking a room as Out of Order (OOO) automatically prevents receptionists and online booking portals from assigning it to arriving guests until maintenance signs off.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsMntModalOpen(true)}
+              className="btn-primary-gold"
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <Wrench size={16} /> + Create Maintenance Ticket
+            </button>
+          </div>
+
+          {/* KPI Summary */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #ef4444' }}>
+              <div style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase' }}>
+                OOO Rooms Blocked
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#ef4444', marginTop: '0.2rem' }}>
+                {maintenanceTickets.filter(t => t.blockType === 'OOO (Out of Order)' && t.status === 'In Progress').length} Room
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                Room 205 (AC Coil Leakage)
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #fbbf24' }}>
+              <div style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700, textTransform: 'uppercase' }}>
+                OOS Minor Servicing
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fbbf24', marginTop: '0.2rem' }}>
+                {maintenanceTickets.filter(t => t.blockType === 'OOS (Out of Service)' && t.status === 'In Progress').length} Room
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                Room 307 (Geyser Pilot Element)
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', borderTop: '3px solid #34d399' }}>
+              <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, textTransform: 'uppercase' }}>
+                Rentable Operational Inventory
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#34d399', marginTop: '0.2rem' }}>
+                37 / 39 Rooms
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '0.15rem' }}>
+                94.8% physical inventory operational
+              </div>
+            </div>
+          </div>
+
+          {/* Work Orders Table */}
+          <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              <thead>
+                <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>TICKET ID</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>CATEGORY</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>SEVERITY</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>ISSUE &amp; DEFECT DESCRIPTION</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>REPORTED BY</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>ASSIGNED TECHNICIAN</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>BLOCK TYPE</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>STATUS</th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {maintenanceTickets.map(tkt => (
+                  <tr key={tkt.ticketId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', fontFamily: 'monospace', color: '#94a3b8' }}>
+                      {tkt.ticketId}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', fontWeight: 800 }}>
+                        Room {tkt.roomNumber}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', color: '#cbd5e1', fontWeight: 600 }}>
+                      {tkt.category}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        background: tkt.severity === 'High' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                        color: tkt.severity === 'High' ? '#f87171' : '#fbbf24'
+                      }}>
+                        {tkt.severity}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', whiteSpace: 'normal', maxWidth: 300, color: '#fff' }}>
+                      {tkt.issueDescription}
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', color: 'var(--text-muted)' }}>
+                      {tkt.reportedBy}
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', color: '#38bdf8', fontWeight: 600 }}>
+                      {tkt.assignedTech}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center', color: '#f87171', fontWeight: 700, fontSize: '0.72rem' }}>
+                      {tkt.blockType}
+                    </td>
+                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        background: tkt.status === 'In Progress' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(52, 211, 153, 0.15)',
+                        color: tkt.status === 'In Progress' ? '#fbbf24' : '#34d399'
+                      }}>
+                        {tkt.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center' }}>
+                      {tkt.status === 'In Progress' ? (
+                        <button
+                          onClick={() => {
+                            onUpdateRoomStatus(tkt.roomNumber, 'Vacant Dirty', null, null);
+                            setMaintenanceTickets(prev => prev.map(t => t.ticketId === tkt.ticketId ? { ...t, status: 'Resolved' } : t));
+                            showToast(`✓ Ticket ${tkt.ticketId} resolved. Room ${tkt.roomNumber} released to Housekeeping for cleaning.`);
+                          }}
+                          className="btn-primary-gold"
+                          style={{ padding: '0.25rem 0.65rem', fontSize: '0.72rem', fontWeight: 700 }}
+                        >
+                          ✓ Resolve &amp; Release
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Closed ✓</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* EXPRESS WALK-IN MODAL (Enhanced with Screenshot 4 & 5 fields) */}
       {walkInOpen && (
         <div className="modal-backdrop">
@@ -4732,6 +5493,382 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                   style={{ flex: 2, justifyContent: 'center', background: '#2563eb', borderColor: '#2563eb', color: '#fff' }}
                 >
                   Save Stay Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* NEW TRANSIT CHECK-IN MODAL */}
+      {isTransitModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 540 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.3rem' }}>🚆</span>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>New Transit &amp; Fresh-Up Check-In</h3>
+              </div>
+              <button onClick={() => setIsTransitModalOpen(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleTransitSubmit} className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Assign Available Room Key *</label>
+                <select
+                  className="form-select"
+                  required
+                  value={transitForm.roomNumber}
+                  onChange={(e) => setTransitForm({ ...transitForm, roomNumber: e.target.value })}
+                >
+                  <option value="">-- Choose Key from Available Rooms --</option>
+                  {rooms.filter(r => r.status === 'Available').map(r => (
+                    <option key={r.roomNumber} value={r.roomNumber}>
+                      Room {r.roomNumber} ({r.tier} - Regular ₹{r.tariff})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Guest Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="e.g. Subhash Chandra Das"
+                    value={transitForm.guestName}
+                    onChange={(e) => setTransitForm({ ...transitForm, guestName: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Mobile Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    className="form-input"
+                    placeholder="+91 94371 00000"
+                    value={transitForm.phone}
+                    onChange={(e) => setTransitForm({ ...transitForm, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Transit Slot Selection</label>
+                  <select
+                    className="form-select"
+                    value={transitForm.slotType}
+                    onChange={(e) => {
+                      const is6h = e.target.value.includes('6-Hour');
+                      setTransitForm({
+                        ...transitForm,
+                        slotType: e.target.value,
+                        hoursAllowed: is6h ? 6 : 4,
+                        tariff: is6h ? 1199 : 899
+                      });
+                    }}
+                  >
+                    <option value="4-Hour Transit">4-Hour Transit Slot (₹899)</option>
+                    <option value="6-Hour Transit">6-Hour Transit Slot (₹1,199)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment Tender</label>
+                  <select
+                    className="form-select"
+                    value={transitForm.paymentMode}
+                    onChange={(e) => setTransitForm({ ...transitForm, paymentMode: e.target.value })}
+                  >
+                    <option value="UPI (PhonePe)">UPI (PhonePe / GPay)</option>
+                    <option value="Cash">Direct Cash (Front Desk)</option>
+                    <option value="Card">POS Debit/Credit Card</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Train / City Origin</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Bhubaneswar Express 18447"
+                    value={transitForm.origin}
+                    onChange={(e) => setTransitForm({ ...transitForm, origin: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Purpose of Stay</label>
+                  <select
+                    className="form-select"
+                    value={transitForm.purpose}
+                    onChange={(e) => setTransitForm({ ...transitForm, purpose: e.target.value })}
+                  >
+                    <option value="Maa Majhighariani Pilgrimage">Maa Majhighariani Darshan</option>
+                    <option value="JK Paper / IMFA Day Delegation">JK Paper / IMFA Plant Work</option>
+                    <option value="Railway Junction Transit Rest">Railway Transit Rest</option>
+                    <option value="Business Meeting">Commercial Business Meeting</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '6px', padding: '0.75rem', marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#38bdf8', fontWeight: 700 }}>
+                  <span>Total Day-Use Fee:</span>
+                  <span style={{ fontSize: '1.1rem' }}>₹{transitForm.tariff.toFixed(2)}</span>
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '0.2rem' }}>
+                  Auto-scheduled checkout in {transitForm.hoursAllowed} hours. Room will be released to Housekeeping for evening corporate re-sale.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setIsTransitModalOpen(false)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center', background: '#0284c7', borderColor: '#0284c7', color: '#fff' }}>
+                  Confirm Transit Check-In
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* LOG FOUND ARTICLE (LOST & FOUND VAULT) MODAL */}
+      {isLfModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 540 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.3rem' }}>🧳</span>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Log Found Article (Reception Vault)</h3>
+              </div>
+              <button onClick={() => setIsLfModalOpen(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleLfSubmit} className="modal-body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Recovered Room # *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    placeholder="e.g. 204"
+                    value={lfForm.roomNumber}
+                    onChange={(e) => setLfForm({ ...lfForm, roomNumber: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Article Category</label>
+                  <select
+                    className="form-select"
+                    value={lfForm.category}
+                    onChange={(e) => setLfForm({ ...lfForm, category: e.target.value })}
+                  >
+                    <option value="Electronics">Electronics (Charger, Mobile, Watch)</option>
+                    <option value="Personal Accessories">Personal Accessories (Glasses, Ring)</option>
+                    <option value="Clothing / Luggage">Clothing / Bag / Shoes</option>
+                    <option value="Documents / Identity">Identity / Wallet / Tickets</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Article Detailed Description *</label>
+                <textarea
+                  required
+                  rows={2}
+                  className="form-input"
+                  placeholder="e.g. Samsung 45W Type-C adapter with white cable, left plugged in bed socket"
+                  value={lfForm.itemDescription}
+                  onChange={(e) => setLfForm({ ...lfForm, itemDescription: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Vault Locker Assigned</label>
+                  <select
+                    className="form-select"
+                    value={lfForm.lockerNumber}
+                    onChange={(e) => setLfForm({ ...lfForm, lockerNumber: e.target.value })}
+                  >
+                    <option value="Locker B-01">Locker B-01 (Top Shelf)</option>
+                    <option value="Locker B-03">Locker B-03 (Top Shelf)</option>
+                    <option value="Locker B-05">Locker B-05 (Middle Shelf)</option>
+                    <option value="Locker B-08">Locker B-08 (Bottom Safe)</option>
+                    <option value="Locker B-10">Locker B-10 (Bottom Safe)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Recovered by (Staff)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={lfForm.foundByStaff}
+                    onChange={(e) => setLfForm({ ...lfForm, foundByStaff: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Guest Name (If Known)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Bijay Paswan"
+                    value={lfForm.guestName}
+                    onChange={(e) => setLfForm({ ...lfForm, guestName: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Guest Contact Phone</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    placeholder="+91 94370 00000"
+                    value={lfForm.guestPhone}
+                    onChange={(e) => setLfForm({ ...lfForm, guestPhone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setIsLfModalOpen(false)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center', background: '#d97706', borderColor: '#d97706', color: '#fff' }}>
+                  Seal in Vault Locker 🔒
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE MAINTENANCE WORK ORDER (OOO BLOCKER) MODAL */}
+      {isMntModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: 540 }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Wrench size={20} color="#ef4444" />
+                <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 800 }}>Create Maintenance Ticket &amp; Block Room</h3>
+              </div>
+              <button onClick={() => setIsMntModalOpen(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleMntSubmit} className="modal-body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Room Number to Block *</label>
+                  <select
+                    className="form-select"
+                    required
+                    value={mntForm.roomNumber}
+                    onChange={(e) => setMntForm({ ...mntForm, roomNumber: e.target.value })}
+                  >
+                    <option value="">-- Select Room Key --</option>
+                    {rooms.map(r => (
+                      <option key={r.roomNumber} value={r.roomNumber}>
+                        Room {r.roomNumber} ({r.tier} - {r.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Maintenance Category</label>
+                  <select
+                    className="form-select"
+                    value={mntForm.category}
+                    onChange={(e) => setMntForm({ ...mntForm, category: e.target.value })}
+                  >
+                    <option value="Air Conditioning">Air Conditioning / Cooling</option>
+                    <option value="Plumbing & Geyser">Plumbing &amp; Hot Water Geyser</option>
+                    <option value="Electrical & Lighting">Electrical &amp; Switchboard</option>
+                    <option value="Carpentry & Door Lock">Carpentry &amp; Smart Door Lock</option>
+                    <option value="Civil & Paint Work">Civil &amp; Wall Painting</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Severity Level</label>
+                  <select
+                    className="form-select"
+                    value={mntForm.severity}
+                    onChange={(e) => setMntForm({ ...mntForm, severity: e.target.value })}
+                  >
+                    <option value="High">High (Immediate Action)</option>
+                    <option value="Medium">Medium (Routine Servicing)</option>
+                    <option value="Low">Low (Cosmetic Touchup)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Inventory Block Policy</label>
+                  <select
+                    className="form-select"
+                    value={mntForm.blockType}
+                    onChange={(e) => setMntForm({ ...mntForm, blockType: e.target.value })}
+                  >
+                    <option value="OOO (Out of Order)">OOO (Out of Order - Remove Key)</option>
+                    <option value="OOS (Out of Service)">OOS (Out of Service - Minor)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Defect &amp; Work Description *</label>
+                <textarea
+                  required
+                  rows={2}
+                  className="form-input"
+                  placeholder="e.g. Geyser MCB trips when hot water turned on. Element replacement required."
+                  value={mntForm.issueDescription}
+                  onChange={(e) => setMntForm({ ...mntForm, issueDescription: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.85rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Assign Technician</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={mntForm.assignedTech}
+                    onChange={(e) => setMntForm({ ...mntForm, assignedTech: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Est. Cost (₹)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={mntForm.costEst}
+                    onChange={(e) => setMntForm({ ...mntForm, costEst: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" onClick={() => setIsMntModalOpen(false)} className="btn-outline-gold" style={{ flex: 1, justifyContent: 'center' }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary-gold" style={{ flex: 2, justifyContent: 'center', background: '#dc2626', borderColor: '#dc2626', color: '#fff' }}>
+                  Block Room &amp; Issue Ticket ⚠️
                 </button>
               </div>
             </form>
