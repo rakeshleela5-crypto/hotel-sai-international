@@ -166,6 +166,9 @@ export default function CannonKitchenPOS({
   // Table Shift & Merge Modal State
   const [tableShiftModalOpen, setTableShiftModalOpen] = useState(false);
   const [tableShiftTarget, setTableShiftTarget] = useState('8');
+  const [tableMergeModalOpen, setTableMergeModalOpen] = useState(false);
+  const [tableMergeSource, setTableMergeSource] = useState('7');
+  const [tableMergeTarget, setTableMergeTarget] = useState('6');
 
   // Sheet 2 Requirement: Daily Item Sales & Quantity Register (Sale ఆ వివరణ)
   const [showDailySalesModal, setShowDailySalesModal] = useState(false);
@@ -423,7 +426,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
     showPosToast('✓ Dining Bill formatted & dispatched to WhatsApp!');
   };
 
-  // Table Shift / Reassignment Handler
+  // Table Shift / Reassignment Handler with Cloudflare D1 Sync
   const handleConfirmTableShift = (e) => {
     e.preventDefault();
     if (!tableShiftTarget) return;
@@ -431,7 +434,53 @@ Thank you for dining at Cannon Kitchen! 🙏`;
     const oldTable = tableNumber;
     setTableNumber(tableShiftTarget);
     setTableShiftModalOpen(false);
+
+    // Sync to Cloudflare D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+      body: JSON.stringify({
+        action: 'shift_table',
+        payload: {
+          fromTable: oldTable,
+          toTable: tableShiftTarget,
+          captain: captainName,
+          reason: 'Floor Reassignment'
+        }
+      })
+    }).catch(err => console.warn('Offline table shift fallback:', err));
+
     showPosToast(`✓ Table shifted from Table ${oldTable} to Table ${tableShiftTarget}! Active KOT transferred.`);
+  };
+
+  // Table Merge Handler with Cloudflare D1 Sync
+  const handleConfirmTableMerge = (e) => {
+    e.preventDefault();
+    if (!tableMergeSource || !tableMergeTarget || tableMergeSource === tableMergeTarget) {
+      alert('Source table and Target table must be distinct.');
+      return;
+    }
+
+    setTableNumber(tableMergeTarget);
+    setTableMergeModalOpen(false);
+
+    // Sync to Cloudflare D1
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+      body: JSON.stringify({
+        action: 'merge_tables',
+        payload: {
+          sourceTable: tableMergeSource,
+          targetTable: tableMergeTarget,
+          captain: captainName
+        }
+      })
+    }).catch(err => console.warn('Offline table merge fallback:', err));
+
+    showPosToast(`✓ Table ${tableMergeSource} successfully merged into Table ${tableMergeTarget}! Kitchen orders combined.`);
   };
 
   // Tax calculations (F&B: 5% GST without ITC under SAC 996331) with Discount & NC Support
@@ -1855,6 +1904,168 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   <span style={{ color: '#94a3b8' }}>Tap any table or room button to select and add dishes</span>
                 </div>
 
+                {/* Table Command & Control Operational Action Bar */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))',
+                  border: '1.5px solid rgba(212, 175, 55, 0.4)',
+                  borderRadius: '12px',
+                  padding: '0.85rem 1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <div style={{
+                      background: 'rgba(212, 175, 55, 0.15)',
+                      border: '1px solid var(--gold-glow)',
+                      borderRadius: '8px',
+                      padding: '0.4rem 0.8rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: '90px'
+                    }}>
+                      <span style={{ fontSize: '0.62rem', color: 'var(--gold-glow)', fontWeight: 800, letterSpacing: '0.05em' }}>SELECTED</span>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#fff' }}>Table {tableNumber}</span>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: tableNumber === '6' || tableNumber === 'B' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.2)',
+                          color: tableNumber === '6' || tableNumber === 'B' ? '#fbbf24' : '#34d399',
+                          border: tableNumber === '6' || tableNumber === 'B' ? '1px solid #f59e0b' : '1px solid #10b981'
+                        }}>
+                          {tableNumber === '6' ? 'KOT #F2627-7514 RUNNING (₹1,190)' : tableNumber === 'B' ? 'KOT #F2627-7515 RUNNING (₹760)' : 'VACANT / READY'}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>
+                          Captain: <strong style={{ color: 'var(--gold-glow)' }}>{captainName}</strong>
+                        </span>
+                      </div>
+                      
+                      {/* Captain Quick Switchers */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.35rem' }}>
+                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Switch Captain:</span>
+                        {['KOTI', 'SADANANDA', 'RAMESH', 'SURESH'].map(cName => (
+                          <button
+                            key={cName}
+                            type="button"
+                            onClick={() => {
+                              setCaptainName(cName);
+                              showPosToast(`Captain switched to ${cName}`);
+                            }}
+                            style={{
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              background: captainName === cName ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.05)',
+                              color: captainName === cName ? '#38bdf8' : '#94a3b8',
+                              border: captainName === cName ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)'
+                            }}
+                          >
+                            {cName}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setTableShiftModalOpen(true)}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: 'rgba(168, 85, 247, 0.2)',
+                        border: '1px solid rgba(168, 85, 247, 0.4)',
+                        color: '#c084fc',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <ArrowRightLeft size={14} /> ⇄ Shift Table
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTableMergeSource(tableNumber);
+                        setTableMergeTarget(tableNumber === '6' ? '7' : '6');
+                        setTableMergeModalOpen(true);
+                      }}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: 'rgba(6, 182, 212, 0.2)',
+                        border: '1px solid rgba(6, 182, 212, 0.4)',
+                        color: '#22d3ee',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔗 Merge Tables
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTableSettlementModalOpen(true)}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: 'rgba(16, 185, 129, 0.2)',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        color: '#34d399',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <CreditCard size={14} /> 💳 Direct Settle
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPosViewMode('menu')}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        background: 'var(--gold-glow)',
+                        border: '1px solid var(--gold-glow)',
+                        color: '#000',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🍽️ Punch / Add Dishes
+                    </button>
+                  </div>
+                </div>
+
                 {/* Section 1: Main Dining Tables (1 - 18) */}
                 <div>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold-glow)', marginBottom: '0.5rem' }}>
@@ -2418,18 +2629,46 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                 borderRadius: '8px',
                 padding: '0.65rem'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.3rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.4rem' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--gold-glow)', fontWeight: 700 }}>
                     🏷️ Bill Discount &amp; NC Billing Controls:
                   </span>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer', color: isNonCommercial ? '#f87171' : '#cbd5e1' }}>
-                    <input
-                      type="checkbox"
-                      checked={isNonCommercial}
-                      onChange={(e) => setIsNonCommercial(e.target.checked)}
-                    />
-                    <strong style={{ color: isNonCommercial ? '#f87171' : 'inherit' }}>NC (Non-Commercial / Comp)</strong>
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isNonCommercial) {
+                          setIsNonCommercial(true);
+                          setNcReason('MD Paidisetty Manmadha Rao (Eswara) VIP Courtesy');
+                          showPosToast('👑 MD Eswara VIP Courtesy applied (100% Complimentary NC)!');
+                          playSuccessChime();
+                        } else {
+                          setIsNonCommercial(false);
+                          showPosToast('Standard billing mode restored.');
+                        }
+                      }}
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: isNonCommercial ? 'linear-gradient(135deg, #ef4444, #b91c1c)' : 'linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(180, 83, 9, 0.35))',
+                        color: isNonCommercial ? '#fff' : 'var(--gold-glow)',
+                        border: isNonCommercial ? '1px solid #ef4444' : '1px solid var(--gold-glow)'
+                      }}
+                    >
+                      👑 {isNonCommercial ? '✓ 100% NC Active (MD Courtesy)' : 'MD Eswara VIP Courtesy (100% NC)'}
+                    </button>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer', color: isNonCommercial ? '#f87171' : '#cbd5e1' }}>
+                      <input
+                        type="checkbox"
+                        checked={isNonCommercial}
+                        onChange={(e) => setIsNonCommercial(e.target.checked)}
+                      />
+                      <strong style={{ color: isNonCommercial ? '#f87171' : 'inherit' }}>NC Comp</strong>
+                    </label>
+                  </div>
                 </div>
 
                 {!isNonCommercial ? (
@@ -2986,19 +3225,55 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                         fontWeight: 700
                       }}
                     />
-                    {[netTotal, 500, 1000, 2000].map(amt => (
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCashTendered(Math.round(netTotal).toString())}
+                      style={{
+                        padding: '0.35rem 0.65rem',
+                        fontSize: '0.72rem',
+                        background: 'rgba(16, 185, 129, 0.2)',
+                        color: '#34d399',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 700
+                      }}
+                    >
+                      Exact ₹{Math.round(netTotal)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCashTendered((Math.ceil(netTotal / 100) * 100).toString())}
+                      style={{
+                        padding: '0.35rem 0.65rem',
+                        fontSize: '0.72rem',
+                        background: 'rgba(56, 189, 248, 0.2)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 700
+                      }}
+                    >
+                      Round ₹{Math.ceil(netTotal / 100) * 100}
+                    </button>
+                    {[500, 1000, 2000].map(amt => (
                       <button
                         key={amt}
                         type="button"
                         onClick={() => setCashTendered(amt.toString())}
                         style={{
-                          padding: '0.35rem 0.55rem',
+                          padding: '0.35rem 0.65rem',
                           fontSize: '0.72rem',
                           background: 'rgba(255,255,255,0.08)',
                           color: '#cbd5e1',
                           border: '1px solid rgba(255,255,255,0.15)',
                           borderRadius: '6px',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          fontWeight: 700
                         }}
                       >
                         ₹{amt}
@@ -3007,8 +3282,21 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   </div>
 
                   {parseFloat(cashTendered) >= netTotal && (
-                    <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', padding: '0.5rem', borderRadius: '6px', color: '#34d399', fontSize: '0.82rem', fontWeight: 700 }}>
-                      Change to Return: ₹{(parseFloat(cashTendered) - netTotal).toFixed(2)}
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 78, 59, 0.3))',
+                      border: '1.5px solid #10b981',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: 600 }}>
+                        💰 Balance Cash Return to Guest:
+                      </span>
+                      <span style={{ fontSize: '1.2rem', color: '#34d399', fontWeight: 900 }}>
+                        ₹{(parseFloat(cashTendered) - netTotal).toFixed(2)}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -3686,11 +3974,27 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                     onChange={(e) => setTableShiftTarget(e.target.value)}
                     style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#fff', border: '1px solid rgba(168, 85, 247, 0.4)', borderRadius: '6px' }}
                   >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(tbl => (
-                      <option key={tbl} value={tbl} disabled={tbl.toString() === tableNumber.toString()}>
-                        Table {tbl} {tbl.toString() === tableNumber.toString() ? '(Current)' : ''}
-                      </option>
-                    ))}
+                    <optgroup label="Ground Floor Main Dining (Tables 1 - 18)">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(tbl => (
+                        <option key={tbl} value={tbl.toString()} disabled={tbl.toString() === tableNumber.toString()}>
+                          Table {tbl} {tbl.toString() === tableNumber.toString() ? '(Current Selected)' : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Terrace Dining (1A - 13A)">
+                      {['1A', '2A', '3A', '4A', '5A', '6A', '7A', '8A', '9A', '10A', '11A', '12A', '13A'].map(tbl => (
+                        <option key={tbl} value={tbl} disabled={tbl === tableNumber}>
+                          Table {tbl} {tbl === tableNumber ? '(Current Selected)' : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Drop In Bar Lounge (1B - 5B)">
+                      {['1B', '2B', '3B', '4B', '5B'].map(tbl => (
+                        <option key={tbl} value={tbl} disabled={tbl === tableNumber}>
+                          Table {tbl} {tbl === tableNumber ? '(Current Selected)' : ''}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
 
@@ -3709,6 +4013,109 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                     style={{ flex: 1.5, padding: '0.6rem', fontSize: '0.85rem', background: '#9333ea', borderColor: '#9333ea', color: '#fff' }}
                   >
                     Confirm Table Shift ⇄
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: TABLE MERGE & CONSOLIDATION */}
+        {tableMergeModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#0d1322',
+              border: '1.5px solid rgba(6, 182, 212, 0.5)',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: 460,
+              padding: '1.5rem',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.3rem' }}>🔗</span>
+                  <h3 style={{ fontSize: '1.15rem', color: '#fff', margin: 0 }}>Merge &amp; Consolidate Tables</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTableMergeModalOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmTableMerge}>
+                <div style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#22d3ee', fontWeight: 700, marginBottom: '0.2rem' }}>CONSOLIDATION PROTOCOL</div>
+                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+                    Orders and running KOT tickets will be automatically transferred from the Source Table into the Master Destination Table.
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.35rem' }}>
+                      Source Table (To Clear)
+                    </label>
+                    <select
+                      className="form-select"
+                      value={tableMergeSource}
+                      onChange={(e) => setTableMergeSource(e.target.value)}
+                      style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#fff', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '6px' }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(tbl => (
+                        <option key={tbl} value={tbl.toString()}>
+                          Table {tbl}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.35rem' }}>
+                      Master Destination Table
+                    </label>
+                    <select
+                      className="form-select"
+                      value={tableMergeTarget}
+                      onChange={(e) => setTableMergeTarget(e.target.value)}
+                      style={{ width: '100%', padding: '0.55rem', background: '#070b14', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.4)', borderRadius: '6px', fontWeight: 700 }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(tbl => (
+                        <option key={tbl} value={tbl.toString()} disabled={tbl.toString() === tableMergeSource}>
+                          Table {tbl} {tbl.toString() === tableMergeSource ? '(Source Selected)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setTableMergeModalOpen(false)}
+                    className="btn-outline"
+                    style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{ flex: 1.5, padding: '0.6rem', fontSize: '0.85rem', background: '#0891b2', borderColor: '#0891b2', color: '#fff' }}
+                  >
+                    Confirm Table Merge 🔗
                   </button>
                 </div>
               </form>

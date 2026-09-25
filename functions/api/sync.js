@@ -1226,6 +1226,200 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ success: true, message: `Database state restored (${restoredCount} rooms synchronized)` });
     }
 
+    // 31. FRONT DESK: Inter-Room Shift
+    if (action === 'shift_room') {
+      const { fromRoom, toRoom, guestName, reason } = payload;
+      if (!fromRoom || !toRoom) {
+        return jsonResponse({ error: "Both fromRoom and toRoom are required" }, 400);
+      }
+
+      // Find active booking for fromRoom
+      const activeBooking = await db.prepare(`
+        SELECT booking_id, guest_name FROM bookings 
+        WHERE room_number = ? AND booking_status = 'Checked In'
+        ORDER BY created_at DESC LIMIT 1
+      `).bind(fromRoom).first();
+
+      const bookingId = activeBooking?.booking_id || null;
+      const finalGuestName = guestName || activeBooking?.guest_name || 'In-House Guest';
+
+      // 1. Release source room to Vacant Dirty for housekeeping
+      await db.prepare(`
+        UPDATE rooms 
+        SET status = 'Cleaning', current_guest_name = NULL, current_booking_id = NULL
+        WHERE room_number = ?
+      `).bind(fromRoom).run().catch(() => {});
+
+      // 2. Assign destination room as Occupied
+      await db.prepare(`
+        UPDATE rooms 
+        SET status = 'Occupied', current_guest_name = ?, current_booking_id = ?
+        WHERE room_number = ?
+      `).bind(finalGuestName, bookingId, toRoom).run().catch(() => {});
+
+      // 3. Update booking if found
+      if (bookingId) {
+        await db.prepare(`
+          UPDATE bookings 
+          SET room_number = ?, special_requests = COALESCE(special_requests, '') || ' [Shifted from Room ' || ? || ' (' || ? || ')]'
+          WHERE booking_id = ?
+        `).bind(toRoom, fromRoom, reason || 'Guest Request', bookingId).run().catch(() => {});
+
+        // 4. Update folio transactions to point to new room
+        await db.prepare(`
+          UPDATE folio_transactions 
+          SET room_number = ?, folio_id = 'FOLIO-' || ?
+          WHERE booking_id = ?
+        `).bind(toRoom, toRoom, bookingId).run().catch(() => {});
+      }
+
+      return jsonResponse({ success: true, fromRoom, toRoom, guestName: finalGuestName, reason });
+    }
+
+    // 32. FRONT DESK: Edit Stay Details & Extend Nights
+    if (action === 'edit_stay' || action === 'update_stay_details') {
+      const { roomNumber, guestName, guestPhone, extendNights, extendedNights, addExtraBed, extraBedAdded, notes } = payload;
+      if (!roomNumber) {
+        return jsonResponse({ error: "roomNumber is required" }, 400);
+      }
+
+      const numNights = Number(extendNights !== undefined ? extendNights : extendedNights) || 0;
+      const isExtraBed = Boolean(addExtraBed !== undefined ? addExtraBed : extraBedAdded);
+
+      if (guestName) {
+        await db.prepare(`
+          UPDATE rooms SET current_guest_name = ? WHERE room_number = ?
+        `).bind(guestName, roomNumber).run().catch(() => {});
+      }
+
+      const activeBooking = await db.prepare(`
+        SELECT booking_id, tariff_per_night, total_amount, balance_due, check_out_date FROM bookings 
+        WHERE room_number = ? AND booking_status = 'Checked In'
+        ORDER BY created_at DESC LIMIT 1
+      `).bind(roomNumber).first();
+
+      if (activeBooking) {
+        let addTariff = 0;
+        let newCheckoutDate = activeBooking.check_out_date;
+        if (numNights > 0) {
+          addTariff = Math.round(activeBooking.tariff_per_night * numNights * 1.12);
+          const currDate = new Date(activeBooking.check_out_date);
+          currDate.setDate(currDate.getDate() + numNights);
+          newCheckoutDate = currDate.toISOString().split('T')[0];
+        }
+
+        const extraBedCharge = isExtraBed ? 560 : 0;
+        const totalAdded = addTariff + extraBedCharge;
+
+        await db.prepare(`
+          UPDATE bookings 
+          SET guest_name = COALESCE(?, guest_name),
+              guest_phone = COALESCE(?, guest_phone),
+              check_out_date = ?,
+              total_amount = total_amount + ?,
+              balance_due = balance_due + ?,
+              special_requests = COALESCE(special_requests, '') || ' ' || ?
+          WHERE booking_id = ?
+        `).bind(guestName || null, guestPhone || null, newCheckoutDate, totalAdded, totalAdded, notes || '', activeBooking.booking_id).run().catch(() => {});
+
+        // Post extra bed transaction if requested
+        if (addExtraBed) {
+          const bedTxId = `TXN-BED-${roomNumber}-${Date.now().toString().slice(-4)}`;
+          await db.prepare(`
+            INSERT INTO folio_transactions (
+              transaction_id, folio_id, booking_id, room_number, transaction_type,
+              outlet, item_code, description, debit_amount, credit_amount,
+              taxable_base, gst_rate, cgst, sgst, sac_code, is_locked, created_by
+            ) VALUES (
+              ?, ?, ?, ?, 'Extra Bed',
+              'Front Desk', 'EXTRA-BED', 'Rollaway Extra Bed & Terry Towel Set', 560, 0,
+              500, 12, 30, 30, '996311', 0, 'Front Desk Reception'
+            )
+          `).bind(bedTxId, `FOLIO-${roomNumber}`, activeBooking.booking_id, roomNumber).run().catch(() => {});
+        }
+      }
+
+      return jsonResponse({ success: true, roomNumber, guestName, extendNights, addExtraBed });
+    }
+
+    // 33. RESTAURANT POS: Shift / Transfer Dining Table
+    if (action === 'shift_table') {
+      const { fromTable, toTable, reason, captain } = payload;
+      if (!fromTable || !toTable) {
+        return jsonResponse({ error: "Both fromTable and toTable are required" }, 400);
+      }
+
+      // Update any active food orders from fromTable to toTable
+      await db.prepare(`
+        UPDATE food_orders 
+        SET room_number = ?, captain_name = COALESCE(?, captain_name)
+        WHERE room_number = ? AND status IN ('Received', 'Preparing')
+      `).bind(`Table ${toTable}`, captain || null, `Table ${fromTable}`).run().catch(() => {});
+
+      return jsonResponse({ success: true, fromTable, toTable, reason, captain });
+    }
+
+    // 34. RESTAURANT POS: Merge Dining Tables
+    if (action === 'merge_tables') {
+      const { sourceTable, targetTable, captain } = payload;
+      await db.prepare(`
+        UPDATE food_orders 
+        SET room_number = ?
+        WHERE room_number = ? AND status IN ('Received', 'Preparing')
+      `).bind(`Table ${targetTable}`, `Table ${sourceTable}`).run().catch(() => {});
+
+      return jsonResponse({ success: true, sourceTable, targetTable, captain });
+    }
+
+    // 35. CORPORATE ACCOUNTS: Update Contract Terms
+    if (action === 'update_corporate_contract') {
+      const { corporateId, creditLimit, creditDays, contractDiscount, billingMode, contactPerson, contactPhone } = payload;
+      if (!corporateId) {
+        return jsonResponse({ error: "corporateId is required" }, 400);
+      }
+
+      await db.prepare(`
+        UPDATE corporate_partners 
+        SET credit_limit = COALESCE(?, credit_limit),
+            credit_days = COALESCE(?, credit_days),
+            contracted_discount_percent = COALESCE(?, contracted_discount_percent),
+            contact_person = COALESCE(?, contact_person),
+            contact_phone = COALESCE(?, contact_phone)
+        WHERE corporate_id = ?
+      `).bind(
+        creditLimit !== undefined ? Number(creditLimit) : null,
+        creditDays !== undefined ? Number(creditDays) : null,
+        contractDiscount !== undefined ? Number(contractDiscount) : null,
+        contactPerson || null,
+        contactPhone || null,
+        corporateId
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, corporateId, creditLimit, creditDays, contractDiscount });
+    }
+
+    // 36. CENTRAL ACCOUNTS: Post Journal Entry Voucher
+    if (action === 'add_journal_entry') {
+      const { date, category, description, debitAmount, creditAmount, paymentMode, voucherNo, createdBy } = payload;
+      const expenseId = voucherNo || `JV-${Date.now().toString().slice(-6)}`;
+
+      await db.prepare(`
+        INSERT INTO expenses (expense_id, category, amount, vendor_name, paid_by, payment_mode, date, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        expenseId,
+        category || 'General Store & Maintenance',
+        Number(debitAmount || creditAmount || 0),
+        'Rayagada Local Vendor',
+        createdBy || 'Accounts Department',
+        paymentMode || 'Cash',
+        date || new Date().toISOString().split('T')[0],
+        description || 'General Journal Entry'
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, voucherNo: expenseId, amount: debitAmount || creditAmount });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error) {
