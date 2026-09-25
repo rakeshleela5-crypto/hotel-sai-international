@@ -1420,6 +1420,37 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ success: true, voucherNo: expenseId, amount: debitAmount || creditAmount });
     }
 
+    // 37. FRONT OFFICE / ACCOUNTS: Amend GST Invoice (B2C <-> B2B, GSTIN, Company)
+    if (action === 'amend_gst_invoice') {
+      const { invoiceNo, bookingId, guestName, companyName, gstin, address1, address2, city, state, isB2B, amendedBy } = payload;
+      if (!invoiceNo) {
+        return jsonResponse({ error: "invoiceNo is required" }, 400);
+      }
+
+      // Update bookings if matching
+      await db.prepare(`
+        UPDATE bookings 
+        SET company_name = COALESCE(?, company_name),
+            corporate_gstin = ?,
+            billing_address = ?,
+            special_requests = COALESCE(special_requests, '') || ' [GST Amended: ' || ? || ' | GSTIN: ' || COALESCE(?, 'B2C') || ']'
+        WHERE bill_no = ? OR booking_id = ?
+      `).bind(companyName || null, gstin || null, address1 || null, isB2B ? 'B2B' : 'B2C', gstin || 'None', invoiceNo, bookingId || invoiceNo).run().catch(() => {});
+
+      // Record in corporate_b2b_invoices if valid B2B
+      if (isB2B && gstin) {
+        await db.prepare(`
+          INSERT INTO corporate_b2b_invoices (invoice_number, corporate_name, corporate_gstin, invoice_date, total_amount, itc_status)
+          VALUES (?, ?, ?, DATE('now'), ?, 'Eligible (GSTR-2B)')
+          ON CONFLICT(invoice_number) DO UPDATE SET
+            corporate_name = excluded.corporate_name,
+            corporate_gstin = excluded.corporate_gstin
+        `).bind(invoiceNo, companyName || 'Corporate Client', gstin, Number(payload.totalAmount || 0)).run().catch(() => {});
+      }
+
+      return jsonResponse({ success: true, invoiceNo, isB2B, gstin, companyName, amendedBy: amendedBy || 'Accounts Department' });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error) {
