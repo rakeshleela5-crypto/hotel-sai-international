@@ -39,6 +39,45 @@ export default function App() {
   const [rooms, setRooms] = useState(INITIAL_ROOMS_INVENTORY);
   const [transactions, setTransactions] = useState(INITIAL_FOLIO_TRANSACTIONS);
 
+  // Automatic SPA Freshness: Seamlessly detects new Cloudflare Pages deployments
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const currentScripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.src);
+    const checkFreshness = async () => {
+      try {
+        const res = await fetch('/index.html', { method: 'GET', cache: 'no-store' });
+        if (!res.ok) return;
+        const text = await res.text();
+        const match = text.match(/assets\/index-[a-zA-Z0-9_-]+\.js/);
+        if (match && match[0] && currentScripts.length > 0) {
+          const hasCurrent = currentScripts.some(src => src.includes(match[0]));
+          if (!hasCurrent) {
+            console.info('⚡ Fresh Cloudflare Pages bundle detected. Synchronizing live assets...');
+            // Reload if on guest landing page and not in mid-booking
+            if (currentView === 'guest' && !sessionStorage.getItem('hsi_booking_active')) {
+              window.location.reload();
+            }
+          }
+        }
+      } catch {
+        // Network offline or transient error
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkFreshness();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    const timer = setInterval(checkFreshness, 45000);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(timer);
+    };
+  }, [currentView]);
+
   // Dedicated In-Room Guest Portal State (Triggered when room QR code is scanned)
   const [inRoomPortalState, setInRoomPortalState] = useState(() => {
     if (typeof window === 'undefined') return { active: false, roomNumber: '204' };
