@@ -62,7 +62,7 @@ export default function ReceptionAdmin({
   const [activeRole, setActiveRole] = useState('owner'); // 'owner' (Eswara MD), 'receptionist' (Front Desk), 'accounts' (Accounts Lead)
   const [activeDepartment, setActiveDepartment] = useState('reception'); // 'reception', 'restaurant', 'accounts', 'store', 'housekeeping'
   const [activeTab, setActiveTab] = useState('tape-chart'); // 'tape-chart', 'cashier-audit', 'housekeeping', 'police-register', 'dpdp'
-  const [tapeChartViewMode, setTapeChartViewMode] = useState('mysoft'); // 'mysoft' (Screenshot 2 Legacy Tape Chart) or 'modern'
+  const [tapeChartViewMode, setTapeChartViewMode] = useState('table'); // 'table' (Master Tabular Ledger), 'mysoft' (Legacy Tape Matrix), or 'modern' (Cards)
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isInlineEditActive, setIsInlineEditActive] = useState(false);
@@ -2324,18 +2324,9 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         ].map(tab => (
           <button
             key={tab.id}
+            type="button"
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '0.55rem 1rem',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              background: activeTab === tab.id ? 'var(--gold-glow)' : 'transparent',
-              color: activeTab === tab.id ? '#060e1a' : '#94a3b8',
-              transition: 'all 0.2s ease',
-              border: 'none',
-              cursor: 'pointer'
-            }}
+            className={`enterprise-tab-pill ${activeTab === tab.id ? 'active' : ''}`}
           >
             {tab.label}
           </button>
@@ -2409,16 +2400,10 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               key={f.id}
               type="button"
               onClick={() => setStatusFilter(f.id)}
+              className={`enterprise-tab-pill ${statusFilter === f.id ? 'active' : ''}`}
               style={{
-                background: statusFilter === f.id ? 'var(--gold-glow)' : 'rgba(255,255,255,0.05)',
-                color: statusFilter === f.id ? '#060e1a' : '#cbd5e1',
-                border: statusFilter === f.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)',
                 padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
+                fontSize: '0.74rem'
               }}
             >
               {f.label}
@@ -2942,39 +2927,31 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             <div style={{
               display: 'inline-flex',
               background: 'rgba(6, 14, 26, 0.8)',
-              padding: '3px',
+              padding: '4px',
               borderRadius: '8px',
-              border: '1px solid rgba(212, 175, 55, 0.3)'
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              gap: '6px'
             }}>
               <button
-                onClick={() => setTapeChartViewMode('mysoft')}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: tapeChartViewMode === 'mysoft' ? 'var(--gold-glow)' : 'transparent',
-                  color: tapeChartViewMode === 'mysoft' ? '#060e1a' : '#94a3b8',
-                  border: 'none'
-                }}
+                type="button"
+                className={`enterprise-tab-pill ${tapeChartViewMode === 'table' ? 'active' : ''}`}
+                onClick={() => setTapeChartViewMode('table')}
               >
-                📊 Legacy Tape Matrix View
+                📋 Master Tabular Ledger
               </button>
               <button
-                onClick={() => setTapeChartViewMode('modern')}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: tapeChartViewMode === 'modern' ? 'var(--gold-glow)' : 'transparent',
-                  color: tapeChartViewMode === 'modern' ? '#060e1a' : '#94a3b8',
-                  border: 'none'
-                }}
+                type="button"
+                className={`enterprise-tab-pill ${tapeChartViewMode === 'mysoft' ? 'active' : ''}`}
+                onClick={() => setTapeChartViewMode('mysoft')}
               >
-                🏢 Modern Card Layout
+                📊 Legacy Tape Matrix
+              </button>
+              <button
+                type="button"
+                className={`enterprise-tab-pill ${tapeChartViewMode === 'modern' ? 'active' : ''}`}
+                onClick={() => setTapeChartViewMode('modern')}
+              >
+                🏢 Modern Cards
               </button>
             </div>
           </div>
@@ -2999,15 +2976,12 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               ].map(tab => (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setStatusFilter(tab.id)}
+                  className={`enterprise-tab-pill ${statusFilter === tab.id ? 'active' : ''}`}
                   style={{
                     padding: '0.35rem 0.8rem',
-                    borderRadius: '6px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    background: statusFilter === tab.id ? 'rgba(212, 175, 55, 0.25)' : 'rgba(12, 24, 43, 0.6)',
-                    color: statusFilter === tab.id ? 'var(--gold-glow)' : '#94a3b8',
-                    border: statusFilter === tab.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.08)'
+                    fontSize: '0.76rem'
                   }}
                 >
                   {tab.label}
@@ -3047,8 +3021,407 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           </div>
         </div>
 
-          {/* VIEW 1: MYSOFT LEGACY TAPE MATRIX (Screenshot 2 Mirror) */}
-          {tapeChartViewMode === 'mysoft' ? (
+          {/* VIEW 0: ENTERPRISE MASTER TABULAR ROOM LEDGER (Spreadsheet Format) */}
+          {tapeChartViewMode === 'table' ? (
+            <div className="enterprise-data-table-container">
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+                padding: '0.85rem 1.25rem',
+                background: 'linear-gradient(90deg, #0b1526 0%, #15243d 50%, #0b1526 100%)',
+                borderBottom: '2px solid rgba(212, 175, 55, 0.4)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--gold-glow)', letterSpacing: '0.02em' }}>
+                    📋 MASTER TABULAR ROOM LEDGER (All 39 Keys)
+                  </span>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    background: 'rgba(56, 189, 248, 0.2)',
+                    color: '#38bdf8',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    fontWeight: 700
+                  }}>
+                    REAL-TIME SPREADSHEET AUDIT
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#cbd5e1', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span>Showing <strong style={{ color: '#ffffff' }}>{filteredRooms.length}</strong> of 39 Rooms</span>
+                  <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                  <span>Occupied: <strong style={{ color: '#fb923c' }}>{occupiedDirtyCount + occupiedCleanCount}</strong></span>
+                  <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                  <span>Vacant Clean: <strong style={{ color: '#34d399' }}>{vacantCleanCount}</strong></span>
+                  <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                  <span>OOO: <strong style={{ color: '#f87171' }}>{oooCount}</strong></span>
+                </div>
+              </div>
+
+              <table className="enterprise-data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Room #</th>
+                    <th style={{ width: '65px', textAlign: 'center' }}>Floor</th>
+                    <th style={{ width: '135px' }}>Category / Tier</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Current Status</th>
+                    <th>In-House Guest Name</th>
+                    <th style={{ width: '125px' }}>Contact Phone</th>
+                    <th style={{ width: '135px' }}>Corporate / Company</th>
+                    <th style={{ width: '110px' }}>Stay Period</th>
+                    <th style={{ width: '100px', textAlign: 'right' }}>Tariff (₹)</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Balance Due (₹)</th>
+                    <th style={{ width: '95px', textAlign: 'center' }}>Key / HK</th>
+                    <th style={{ width: '240px', textAlign: 'center' }}>Operational Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRooms.length === 0 ? (
+                    <tr>
+                      <td colSpan={12} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                        No rooms match the selected filter or search term.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredRooms.map(room => {
+                      const isOccupied = room.status === 'Occupied' || room.status === 'Occupied Clean';
+                      const isMaint = room.status === 'Maintenance';
+                      const isCleaning = room.status === 'Cleaning' || room.status === 'Vacant Dirty';
+                      const isVacant = room.status === 'Available';
+
+                      const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
+                        bookingId: `FMBIL2627-${room.roomNumber}`,
+                        billNo: `FMBIL2627-${room.roomNumber}`,
+                        roomNumber: room.roomNumber,
+                        guestName: room.currentGuestName || (isOccupied ? 'Guest In-House' : 'WALK-IN GUEST'),
+                        guestPhone: room.guestPhone || '+91 94370 22555',
+                        company: room.company || (isOccupied ? 'LINDE INDIA LTD' : 'INDIVIDUAL'),
+                        corporateGstin: '21AAACB2528H1ZA',
+                        tier: room.tier,
+                        tariff: room.tariff || 2199,
+                        totalAmount: room.outstandingBalance || room.balanceDue || room.tariff || 2199,
+                        nights: 1,
+                        grcNo: `GRC-${room.roomNumber}`,
+                        checkInDate: '22/09/2026',
+                        checkInTime: '11:00 AM',
+                        checkOutDate: '23/09/2026 (12:00 PM)'
+                      };
+
+                      return (
+                        <tr key={room.roomNumber}>
+                          {/* Room # */}
+                          <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.92rem', color: 'var(--gold-glow)' }}>
+                            {room.roomNumber}
+                          </td>
+
+                          {/* Floor */}
+                          <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
+                            FL-{room.floor}
+                          </td>
+
+                          {/* Tier */}
+                          <td style={{ fontWeight: 600, color: '#f1f5f9', fontSize: '0.8rem' }}>
+                            {room.tier}
+                          </td>
+
+                          {/* Status Badge */}
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.03em',
+                              background: isOccupied 
+                                ? 'rgba(234, 88, 12, 0.22)' 
+                                : isMaint 
+                                  ? 'rgba(100, 116, 139, 0.28)' 
+                                  : isCleaning 
+                                    ? 'rgba(234, 179, 8, 0.22)' 
+                                    : 'rgba(16, 185, 129, 0.22)',
+                              color: isOccupied 
+                                ? '#fb923c' 
+                                : isMaint 
+                                  ? '#cbd5e1' 
+                                  : isCleaning 
+                                    ? '#facc15' 
+                                    : '#34d399',
+                              border: isOccupied 
+                                ? '1px solid rgba(249, 115, 22, 0.5)' 
+                                : isMaint 
+                                  ? '1px solid rgba(148, 163, 184, 0.5)' 
+                                  : isCleaning 
+                                    ? '1px solid rgba(234, 179, 8, 0.5)' 
+                                    : '1px solid rgba(16, 185, 129, 0.5)'
+                            }}>
+                              {room.status}
+                            </span>
+                          </td>
+
+                          {/* Guest Name */}
+                          <td>
+                            {isInlineEditActive && isOccupied ? (
+                              <input
+                                type="text"
+                                defaultValue={room.currentGuestName || ''}
+                                onBlur={(e) => {
+                                  const newName = e.target.value.trim();
+                                  if (newName && onUpdateRoomStatus) {
+                                    onUpdateRoomStatus(room.roomNumber, room.status, newName, room.tariff);
+                                  }
+                                }}
+                                placeholder="Guest Name..."
+                                style={{
+                                  width: '100%',
+                                  padding: '3px 6px',
+                                  fontSize: '0.8rem',
+                                  background: 'rgba(0,0,0,0.6)',
+                                  border: '1px solid #38bdf8',
+                                  borderRadius: '4px',
+                                  color: '#ffffff',
+                                  fontWeight: 700
+                                }}
+                              />
+                            ) : (
+                              <div style={{ fontWeight: isOccupied ? 700 : 500, color: isOccupied ? '#ffffff' : '#64748b' }}>
+                                {isOccupied ? (room.currentGuestName || matchedBooking.guestName || 'In-House Guest') : '—'}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Phone */}
+                          <td style={{ color: '#cbd5e1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                            {isOccupied ? (matchedBooking.guestPhone || room.guestPhone || '+91 94370 22555') : '—'}
+                          </td>
+
+                          {/* Company */}
+                          <td style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
+                            {isOccupied ? (matchedBooking.company || 'Direct Corporate') : '—'}
+                          </td>
+
+                          {/* Stay Period */}
+                          <td style={{ color: '#94a3b8', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                            {isOccupied ? `${matchedBooking.checkInDate || 'Today'} (${matchedBooking.nights || 1}N)` : '—'}
+                          </td>
+
+                          {/* Tariff */}
+                          <td className="cell-num" style={{ color: '#38bdf8' }}>
+                            ₹{(room.tariff || 2199).toLocaleString('en-IN')}
+                          </td>
+
+                          {/* Balance Due */}
+                          <td className="cell-num" style={{ color: (room.outstandingBalance || room.balanceDue) ? '#f87171' : '#34d399' }}>
+                            ₹{(room.outstandingBalance || room.balanceDue || 0).toLocaleString('en-IN')}
+                          </td>
+
+                          {/* Key / HK */}
+                          <td style={{ textAlign: 'center', fontSize: '0.74rem' }}>
+                            <span style={{
+                              padding: '2px 6px',
+                              borderRadius: '3px',
+                              background: room.keyIssued ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                              color: room.keyIssued ? '#38bdf8' : '#94a3b8',
+                              border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}>
+                              {room.keyIssued ? '🔑 Issued' : '🗝️ Ready'}
+                            </span>
+                          </td>
+
+                          {/* Operational Actions */}
+                          <td>
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'nowrap' }}>
+                              {isOccupied ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedFolioRoom(room)}
+                                    style={{
+                                      padding: '3px 7px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(56, 189, 248, 0.2)',
+                                      color: '#38bdf8',
+                                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Open Master Folio & Split Billing"
+                                  >
+                                    📄 Folio
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReceiptModalType('a4');
+                                      setSelectedReceiptBooking(matchedBooking);
+                                      setIsReceiptModalOpen(true);
+                                    }}
+                                    style={{
+                                      padding: '3px 7px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(212, 175, 55, 0.2)',
+                                      color: 'var(--gold-glow)',
+                                      border: '1px solid var(--gold-glow)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Official Tax Invoice / Bill"
+                                  >
+                                    🧾 Bill
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setCheckoutRoom(room)}
+                                    style={{
+                                      padding: '3px 7px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 800,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(234, 179, 8, 0.25)',
+                                      color: '#facc15',
+                                      border: '1px solid rgba(234, 179, 8, 0.5)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Check-Out & Settlement"
+                                  >
+                                    ⚡ Out
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSendWelcomePass(room)}
+                                    style={{
+                                      padding: '3px 7px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(37, 211, 102, 0.2)',
+                                      color: '#4ade80',
+                                      border: '1px solid rgba(37, 211, 102, 0.4)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="WhatsApp Guest Registration Card"
+                                  >
+                                    📲 Pass
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenShiftModal(room)}
+                                    style={{
+                                      padding: '3px 7px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 600,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(255, 255, 255, 0.08)',
+                                      color: '#cbd5e1',
+                                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Shift Room"
+                                  >
+                                    🔄 Shift
+                                  </button>
+                                </>
+                              ) : isVacant ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setWalkInRoom(room.roomNumber);
+                                      setWalkInRate(room.tariff || 1699);
+                                      setWalkInDeposit(room.tariff || 1699);
+                                      setWalkInOpen(true);
+                                    }}
+                                    style={{
+                                      padding: '3px 9px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(56, 189, 248, 0.25)',
+                                      color: '#38bdf8',
+                                      border: '1px solid rgba(56, 189, 248, 0.5)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    + Walk-In Check-In
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onUpdateRoomStatus(room.roomNumber, 'Vacant Dirty', null, null)}
+                                    style={{
+                                      padding: '3px 7px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 600,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(234, 179, 8, 0.15)',
+                                      color: '#facc15',
+                                      border: '1px solid rgba(234, 179, 8, 0.3)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Mark Dirty / Needs Cleaning"
+                                  >
+                                    🧹 Clean
+                                  </button>
+                                </>
+                              ) : isCleaning ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onUpdateRoomStatus(room.roomNumber, 'Available', null, null)}
+                                  style={{
+                                    padding: '3px 10px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    background: 'rgba(16, 185, 129, 0.25)',
+                                    color: '#34d399',
+                                    border: '1px solid rgba(16, 185, 129, 0.5)',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  ✓ Mark Clean / Ready
+                                </button>
+                              ) : isMaint ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onUpdateRoomStatus(room.roomNumber, 'Available', null, null)}
+                                  style={{
+                                    padding: '3px 10px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    background: 'rgba(16, 185, 129, 0.25)',
+                                    color: '#34d399',
+                                    border: '1px solid rgba(16, 185, 129, 0.5)',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  Release OOO
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : tapeChartViewMode === 'mysoft' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {[2, 3, 4].map(floorNum => {
                 const floorRooms = filteredRooms.filter(r => r.floor === floorNum);
@@ -4230,30 +4603,30 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </span>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+            <div className="enterprise-data-table-container">
+              <table className="enterprise-data-table">
                 <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--gold-glow)', borderBottom: '1px solid rgba(212, 175, 55, 0.25)' }}>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Time</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Room</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Guest Name</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Bill #</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Total Settled</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Split Payment Breakdown</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Actions</th>
+                  <tr>
+                    <th style={{ width: '80px' }}>Time</th>
+                    <th style={{ width: '90px' }}>Room</th>
+                    <th>Guest Name</th>
+                    <th style={{ width: '130px' }}>Bill #</th>
+                    <th style={{ width: '130px', textAlign: 'right' }}>Total Settled</th>
+                    <th>Split Payment Breakdown</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentSettlements.map((s, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                      <td style={{ padding: '0.6rem 0.75rem', color: 'var(--text-muted)' }}>{s.settlementTime}</td>
-                      <td style={{ padding: '0.6rem 0.75rem' }}>
+                    <tr key={idx}>
+                      <td style={{ color: '#94a3b8' }}>{s.settlementTime}</td>
+                      <td>
                         <span style={{ fontWeight: 700, color: '#38bdf8' }}>Room {s.roomNumber}</span>
                       </td>
-                      <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: '#fff' }}>{s.guestName}</td>
-                      <td style={{ padding: '0.6rem 0.75rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.78rem' }}>{s.billNo}</td>
-                      <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, color: 'var(--gold-glow)' }}>₹{Number(s.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ padding: '0.6rem 0.75rem' }}>
+                      <td style={{ fontWeight: 600, color: '#fff' }}>{s.guestName}</td>
+                      <td style={{ fontFamily: 'monospace', color: '#94a3b8', fontSize: '0.78rem' }}>{s.billNo}</td>
+                      <td className="cell-num" style={{ color: 'var(--gold-glow)' }}>₹{Number(s.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td>
                         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                           {s.tendersSummary?.map((t, i) => (
                             <span key={i} style={{
@@ -4270,7 +4643,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           ))}
                         </div>
                       </td>
-                      <td style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           onClick={() => {
                             setSelectedReceiptBooking({
@@ -4307,39 +4680,39 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             <h4 style={{ fontSize: '1.05rem', color: '#fff', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <ClipboardList size={18} color="var(--gold-glow)" /> Shift Handover Audit Trail &amp; Safe Drop Register
             </h4>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+            <div className="enterprise-data-table-container">
+              <table className="enterprise-data-table">
                 <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Shift ID / Date</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Cashier &amp; Shift</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Float (₹)</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Receipts (₹)</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Petty Cash (₹)</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Expected (₹)</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Physical (₹)</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Variance Status</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Verification Notes</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Voucher</th>
+                  <tr>
+                    <th style={{ width: '130px' }}>Shift ID / Date</th>
+                    <th style={{ width: '140px' }}>Cashier &amp; Shift</th>
+                    <th style={{ width: '100px', textAlign: 'right' }}>Float (₹)</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Receipts (₹)</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Petty Cash (₹)</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Expected (₹)</th>
+                    <th style={{ width: '110px', textAlign: 'right' }}>Physical (₹)</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Variance Status</th>
+                    <th>Verification Notes</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Voucher</th>
                   </tr>
                 </thead>
                 <tbody>
                   {handoverLogs.map(log => (
-                    <tr key={log.shiftId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.75rem' }}>
+                    <tr key={log.shiftId}>
+                      <td>
                         <div style={{ fontWeight: 700, color: '#fff' }}>{log.shiftId}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{log.date}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{log.date}</div>
                       </td>
-                      <td style={{ padding: '0.75rem' }}>
+                      <td>
                         <div style={{ fontWeight: 600, color: 'var(--gold-glow)' }}>{log.cashier}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{log.shift}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{log.shift}</div>
                       </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>₹{log.openingFloat.toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#10b981', fontWeight: 600 }}>+₹{log.cashCollected.toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171' }}>-₹{log.pettyCash.toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 700, color: '#fff' }}>₹{log.expected.toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>₹{log.actual.toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                      <td className="cell-num">₹{log.openingFloat.toLocaleString()}</td>
+                      <td className="cell-num" style={{ color: '#10b981' }}>+₹{log.cashCollected.toLocaleString()}</td>
+                      <td className="cell-num" style={{ color: '#f87171' }}>-₹{log.pettyCash.toLocaleString()}</td>
+                      <td className="cell-num" style={{ color: '#fff' }}>₹{log.expected.toLocaleString()}</td>
+                      <td className="cell-num" style={{ color: 'var(--gold-glow)' }}>₹{log.actual.toLocaleString()}</td>
+                      <td style={{ textAlign: 'center' }}>
                         <span style={{
                           padding: '2px 8px',
                           borderRadius: '4px',
@@ -4352,24 +4725,22 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           {log.status} {log.variance !== 0 && `(₹${log.variance})`}
                         </span>
                       </td>
-                      <td style={{ padding: '0.75rem', color: '#94a3b8', fontSize: '0.75rem' }}>
+                      <td style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>
                         {log.notes}
                       </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           onClick={() => {
                             setActiveHandoverForVoucher(log);
                             setHandoverVoucherModalOpen(true);
                           }}
+                          className="btn-outline-gold"
                           style={{
                             padding: '3px 8px',
                             borderRadius: '4px',
                             fontSize: '0.72rem',
                             fontWeight: 600,
-                            background: 'rgba(212, 175, 55, 0.15)',
-                            color: 'var(--gold-glow)',
-                            border: '1px solid rgba(212, 175, 55, 0.3)',
                             cursor: 'pointer'
                           }}
                         >
@@ -4812,40 +5183,40 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </button>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+            <div className="enterprise-data-table-container">
+              <table className="enterprise-data-table">
                 <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Ticket # / Date</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Room</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Category &amp; Defect Issue</th>
-                    <th style={{ padding: '0.6rem 0.75rem' }}>Assigned Technician</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Target ETA</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Priority</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>Status</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Action</th>
+                  <tr>
+                    <th style={{ width: '130px' }}>Ticket # / Date</th>
+                    <th style={{ width: '90px', textAlign: 'center' }}>Room</th>
+                    <th>Category &amp; Defect Issue</th>
+                    <th style={{ width: '150px' }}>Assigned Technician</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Target ETA</th>
+                    <th style={{ width: '90px', textAlign: 'center' }}>Priority</th>
+                    <th style={{ width: '90px', textAlign: 'center' }}>Status</th>
+                    <th style={{ width: '130px', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {workOrders.map(wo => (
-                    <tr key={wo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.75rem' }}>
+                    <tr key={wo.id}>
+                      <td>
                         <div style={{ fontWeight: 700, color: '#fff' }}>{wo.id}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{wo.loggedAt}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{wo.loggedAt}</div>
                       </td>
-                      <td style={{ padding: '0.75rem' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontWeight: 800 }}>
                           Room {wo.roomNumber}
                         </span>
                       </td>
-                      <td style={{ padding: '0.75rem' }}>
+                      <td>
                         <div style={{ fontWeight: 600, color: '#fff' }}>{wo.issue}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Category: {wo.category} • {wo.notes}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Category: {wo.category} • {wo.notes}</div>
                       </td>
-                      <td style={{ padding: '0.75rem', color: '#cbd5e1' }}>
+                      <td style={{ color: '#cbd5e1' }}>
                         {wo.technician}
                       </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <span style={{
                           padding: '2px 7px',
                           borderRadius: '4px',
@@ -4858,7 +5229,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           ⏱️ {wo.targetEta || 'Within 2 Hours'}
                         </span>
                       </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <span style={{
                           padding: '2px 6px',
                           borderRadius: '4px',
@@ -4870,7 +5241,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           {wo.priority}
                         </span>
                       </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <span style={{
                           padding: '2px 6px',
                           borderRadius: '4px',
@@ -4882,14 +5253,12 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           {wo.status}
                         </span>
                       </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'center' }}>
                         {wo.status !== 'Resolved' ? (
                           <button
                             onClick={() => handleResolveWorkOrder(wo.id, wo.roomNumber)}
+                            className="btn-outline-gold"
                             style={{
-                              background: 'rgba(16,185,129,0.2)',
-                              border: '1px solid #10b981',
-                              color: '#34d399',
                               padding: '0.3rem 0.6rem',
                               borderRadius: '4px',
                               fontSize: '0.72rem',
@@ -4897,10 +5266,10 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               cursor: 'pointer'
                             }}
                           >
-                            ✓ Resolve &amp; Release
+                            ✓ Resolve
                           </button>
                         ) : (
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Closed</span>
+                          <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>Closed</span>
                         )}
                       </td>
                     </tr>
@@ -4970,41 +5339,71 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
           )}
 
-          {/* Guest Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          {/* Guest Table - High-Density Enterprise Spreadsheet Format */}
+          <div className="enterprise-data-table-container">
+            <table className="enterprise-data-table">
               <thead>
-                <tr style={{ background: 'rgba(19, 34, 61, 0.8)', color: 'var(--gold-glow)', textAlign: 'left' }}>
-                  <th style={{ padding: '0.75rem' }}>Room</th>
-                  <th style={{ padding: '0.75rem' }}>Guest Name</th>
-                  <th style={{ padding: '0.75rem' }}>Phone</th>
-                  <th style={{ padding: '0.75rem' }}>Govt ID (Masked)</th>
-                  <th style={{ padding: '0.75rem' }}>State of Origin</th>
-                  <th style={{ padding: '0.75rem' }}>Inter-State</th>
-                  <th style={{ padding: '0.75rem' }}>Dates</th>
+                <tr>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Room #</th>
+                  <th>Guest Name</th>
+                  <th style={{ width: '130px' }}>Contact Phone</th>
+                  <th style={{ width: '150px' }}>Govt ID Proof (Masked)</th>
+                  <th style={{ width: '130px' }}>State of Origin</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>State Status</th>
+                  <th style={{ width: '180px' }}>Stay Duration</th>
                 </tr>
               </thead>
               <tbody>
                 {bookings.map((b, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>Room {b.room_number || b.roomNumber}</td>
-                    <td style={{ padding: '0.75rem' }}>{b.guest_name || b.guestName}</td>
-                    <td style={{ padding: '0.75rem' }}>{b.guest_phone || b.guestPhone}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <code style={{ background: 'rgba(0,0,0,0.4)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>
+                  <tr key={idx}>
+                    <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--gold-glow)' }}>
+                      Room {b.room_number || b.roomNumber}
+                    </td>
+                    <td style={{ fontWeight: 700, color: '#ffffff' }}>
+                      {b.guest_name || b.guestName}
+                    </td>
+                    <td style={{ color: '#cbd5e1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      {b.guest_phone || b.guestPhone}
+                    </td>
+                    <td>
+                      <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', color: '#38bdf8' }}>
                         {b.id_proof_masked || b.idProofMasked || 'XXXX-XXXX-1234'}
                       </code>
                     </td>
-                    <td style={{ padding: '0.75rem' }}>{b.state_of_origin || b.stateOfOrigin || 'Odisha'}</td>
-                    <td style={{ padding: '0.75rem' }}>
+                    <td style={{ color: '#f1f5f9' }}>
+                      {b.state_of_origin || b.stateOfOrigin || 'Odisha'}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
                       {(b.is_interstate || b.isInterstate) ? (
-                        <span style={{ color: '#f59e0b', fontWeight: 600 }}>INTER-STATE</span>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          background: 'rgba(245, 158, 11, 0.2)',
+                          color: '#f59e0b',
+                          border: '1px solid rgba(245, 158, 11, 0.4)',
+                          fontSize: '0.7rem',
+                          fontWeight: 700
+                        }}>
+                          INTER-STATE
+                        </span>
                       ) : (
-                        <span style={{ color: '#10b981' }}>Intra-Odisha</span>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          background: 'rgba(16, 185, 129, 0.2)',
+                          color: '#34d399',
+                          border: '1px solid rgba(16, 185, 129, 0.4)',
+                          fontSize: '0.7rem',
+                          fontWeight: 700
+                        }}>
+                          Intra-Odisha
+                        </span>
                       )}
                     </td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      {b.check_in_date || b.checkInDate} to {b.check_out_date || b.checkOutDate}
+                    <td style={{ fontSize: '0.78rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                      {b.check_in_date || b.checkInDate} → {b.check_out_date || b.checkOutDate}
                     </td>
                   </tr>
                 ))}

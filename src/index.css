@@ -755,6 +755,134 @@ button:focus-visible, .btn:focus-visible {
   flex-shrink: 0 !important;
 }
 
+/* ==========================================================================
+   HIGH-CONTRAST ENTERPRISE TABS & CHIPS
+   Ensures typography is crystal-clear and background NEVER dominates text.
+   ========================================================================== */
+
+/* Modern Segmented Navigation Tab */
+.enterprise-tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.52rem 1.05rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f1f5f9 !important; /* Crisp luminous text - highly legible! */
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.enterprise-tab-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.enterprise-tab-pill.active {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.25) 0%, rgba(212, 175, 55, 0.08) 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  border: 1px solid #f3c64c !important;
+  box-shadow: 0 0 14px rgba(243, 198, 76, 0.28), inset 0 -2px 0 #f3c64c !important;
+}
+
+/* Document Suite Switcher Tab */
+.doc-switcher-tab {
+  flex-shrink: 0;
+  padding: 6px 13px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #f8fafc !important; /* Pure white readable text */
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.doc-switcher-tab:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #ffffff !important;
+}
+
+.doc-switcher-tab.active {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.26) 0%, rgba(212, 175, 55, 0.1) 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  border: 1px solid #f3c64c !important;
+  box-shadow: 0 0 14px rgba(243, 198, 76, 0.3), inset 0 -2px 0 #f3c64c !important;
+}
+
+/* ==========================================================================
+   HIGH-DENSITY ENTERPRISE DATA TABLE
+   Strict, structured spreadsheet ledger layout for all operational hotel datasets.
+   ========================================================================== */
+
+.enterprise-data-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: rgba(8, 14, 26, 0.95);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  margin-bottom: 1.5rem;
+}
+
+.enterprise-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  color: #f8fafc;
+}
+
+.enterprise-data-table thead tr {
+  background: linear-gradient(90deg, #0b1526 0%, #15243d 50%, #0b1526 100%);
+  border-bottom: 2px solid rgba(212, 175, 55, 0.45);
+}
+
+.enterprise-data-table th {
+  padding: 0.75rem 0.85rem;
+  font-weight: 800;
+  font-size: 0.76rem;
+  color: #f3c64c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+.enterprise-data-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+}
+
+.enterprise-data-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.enterprise-data-table tbody tr:hover {
+  background: rgba(212, 175, 55, 0.09) !important;
+}
+
+.enterprise-data-table td.cell-num {
+  font-family: 'Courier New', Courier, monospace, system-ui;
+  font-weight: 700;
+  text-align: right;
+  font-size: 0.85rem;
+}
+
 .mobile-swipe-guide {
   display: none;
   background: rgba(56, 189, 248, 0.15);

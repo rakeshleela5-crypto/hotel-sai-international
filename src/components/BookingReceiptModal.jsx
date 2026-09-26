@@ -773,10 +773,10 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
             {/* Sheet 1: GST vs Non-GST Billing Series Selector */}
             <div style={{
               display: 'inline-flex',
-              background: 'rgba(0,0,0,0.5)',
-              padding: '2px',
+              background: 'rgba(0,0,0,0.6)',
+              padding: '3px',
               borderRadius: '6px',
-              border: '1px solid rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.18)',
               marginRight: '6px',
               flexShrink: 0
             }}>
@@ -784,14 +784,15 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                 type="button"
                 onClick={() => setIsNonGstBill(false)}
                 style={{
-                  padding: '5px 10px',
+                  padding: '5px 11px',
                   borderRadius: '4px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
+                  fontSize: '0.74rem',
+                  fontWeight: !isNonGstBill ? 800 : 600,
                   cursor: 'pointer',
-                  background: !isNonGstBill ? 'var(--gold-glow)' : 'transparent',
-                  color: !isNonGstBill ? '#060e1a' : '#94a3b8',
-                  border: 'none',
+                  background: !isNonGstBill ? 'linear-gradient(180deg, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0.15) 100%)' : 'transparent',
+                  color: !isNonGstBill ? '#ffffff' : '#cbd5e1',
+                  border: !isNonGstBill ? '1px solid #f3c64c' : '1px solid transparent',
+                  boxShadow: !isNonGstBill ? '0 0 10px rgba(243, 198, 76, 0.3)' : 'none',
                   whiteSpace: 'nowrap'
                 }}
               >
@@ -801,14 +802,15 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                 type="button"
                 onClick={() => setIsNonGstBill(true)}
                 style={{
-                  padding: '5px 10px',
+                  padding: '5px 11px',
                   borderRadius: '4px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
+                  fontSize: '0.74rem',
+                  fontWeight: isNonGstBill ? 800 : 600,
                   cursor: 'pointer',
-                  background: isNonGstBill ? '#38bdf8' : 'transparent',
-                  color: isNonGstBill ? '#060e1a' : '#94a3b8',
-                  border: 'none',
+                  background: isNonGstBill ? 'linear-gradient(180deg, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0.15) 100%)' : 'transparent',
+                  color: isNonGstBill ? '#ffffff' : '#cbd5e1',
+                  border: isNonGstBill ? '1px solid #38bdf8' : '1px solid transparent',
+                  boxShadow: isNonGstBill ? '0 0 10px rgba(56, 189, 248, 0.3)' : 'none',
                   whiteSpace: 'nowrap'
                 }}
               >
@@ -829,21 +831,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                 key={tab.id}
                 type="button"
                 onClick={() => setInvoiceType(tab.id)}
-                style={{
-                  flexShrink: 0,
-                  padding: '6px 12px',
-                  borderRadius: '5px',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: invoiceType === tab.id 
-                    ? (tab.isKeycard ? 'linear-gradient(135deg, #f3c64c, #d4af37)' : 'var(--gold-glow)') 
-                    : 'transparent',
-                  color: invoiceType === tab.id ? '#060e1a' : '#cbd5e1',
-                  border: invoiceType === tab.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease'
-                }}
+                className={`doc-switcher-tab ${invoiceType === tab.id ? 'active' : ''}`}
               >
                 {tab.isKeycard && <Key size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />}
                 {tab.label}
