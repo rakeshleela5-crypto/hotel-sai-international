@@ -13,8 +13,8 @@ const puppeteer = require('puppeteer-core');
   });
   page.on('pageerror', err => consoleErrors.push(err.toString()));
 
-  console.log('Navigating to local preview deployment...');
-  await page.goto('http://localhost:4173', { waitUntil: 'networkidle2' });
+  console.log('Navigating to live production deployment...');
+  await page.goto('https://hotel-sai-international.pages.dev', { waitUntil: 'networkidle2' });
 
   // Find the PMS button
   const pmsBtn = await page.evaluate(() => {
