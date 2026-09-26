@@ -3,13 +3,62 @@ import QRCode from 'qrcode';
 import confetti from 'canvas-confetti';
 import { 
   X, Calendar, Users, Shield, QrCode, CreditCard, 
-  Building2, CheckCircle2, AlertCircle, Sparkles, MapPin, Lock
+  Building2, CheckCircle2, AlertCircle, Sparkles, MapPin, Lock,
+  BedDouble, UtensilsCrossed, Clock, Car, Plus, Check, Percent
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS, CORPORATE_PARTNERS } from '../data/hotelData';
 import { calculateRoomTax } from '../utils/taxUtils';
 import { maskAadhaar, hasDateCollision } from '../utils/security';
 import BookingCalendar from '@/components/ui/v-calendar-15';
 import { AnimatedStepper } from '@/components/ui/animated-stepper';
+
+export const AVAILABLE_ADDONS = [
+  {
+    id: 'extra_bed',
+    name: 'Rollaway Extra Bed & Linen',
+    description: 'Orthopedic rollaway mattress with premium sanitized bedsheet & duvet for extra guest',
+    price: 400,
+    pricingType: 'per_night',
+    sac: '996311',
+    badge: 'Popular'
+  },
+  {
+    id: 'satvik_thali',
+    name: 'Pure Satvik Odia Thali Meal Plan',
+    description: 'Authentic 3-course pure veg meal (Odia Dalma, Paneer Besara, Rice, Roti, Kheer) at Fenugreek',
+    price: 450,
+    pricingType: 'per_night',
+    sac: '996331',
+    badge: 'Satvik Dining'
+  },
+  {
+    id: 'early_checkin',
+    name: 'Guaranteed Early Check-In Pass',
+    description: 'Room ready on early morning train arrival (e.g. Hirakhand Express from BBSR/VZM from 7 AM)',
+    price: 500,
+    pricingType: 'flat',
+    sac: '996311',
+    badge: 'Train Arrival'
+  },
+  {
+    id: 'puja_kit',
+    name: 'Maa Majhighariani VIP Darshan & Puja Kit',
+    description: 'Temple offering thali, fresh marigold flowers, coconuts, camphor, plus priority temple darshan guidance',
+    price: 300,
+    pricingType: 'flat',
+    sac: '996311',
+    badge: 'Pilgrim Special'
+  },
+  {
+    id: 'station_pickup',
+    name: 'RGDA Railway Station AC Cab Pickup / Drop',
+    description: 'Chauffeur greeting at Rayagada Station Platform 1 exit in AC Dzire / Innova (zero waiting)',
+    price: 350,
+    pricingType: 'flat',
+    sac: '996412',
+    badge: 'Station Transfer'
+  }
+];
 
 export default function BookingModal({
   isOpen,
@@ -51,8 +100,12 @@ export default function BookingModal({
   const [consentDpdp, setConsentDpdp] = useState(false);
   const [specialRequests, setSpecialRequests] = useState('');
 
+  // QloApps Extra Services Add-ons & Partial Guarantee Deposit State
+  const [selectedAddOns, setSelectedAddOns] = useState([]);
+  const [depositOption, setDepositOption] = useState('full'); // 'full' or 'deposit'
+
   // Payment Selection
-  const [paymentMode, setPaymentMode] = useState('UPI'); // 'UPI', 'Pay at Hotel', 'Corporate B2B'
+  const [paymentMode, setPaymentMode] = useState('UPI'); // 'UPI', 'Razorpay', 'Pay at Hotel', 'Corporate B2B'
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -100,15 +153,32 @@ export default function BookingModal({
   const totalBase = baseRatePerNight * nights;
   const tax = calculateRoomTax(totalBase);
 
+  // QloApps Extra Services Calculation
+  const addOnsTotal = selectedAddOns.reduce((sum, id) => {
+    const item = AVAILABLE_ADDONS.find(a => a.id === id);
+    if (!item) return sum;
+    return sum + (item.pricingType === 'per_night' ? item.price * nights : item.price);
+  }, 0);
+
+  const grandTotal = tax.total + addOnsTotal;
+  const advanceDepositPayable = depositOption === 'deposit' ? Math.min(500, grandTotal) : grandTotal;
+  const balanceDueCalculated = Math.max(0, grandTotal - advanceDepositPayable);
+
+  const handleToggleAddOn = (addonId) => {
+    setSelectedAddOns(prev => 
+      prev.includes(addonId) ? prev.filter(id => id !== addonId) : [...prev, addonId]
+    );
+  };
+
   // Generate UPI QR Code
   useEffect(() => {
-    if (paymentMode === 'UPI' && tax.total > 0) {
-      const upiUrl = `upi://pay?pa=${HOTEL_CONFIG.upiId}&pn=${encodeURIComponent(HOTEL_CONFIG.name)}&am=${tax.total}&tn=${encodeURIComponent(`Room-${selectedRoomNumber || 'Booking'}`)}&cu=INR`;
+    if (paymentMode === 'UPI' && grandTotal > 0) {
+      const upiUrl = `upi://pay?pa=${HOTEL_CONFIG.upiId}&pn=${encodeURIComponent(HOTEL_CONFIG.name)}&am=${advanceDepositPayable}&tn=${encodeURIComponent(`Room-${selectedRoomNumber || 'Booking'}`)}&cu=INR`;
       QRCode.toDataURL(upiUrl, { width: 200, margin: 1, color: { dark: '#060e1a', light: '#ffffff' } })
         .then(url => setQrDataUrl(url))
         .catch(err => console.error("QR Code error:", err));
     }
-  }, [paymentMode, tax.total, selectedRoomNumber]);
+  }, [paymentMode, grandTotal, advanceDepositPayable, selectedRoomNumber]);
 
   if (!isOpen) return null;
 
@@ -145,7 +215,19 @@ export default function BookingModal({
     // Public visitor action CANNOT self-declare as 'Paid'
     const paymentStatus = paymentMode === 'Pay at Hotel' 
       ? 'Pending Payment at Check-In' 
-      : 'Pending Gateway Verification';
+      : (depositOption === 'deposit' ? 'Partial Deposit Paid (₹500 Verified)' : 'Pending Gateway Verification');
+
+    const formattedAddOns = selectedAddOns.map(id => {
+      const item = AVAILABLE_ADDONS.find(a => a.id === id);
+      return {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        pricingType: item.pricingType,
+        total: item.pricingType === 'per_night' ? item.price * nights : item.price,
+        sac: item.sac
+      };
+    });
 
     const bookingPayload = {
       bookingId: `HSI-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
@@ -167,9 +249,13 @@ export default function BookingModal({
       baseTotal: totalBase,
       cgst: tax.cgst,
       sgst: tax.sgst,
-      totalAmount: tax.total,
-      advanceDeposit: paymentMode === 'UPI' ? tax.total : 0,
-      balanceDue: paymentMode === 'UPI' ? 0 : tax.total,
+      roomTotal: tax.total,
+      selectedAddOns: formattedAddOns,
+      addOnsTotal,
+      totalAmount: grandTotal,
+      depositOption,
+      advanceDeposit: paymentMode === 'UPI' ? advanceDepositPayable : 0,
+      balanceDue: paymentMode === 'UPI' ? balanceDueCalculated : grandTotal,
       paymentMode,
       paymentStatus,
       bookingStatus: 'Confirmed',
@@ -208,15 +294,17 @@ export default function BookingModal({
     if (paymentMode === 'Razorpay' && typeof window !== 'undefined' && window.Razorpay) {
       const rzpOptions = {
         key: 'rzp_test_54a1e1d5_hotel',
-        amount: Math.round(tax.total * 100),
+        amount: Math.round(advanceDepositPayable * 100),
         currency: 'INR',
         name: HOTEL_CONFIG.name,
         description: `Booking for ${selectedTier.name} (Room ${selectedRoomNumber})`,
         image: '/favicon.svg',
         handler: async function (response) {
-          bookingPayload.paymentStatus = 'Paid (Razorpay Gateway)';
-          bookingPayload.advanceDeposit = tax.total;
-          bookingPayload.balanceDue = 0;
+          bookingPayload.paymentStatus = depositOption === 'deposit'
+            ? 'Partial Deposit Paid (₹500 Gateway Verified)'
+            : 'Paid (Razorpay Gateway)';
+          bookingPayload.advanceDeposit = advanceDepositPayable;
+          bookingPayload.balanceDue = balanceDueCalculated;
           await submitBookingDirect(bookingPayload);
         },
         prefill: {
@@ -588,6 +676,88 @@ export default function BookingModal({
                 />
               </div>
 
+              {/* QloApps Extra Services & Add-Ons Upsell Marketplace */}
+              <div style={{ marginBottom: '1.25rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                  <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--gold-glow)' }}>
+                    <Sparkles size={14} /> Enhance Your Stay (Extra Services &amp; Add-Ons)
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    Optional Add-ons
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                  {AVAILABLE_ADDONS.map(addon => {
+                    const isSelected = selectedAddOns.includes(addon.id);
+                    const calculatedPrice = addon.pricingType === 'per_night' ? addon.price * nights : addon.price;
+
+                    return (
+                      <div 
+                        key={addon.id}
+                        onClick={() => handleToggleAddOn(addon.id)}
+                        style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '8px',
+                          border: isSelected ? '1.5px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.1)',
+                          background: isSelected ? 'rgba(212, 175, 55, 0.12)' : 'rgba(6, 14, 26, 0.6)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                          <div style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '4px',
+                            border: isSelected ? '2px solid var(--gold-glow)' : '1.5px solid rgba(255, 255, 255, 0.3)',
+                            background: isSelected ? 'var(--gold-glow)' : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            {isSelected && <Check size={14} color="#060e1a" strokeWidth={3} />}
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#fff' : '#cbd5e1' }}>
+                                {addon.name}
+                              </span>
+                              <span style={{
+                                fontSize: '0.65rem',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: 'rgba(212, 175, 55, 0.2)',
+                                color: 'var(--gold-glow)',
+                                fontWeight: 600
+                              }}>
+                                {addon.badge}
+                              </span>
+                            </div>
+                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.25 }}>
+                              {addon.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--gold-glow)' }}>
+                            +₹{calculatedPrice.toLocaleString()}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                            {addon.pricingType === 'per_night' ? `₹${addon.price} × ${nights}n` : 'One-time'}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Payment Mode Selection */}
               <div className="form-group">
                 <label className="form-label">Payment Mode</label>
@@ -646,6 +816,66 @@ export default function BookingModal({
                 </div>
               </div>
 
+              {/* QloApps Partial Advance Guarantee Deposit Engine */}
+              {paymentMode !== 'Pay at Hotel' && (
+                <div style={{
+                  background: 'rgba(6, 14, 26, 0.75)',
+                  border: '1px solid rgba(212, 175, 55, 0.25)',
+                  borderRadius: '8px',
+                  padding: '0.75rem',
+                  marginBottom: '1rem'
+                }}>
+                  <label className="form-label" style={{ marginBottom: '0.4rem', color: 'var(--gold-glow)', fontSize: '0.8rem' }}>
+                    Settlement Option (Online Deposit vs Full Payment)
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setDepositOption('full')}
+                      style={{
+                        padding: '0.55rem',
+                        borderRadius: '6px',
+                        border: depositOption === 'full' ? '1.5px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: depositOption === 'full' ? 'rgba(212, 175, 55, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                        color: '#fff',
+                        fontSize: '0.75rem',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, color: depositOption === 'full' ? 'var(--gold-glow)' : '#fff' }}>
+                        Pay Full Online
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        ₹{grandTotal.toLocaleString()} • Zero balance check-in
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDepositOption('deposit')}
+                      style={{
+                        padding: '0.55rem',
+                        borderRadius: '6px',
+                        border: depositOption === 'deposit' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: depositOption === 'deposit' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                        color: '#fff',
+                        fontSize: '0.75rem',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, color: depositOption === 'deposit' ? '#38bdf8' : '#fff' }}>
+                        Pay ₹500 Advance Deposit
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        Lock room • Bal ₹{balanceDueCalculated.toLocaleString()} at check-in
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* UPI QR Display */}
               {paymentMode === 'UPI' && qrDataUrl && (
                 <div style={{
@@ -667,7 +897,12 @@ export default function BookingModal({
                       GPay, PhonePe, Paytm, BHIM to <code>{HOTEL_CONFIG.upiId}</code>
                     </div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginTop: '0.35rem' }}>
-                      Amount: ₹{tax.total.toLocaleString()}
+                      Payable Now: ₹{advanceDepositPayable.toLocaleString()}
+                      {depositOption === 'deposit' && (
+                        <span style={{ fontSize: '0.72rem', color: '#38bdf8', display: 'block', fontWeight: 500 }}>
+                          (Advance Deposit • Bal ₹{balanceDueCalculated.toLocaleString()} due at desk)
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -683,21 +918,39 @@ export default function BookingModal({
                 marginBottom: '1rem'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  <span>Base Tariff ({nights} night{nights > 1 ? 's' : ''}):</span>
+                  <span>Room Tariff ({nights} night{nights > 1 ? 's' : ''}):</span>
                   <span>₹{totalBase.toLocaleString()}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
                   <span>CGST 2.5% (SAC 996311):</span>
                   <span>₹{tax.cgst.toFixed(2)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
                   <span>SGST 2.5% (SAC 996311):</span>
                   <span>₹{tax.sgst.toFixed(2)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '0.4rem', fontWeight: 700, fontSize: '1rem', color: 'var(--gold-glow)' }}>
-                  <span>Total Amount Payable:</span>
-                  <span>₹{tax.total.toLocaleString()}</span>
+                {selectedAddOns.length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#38bdf8', marginBottom: '0.25rem' }}>
+                    <span>Extra Services &amp; Add-Ons ({selectedAddOns.length}):</span>
+                    <span>+₹{addOnsTotal.toLocaleString()}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '0.4rem', fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>
+                  <span>Total Reservation Value:</span>
+                  <span>₹{grandTotal.toLocaleString()}</span>
                 </div>
+                {paymentMode !== 'Pay at Hotel' && depositOption === 'deposit' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.3rem', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 600 }}>Advance Deposit Payable Now:</span>
+                    <span style={{ color: '#38bdf8', fontWeight: 700 }}>₹{advanceDepositPayable.toLocaleString()}</span>
+                  </div>
+                )}
+                {paymentMode !== 'Pay at Hotel' && depositOption === 'deposit' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    <span>Balance Due at Check-In:</span>
+                    <span style={{ color: 'var(--gold-glow)', fontWeight: 600 }}>₹{balanceDueCalculated.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
 
               {/* Mandatory DPDP Act 2023 Consent Checkbox (Starts Unchecked) */}
@@ -752,7 +1005,13 @@ export default function BookingModal({
                   className="btn-primary-gold" 
                   style={{ flex: 2, justifyContent: 'center', opacity: submitting ? 0.7 : 1 }}
                 >
-                  {submitting ? 'Securing Booking...' : `Confirm Booking • ₹${tax.total.toLocaleString()}`}
+                  {submitting 
+                    ? 'Securing Booking...' 
+                    : (paymentMode === 'Pay at Hotel' 
+                        ? `Book with Pay-at-Hotel • ₹${grandTotal.toLocaleString()}`
+                        : (depositOption === 'deposit' 
+                            ? `Pay ₹500 Deposit • Lock Room` 
+                            : `Confirm Booking • ₹${grandTotal.toLocaleString()}`))}
                 </button>
               </div>
             </div>

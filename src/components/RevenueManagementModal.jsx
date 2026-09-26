@@ -41,6 +41,71 @@ export default function RevenueManagementModal({
   // Automation Mode: 'autonomous' | 'exception' | 'interactive'
   const [automationMode, setAutomationMode] = useState('exception');
 
+  // QloApps & IDS Next Seasonal Price Rules & Festival Multipliers Engine
+  const [seasonalRules, setSeasonalRules] = useState([
+    {
+      id: 'rule_chaitra_yatra',
+      name: 'Maa Majhighariani Chaitra Yatra Mahotsav',
+      period: '18-Mar to 02-Apr (Annual)',
+      category: 'Pilgrim / Temple Surge',
+      multiplier: 1.40, // +40%
+      minNights: 2,
+      appliedTiers: 'All Tiers',
+      isActive: true,
+      description: 'Devotees visit Majhighariani Temple from AP, Telangana, and Odisha. Room demand exceeds 400% capacity.'
+    },
+    {
+      id: 'rule_durga_puja',
+      name: 'Durga Puja & Dussehra Festive Season',
+      period: '15-Oct to 24-Oct (Annual)',
+      category: 'Holiday / Festive',
+      multiplier: 1.25, // +25%
+      minNights: 1,
+      appliedTiers: 'All Tiers',
+      isActive: true,
+      description: 'Rayagada town cultural carnivals, visiting NRI families, and tourist inflow for Devagiri caves.'
+    },
+    {
+      id: 'rule_industrial_shutdown',
+      name: 'JK Paper Mills & Utkal Alumina Annual Shutdown',
+      period: '10-Nov to 25-Nov',
+      category: 'Corporate Industrial Surge',
+      multiplier: 1.15, // +15%
+      minNights: 3,
+      appliedTiers: 'Executive & Suites',
+      isActive: true,
+      description: 'OEM maintenance engineers from Voith, Andritz, Siemens, and L&T occupy premium rooms for 2 weeks.'
+    },
+    {
+      id: 'rule_weekend_getaway',
+      name: 'Rayagada Weekend Leisure & Waterfall Trek Surge',
+      period: 'Every Friday to Sunday',
+      category: 'Weekend Leisure',
+      multiplier: 1.10, // +10%
+      minNights: 1,
+      appliedTiers: 'Deluxe & Executive',
+      isActive: true,
+      description: 'Weekend travelers visiting Hanging Bridge, Hatipathar, and Chatikona waterfalls.'
+    },
+    {
+      id: 'rule_monsoon_green',
+      name: 'Eastern Ghats Monsoon Eco-Tourism Promotion',
+      period: '01-Jul to 15-Aug',
+      category: 'Seasonal Value Offer',
+      multiplier: 0.90, // -10% discount
+      minNights: 2,
+      appliedTiers: 'Standard & Deluxe',
+      isActive: false,
+      description: 'Monsoon off-season green value package boosting mid-week corporate and leisure occupancy.'
+    }
+  ]);
+
+  const toggleSeasonalRule = (ruleId) => {
+    setSeasonalRules(prev => prev.map(r => 
+      r.id === ruleId ? { ...r, isActive: !r.isActive } : r
+    ));
+  };
+
   // Yielding Simulation Sliders State
   const [simOccupancy, setSimOccupancy] = useState(currentOccupancy || 70);
   const [simDta, setSimDta] = useState(3); // Days to arrival
@@ -383,11 +448,12 @@ export default function RevenueManagementModal({
         }}>
           {[
             { id: 'yielding', label: '1. Yielding & Micro-Rates', icon: <TrendingUp size={15} /> },
-            { id: 'mar', label: '2. Corporate Group MAR', icon: <Calculator size={15} /> },
-            { id: 'investigator', label: '3. The Investigator (Explainable AI)', icon: <HelpCircle size={15} /> },
-            { id: 'sandbox', label: '4. What-If Scenario Sandbox', icon: <Sliders size={15} /> },
-            { id: 'guardrails', label: '5. Rate Guardrails & Comp-Set', icon: <Shield size={15} /> },
-            { id: 'netrevpar', label: '6. Net RevPAR & Channels', icon: <Globe size={15} /> }
+            { id: 'seasonal-rules', label: '2. Seasonal & Festival Rules', icon: <Calendar size={15} /> },
+            { id: 'mar', label: '3. Corporate Group MAR', icon: <Calculator size={15} /> },
+            { id: 'investigator', label: '4. The Investigator (Explainable AI)', icon: <HelpCircle size={15} /> },
+            { id: 'sandbox', label: '5. What-If Scenario Sandbox', icon: <Sliders size={15} /> },
+            { id: 'guardrails', label: '6. Rate Guardrails & Comp-Set', icon: <Shield size={15} /> },
+            { id: 'netrevpar', label: '7. Net RevPAR & Channels', icon: <Globe size={15} /> }
           ].map(tab => (
             <button
               key={tab.id}
@@ -716,7 +782,236 @@ export default function RevenueManagementModal({
           )}
 
           {/* =========================================================================
-              TAB 2: CORPORATE GROUP DISPLACEMENT & MAR CALCULATOR
+              TAB 2: QLOAPPS & IDS NEXT SEASONAL PRICE RULES & FESTIVAL MULTIPLIERS
+             ========================================================================= */}
+          {activeTab === 'seasonal-rules' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Header Banner */}
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(212, 175, 55, 0.25)',
+                borderRadius: '12px',
+                padding: '1.25rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{
+                      background: 'linear-gradient(135deg, #d4af37, #996515)',
+                      color: '#060e1a',
+                      padding: '0.4rem',
+                      borderRadius: '8px'
+                    }}>
+                      <Calendar size={20} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#fff', fontWeight: 800 }}>
+                        Seasonal Calendar Rate Rules &amp; Regional Event Engine
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                        QloApps &amp; IDS Next Protocol • Automated date-locked rate multipliers, minimum stay (MLOS) restrictions, and pilgrim demand capture.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ background: 'rgba(52, 211, 153, 0.15)', border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', color: '#34d399', fontWeight: 700 }}>
+                      ✓ {seasonalRules.filter(r => r.isActive).length} Active Rules
+                    </div>
+                    <div style={{ background: 'rgba(212, 175, 55, 0.15)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', color: 'var(--gold-glow)', fontWeight: 700 }}>
+                      Peak Surge: +40%
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPI Metrics */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: '0.75rem',
+                  marginTop: '1rem'
+                }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Active Multiplier Range</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#38bdf8', marginTop: '2px' }}>0.90x ~ 1.40x</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Discount incentives to peak compression</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Projected Peak Season ADR</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--gold-glow)', marginTop: '2px' }}>₹3,849.00</div>
+                    <div style={{ fontSize: '0.7rem', color: '#34d399' }}>+47.0% above baseline ₹2,618</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Peak Occ Compression</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#34d399', marginTop: '2px' }}>96.5%</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Chaitra Yatra &amp; Puja season</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Estimated RevPAR Gain</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#a855f7', marginTop: '2px' }}>+₹840 / Room</div>
+                    <div style={{ fontSize: '0.7rem', color: '#c084fc' }}>Incremental margin capture</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rules Cards List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {seasonalRules.map(rule => {
+                  const isSurge = rule.multiplier >= 1.0;
+                  const pct = Math.round((rule.multiplier - 1.0) * 100);
+
+                  return (
+                    <div
+                      key={rule.id}
+                      style={{
+                        background: rule.isActive ? 'rgba(15, 23, 42, 0.75)' : 'rgba(15, 23, 42, 0.35)',
+                        border: rule.isActive 
+                          ? (isSurge ? '1px solid rgba(212, 175, 55, 0.35)' : '1px solid rgba(56, 189, 248, 0.35)') 
+                          : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '12px',
+                        padding: '1.25rem',
+                        transition: 'all 0.2s ease',
+                        opacity: rule.isActive ? 1 : 0.65
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <h4 style={{ margin: 0, fontSize: '1rem', color: '#fff', fontWeight: 700 }}>
+                              {rule.name}
+                            </h4>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              background: 'rgba(255,255,255,0.06)',
+                              color: '#cbd5e1',
+                              border: '1px solid rgba(255,255,255,0.1)'
+                            }}>
+                              {rule.category}
+                            </span>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              background: isSurge ? 'rgba(212, 175, 55, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                              color: isSurge ? 'var(--gold-glow)' : '#38bdf8',
+                              fontWeight: 700
+                            }}>
+                              {pct >= 0 ? `+${pct}% Surge (${rule.multiplier}x)` : `${pct}% Discount (${rule.multiplier}x)`}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                            📅 <strong>Calendar Window:</strong> {rule.period} • <strong>Min Stay:</strong> {rule.minNights} Night{rule.minNights > 1 ? 's' : ''} • <strong>Scope:</strong> {rule.appliedTiers}
+                          </div>
+                        </div>
+
+                        {/* Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleSeasonalRule(rule.id)}
+                          style={{
+                            padding: '0.45rem 1rem',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            background: rule.isActive ? 'rgba(52, 211, 153, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                            color: rule.isActive ? '#34d399' : '#94a3b8',
+                            border: rule.isActive ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.2)'
+                          }}
+                        >
+                          {rule.isActive ? '✓ Rule Active' : '○ Inactive'}
+                        </button>
+                      </div>
+
+                      <p style={{ margin: '0 0 1rem 0', fontSize: '0.78rem', color: '#cbd5e1', lineHeight: 1.4 }}>
+                        {rule.description}
+                      </p>
+
+                      {/* Live Tier Tariff Impact Comparison Bar */}
+                      <div style={{
+                        background: 'rgba(6, 14, 26, 0.8)',
+                        borderRadius: '8px',
+                        padding: '0.75rem 1rem',
+                        border: '1px solid rgba(255, 255, 255, 0.06)'
+                      }}>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', fontWeight: 700 }}>
+                          Projected Dynamic Room Tariff Impact:
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', fontSize: '0.75rem' }}>
+                          <div>
+                            <span style={{ color: '#94a3b8' }}>Standard Deluxe:</span>
+                            <div style={{ fontWeight: 700, color: rule.isActive ? 'var(--gold-glow)' : '#cbd5e1' }}>
+                              ₹{Math.round(1999 * rule.multiplier).toLocaleString()} <span style={{ fontSize: '0.65rem', color: '#64748b' }}>(Base ₹1,999)</span>
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#94a3b8' }}>Deluxe Room:</span>
+                            <div style={{ fontWeight: 700, color: rule.isActive ? 'var(--gold-glow)' : '#cbd5e1' }}>
+                              ₹{Math.round(2499 * rule.multiplier).toLocaleString()} <span style={{ fontSize: '0.65rem', color: '#64748b' }}>(Base ₹2,499)</span>
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#94a3b8' }}>Executive Room:</span>
+                            <div style={{ fontWeight: 700, color: rule.isActive ? 'var(--gold-glow)' : '#cbd5e1' }}>
+                              ₹{Math.round(3499 * rule.multiplier).toLocaleString()} <span style={{ fontSize: '0.65rem', color: '#64748b' }}>(Base ₹3,499)</span>
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#94a3b8' }}>Premium Suite:</span>
+                            <div style={{ fontWeight: 700, color: rule.isActive ? 'var(--gold-glow)' : '#cbd5e1' }}>
+                              ₹{Math.round(5999 * rule.multiplier).toLocaleString()} <span style={{ fontSize: '0.65rem', color: '#64748b' }}>(Base ₹5,999)</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Action Button: Apply to Simulation */}
+              <div style={{
+                background: 'rgba(212, 175, 55, 0.08)',
+                border: '1px solid rgba(212, 175, 55, 0.25)',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--gold-glow)', fontWeight: 700 }}>
+                    Synchronize Rules with Active Micro-Rate Yield Simulator
+                  </h4>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: '#cbd5e1' }}>
+                    Push seasonal multipliers into Tab 1 (Yielding &amp; Micro-Rates) and simulate peak occupancy compression.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFestivalSurge(true);
+                    setSimOccupancy(92);
+                    setSimVelocity(7);
+                    setActiveTab('yielding');
+                  }}
+                  className="btn-primary-gold"
+                  style={{ padding: '0.6rem 1.3rem', fontSize: '0.82rem', fontWeight: 800 }}
+                >
+                  Apply Chaitra Yatra Multiplier (+40%) &amp; View Rates →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TAB 3: CORPORATE GROUP DISPLACEMENT & MAR CALCULATOR
              ========================================================================= */}
           {activeTab === 'mar' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

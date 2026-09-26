@@ -525,6 +525,25 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                   <td className="text-right">{isNonGstBill ? '₹900.00' : '₹0.00'}</td>
                   <td className="text-right">₹900.00</td>
                 </tr>
+
+                {/* QloApps Extra Services & Add-Ons Items */}
+                {Array.isArray(booking.selectedAddOns) && booking.selectedAddOns.map((addon, idx) => (
+                  <tr key={addon.id || idx}>
+                    <td>{3 + idx}</td>
+                    <td>
+                      <strong>{addon.name}</strong>
+                      <div style={{ fontSize: '9px', color: '#444' }}>
+                        Extra Service: {addon.pricingType === 'per_night' ? `${booking.nights || 1} Night(s) Package` : 'One-time Facility Booking'}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>{addon.sac || '996311'}</td>
+                    <td style={{ textAlign: 'center' }}>{addon.pricingType === 'per_night' ? (booking.nights || 1) : 1}</td>
+                    <td className="text-right">₹{Number(addon.price || 0).toFixed(2)}</td>
+                    <td className="text-right">{isNonGstBill ? '₹0.00' : `₹${Number(addon.total || addon.price || 0).toFixed(2)}`}</td>
+                    <td className="text-right">{isNonGstBill ? `₹${Number(addon.total || addon.price || 0).toFixed(2)}` : '₹0.00'}</td>
+                    <td className="text-right">₹{Number(addon.total || addon.price || 0).toFixed(2)}</td>
+                  </tr>
+                ))}
               </tbody>
               <tfoot>
                 <tr>
@@ -610,8 +629,10 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                     <strong style={{ textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.5px' }}>
                       Audited Settlement &amp; Multi-Tender Split Breakdown
                     </strong>
-                    <span style={{ color: '#059669', fontWeight: 'bold' }}>
-                      ✓ STATUS: FULLY SETTLED / NIL BALANCE
+                    <span style={{ color: (booking.balanceDue && Number(booking.balanceDue) > 0) ? '#d97706' : '#059669', fontWeight: 'bold' }}>
+                      {(booking.balanceDue && Number(booking.balanceDue) > 0)
+                        ? `⚠️ ADVANCE: ₹${Number(booking.advanceDeposit || 0).toLocaleString('en-IN')} PAID • ₹${Number(booking.balanceDue).toLocaleString('en-IN')} DUE AT CHECK-IN`
+                        : '✓ STATUS: FULLY SETTLED / NIL BALANCE'}
                     </span>
                   </div>
 
