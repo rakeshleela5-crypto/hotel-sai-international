@@ -933,6 +933,12 @@ export default function App() {
               onAddTransaction={handleAddTransaction}
               onUpdateRoomStatus={handleUpdateRoomStatus}
               onNewBooking={handleBookingSuccess}
+              onUpdateBooking={(updated) => {
+                if (updated && (updated.bookingId || updated.id)) {
+                  const bId = updated.bookingId || updated.id;
+                  setBookings(prev => prev.map(b => (b.bookingId === bId || b.id === bId || b.roomNumber === updated.roomNumber) ? { ...b, ...updated } : b));
+                }
+              }}
               onRunNightAudit={handleRunNightAudit}
               onExitPMS={() => setCurrentView('guest')}
               onOpenMasterFolio={() => setFolioModalOpen(true)}

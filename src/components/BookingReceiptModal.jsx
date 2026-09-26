@@ -78,6 +78,7 @@ export default function BookingReceiptModal({
   const [lineItems, setLineItems] = useState([]);
 
   // Frontend GST Engine Controller State
+  const [isGstPanelOpen, setIsGstPanelOpen] = useState(false);
   const [gstSlab, setGstSlab] = useState(12); // 12% default for rooms <= 7500; options: 12, 18, 5, 0
   const [taxType, setTaxType] = useState('intra'); // 'intra' (CGST+SGST) or 'inter' (IGST)
   const [isRcm, setIsRcm] = useState(false);
@@ -228,6 +229,26 @@ export default function BookingReceiptModal({
 
   const advancePaid = Number(booking.advanceDeposit || booking.advancePaid || 5000);
   const balanceDue = Math.max(0, grandTotal - advancePaid);
+
+  // Room Split calculations (Page 3 of hotel_documents.pdf)
+  const roomItems = lineItems.filter(item => item.sac === '996311' || item.desc?.toLowerCase().includes('accommodation') || item.desc?.toLowerCase().includes('tariff') || item.desc?.toLowerCase().includes('room'));
+  const roomTariffBase = roomItems.length > 0
+    ? roomItems.reduce((sum, item) => sum + (Number(item.qty || 1) * Number(item.rate || 0)), 0)
+    : 11996.00;
+  const roomGstVal = Number(((roomTariffBase * 5) / 100).toFixed(2));
+  const roomSgst = Number((roomGstVal / 2).toFixed(2));
+  const roomCgst = Number((roomGstVal / 2).toFixed(2));
+  const roomTotal = Number((roomTariffBase + roomGstVal).toFixed(2));
+
+  // Food Split calculations (Page 2 of hotel_documents.pdf - Cannon Kitchen)
+  const foodItems = lineItems.filter(item => item.sac === '996331' || item.desc?.toLowerCase().includes('dining') || item.desc?.toLowerCase().includes('restaurant') || item.desc?.toLowerCase().includes('food'));
+  const foodBase = foodItems.length > 0
+    ? foodItems.reduce((sum, item) => sum + (Number(item.qty || 1) * Number(item.rate || 0)), 0)
+    : 900.00;
+  const foodGstVal = Number(((foodBase * 5) / 100).toFixed(2));
+  const foodSgst = Number((foodGstVal / 2).toFixed(2));
+  const foodCgst = Number((foodGstVal / 2).toFixed(2));
+  const foodTotal = Number((foodBase + foodGstVal).toFixed(2));
 
   const effectiveBillNo = isNonGstBill 
     ? `NGST2627-${String(editHeader.roomNumber || '1499').padStart(5, '0')}`
@@ -413,73 +434,92 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Action Bar (Hidden in Print) */}
-        <div className="invoice-action-bar no-print" style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '8px', 
-          background: 'rgba(10, 20, 38, 0.96)',
-          border: '1px solid rgba(212, 175, 55, 0.4)',
-          borderRadius: '10px',
-          padding: '10px 14px',
-          marginBottom: '14px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
-        }}>
-          {/* Row 1: Header Title on Left, Print & Close Buttons Pinned on Right */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
-            <div className="action-bar-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FileText size={18} color="var(--gold-glow)" />
-              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--gold-glow)' }}>
-                Corporate Documents &amp; Split Folio Suite (hotel_documents.pdf)
-              </span>
-              <span style={{ 
-                fontSize: '0.72rem', 
-                background: 'rgba(212, 175, 55, 0.15)', 
-                color: 'var(--gold-glow)', 
-                padding: '2px 8px', 
-                borderRadius: '12px',
-                border: '1px solid rgba(212, 175, 55, 0.3)'
-              }}>
-                Room {booking.roomNumber || '301'} • {booking.guestName || 'MR. P ASHOK'}
-              </span>
+        <div className="invoice-action-bar no-print">
+          {/* Row 1: Header Title & Room Tag with Pinned Close Button */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%',
+            gap: '8px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            paddingBottom: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
+              <FileText size={16} color="var(--gold-glow)" style={{ flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--gold-glow)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Folio &amp; Documents Suite
+                </span>
+                <span style={{ 
+                  fontSize: '0.7rem', 
+                  color: '#94a3b8', 
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Room {booking.roomNumber || '301'} • {booking.guestName || 'MR. P ASHOK'}
+                </span>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              {saveSuccess && (
-                <span style={{
-                  fontSize: '0.75rem',
-                  color: '#10b981',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  border: '1px solid #10b981',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <Check size={13} /> Folio Saved &amp; Day Book Synced!
-                </span>
-              )}
+            <button 
+              type="button"
+              onClick={onClose} 
+              className="modal-close-btn" 
+              title="Close Modal (Esc)"
+              style={{ 
+                background: 'rgba(239, 68, 68, 0.2)', 
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                borderRadius: '6px', 
+                padding: '4px 8px', 
+                color: '#f87171',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                flexShrink: 0
+              }}
+            >
+              <X size={15} /> Close (Esc)
+            </button>
+          </div>
 
+          {/* Row 2: Primary Actions Toolbar (Responsive Scroll Strip) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            gap: '6px',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: '2px',
+            scrollbarWidth: 'none'
+          }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               {invoiceType !== 'keycard' && (
                 <button
                   type="button"
                   onClick={() => setIsLiveEditMode(!isLiveEditMode)}
                   style={{
-                    background: isLiveEditMode ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.06)',
+                    background: isLiveEditMode ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.06)',
                     border: isLiveEditMode ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.2)',
                     color: isLiveEditMode ? '#38bdf8' : '#cbd5e1',
                     borderRadius: '6px',
-                    padding: '6px 12px',
-                    fontSize: '0.78rem',
+                    padding: '5px 10px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px'
+                    gap: '4px',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <Edit3 size={14} /> {isLiveEditMode ? '✏️ Live Edit Mode: ACTIVE' : '👁️ Print Preview Mode'}
+                  <Edit3 size={13} /> {isLiveEditMode ? '✏️ Live Edit: ON' : '👁️ Preview'}
                 </button>
               )}
 
@@ -492,34 +532,79 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                     border: '1px solid #34d399',
                     color: '#fff',
                     borderRadius: '6px',
-                    padding: '6px 14px',
-                    fontSize: '0.78rem',
+                    padding: '5px 12px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
                     boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)'
                   }}
                 >
-                  <Save size={14} /> Save Folio &amp; Sync Day Book
+                  <Save size={13} /> Save Folio
                 </button>
               )}
 
+              {invoiceType === 'a4' && isLiveEditMode && (
+                <button
+                  type="button"
+                  onClick={() => setIsGstPanelOpen(!isGstPanelOpen)}
+                  style={{
+                    background: isGstPanelOpen ? 'rgba(56, 189, 248, 0.25)' : 'rgba(56, 189, 248, 0.12)',
+                    border: isGstPanelOpen ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.4)',
+                    color: '#38bdf8',
+                    borderRadius: '6px',
+                    padding: '5px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Toggle GST Engine & Quick Add Line Items"
+                >
+                  <Calculator size={13} /> {isGstPanelOpen ? '▲ Hide GST/Add-ons' : `▼ GST (${gstSlab}%) & Add-ons`}
+                </button>
+              )}
+
+              {saveSuccess && (
+                <span style={{
+                  fontSize: '0.72rem',
+                  color: '#34d399',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  border: '1px solid #34d399',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  <Check size={12} /> Saved!
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               {invoiceType !== 'keycard' && (
                 <button 
                   type="button"
                   onClick={handlePrint} 
                   className="btn-primary-gold" 
-                  style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  style={{ padding: '5px 12px', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                 >
-                  <Printer size={15} /> {
-                    invoiceType === 'grc' ? 'Print GRC Card (Form A)' :
-                    invoiceType === 'money-receipt' ? 'Print Advance Receipt' :
-                    invoiceType === 'pos' ? 'Print Thermal Slip' :
-                    invoiceType === 'room-split' ? 'Print Room Folio' :
-                    invoiceType === 'food-split' ? 'Print Dining Folio' :
-                    'Print Tax Invoice'
+                  <Printer size={13} /> {
+                    invoiceType === 'grc' ? 'Print GRC' :
+                    invoiceType === 'money-receipt' ? 'Print Receipt' :
+                    invoiceType === 'pos' ? 'Print Thermal' :
+                    invoiceType === 'room-split' ? 'Print Room' :
+                    invoiceType === 'food-split' ? 'Print Dining' :
+                    'Print Invoice'
                   }
                 </button>
               )}
@@ -529,48 +614,32 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                   type="button"
                   onClick={handleSendWhatsAppInvoice} 
                   style={{ 
-                    padding: '6px 14px', 
-                    fontSize: '0.8rem', 
+                    padding: '5px 12px', 
+                    fontSize: '0.74rem', 
                     fontWeight: 700,
                     display: 'inline-flex', 
                     alignItems: 'center', 
-                    gap: '6px',
+                    gap: '4px',
                     background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
                     border: '1px solid #25D366',
                     color: '#ffffff',
                     borderRadius: '6px',
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                     boxShadow: '0 2px 8px rgba(37, 211, 102, 0.35)'
                   }}
                   title="Send Official GST Tax Invoice to Guest's WhatsApp"
                 >
-                  <MessageCircle size={15} /> WhatsApp Bill
+                  <MessageCircle size={13} /> WhatsApp Bill
                 </button>
               )}
-
-              <button 
-                type="button"
-                onClick={onClose} 
-                className="modal-close-btn" 
-                title="Close Modal"
-                style={{ 
-                  background: 'rgba(255,255,255,0.1)', 
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: '6px', 
-                  padding: '6px', 
-                  color: '#f1f5f9',
-                  cursor: 'pointer' 
-                }}
-              >
-                <X size={18} />
-              </button>
             </div>
           </div>
 
-          {/* Row 2: Frontend GST Engine & Quick Line-Item Controller Strip */}
-          {invoiceType === 'a4' && isLiveEditMode && (
+          {/* Row 3: Frontend GST Engine & Quick Line-Item Controller Strip */}
+          {invoiceType === 'a4' && isLiveEditMode && isGstPanelOpen && (
             <div style={{
-              background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.98))',
+              background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98))',
               border: '1px solid rgba(56, 189, 248, 0.35)',
               borderRadius: '8px',
               padding: '8px 12px',
@@ -699,19 +768,8 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
             </div>
           )}
 
-          {/* Row 2: Document Switcher Tabs (Independent row, cannot displace the close button) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            background: 'rgba(6, 14, 26, 0.9)',
-            padding: '4px',
-            borderRadius: '8px',
-            border: '1px solid rgba(212, 175, 55, 0.25)',
-            overflowX: 'auto',
-            width: '100%',
-            WebkitOverflowScrolling: 'touch'
-          }}>
+          {/* Row 4: Document Switcher Tabs Rail (Horizontal Scroll with Flex Shrink 0) */}
+          <div className="invoice-tabs-scroll-rail">
             {/* Sheet 1: GST vs Non-GST Billing Series Selector */}
             <div style={{
               display: 'inline-flex',
@@ -758,141 +816,39 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setInvoiceType('a4')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: invoiceType === 'a4' ? 'var(--gold-glow)' : 'transparent',
-                color: invoiceType === 'a4' ? '#060e1a' : '#cbd5e1',
-                border: invoiceType === 'a4' ? '1px solid var(--gold-glow)' : '1px solid transparent',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Consolidated Tax Invoice
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInvoiceType('room-split')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: invoiceType === 'room-split' ? '#38bdf8' : 'transparent',
-                color: invoiceType === 'room-split' ? '#060e1a' : '#cbd5e1',
-                border: invoiceType === 'room-split' ? '1px solid #38bdf8' : '1px solid transparent',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Room Bill #01499 (Page 3)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInvoiceType('food-split')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: invoiceType === 'food-split' ? '#34d399' : 'transparent',
-                color: invoiceType === 'food-split' ? '#060e1a' : '#cbd5e1',
-                border: invoiceType === 'food-split' ? '1px solid #34d399' : '1px solid transparent',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Cannon Kitchen Food Bill #01500 (Page 2)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInvoiceType('grc')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: invoiceType === 'grc' ? '#fbbf24' : 'transparent',
-                color: invoiceType === 'grc' ? '#060e1a' : '#cbd5e1',
-                border: invoiceType === 'grc' ? '1px solid #fbbf24' : '1px solid transparent',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Official GRC Form (Page 1)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInvoiceType('money-receipt')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: invoiceType === 'money-receipt' ? '#f43f5e' : 'transparent',
-                color: invoiceType === 'money-receipt' ? '#ffffff' : '#cbd5e1',
-                border: invoiceType === 'money-receipt' ? '1px solid #f43f5e' : '1px solid transparent',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Money Receipt Voucher (Page 5)
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInvoiceType('pos')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: invoiceType === 'pos' ? '#a78bfa' : 'transparent',
-                color: invoiceType === 'pos' ? '#060e1a' : '#cbd5e1',
-                border: invoiceType === 'pos' ? '1px solid #a78bfa' : '1px solid transparent',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              80mm Slip
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInvoiceType('keycard')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: invoiceType === 'keycard' ? 'linear-gradient(135deg, #f3c64c, #d4af37)' : 'transparent',
-                color: invoiceType === 'keycard' ? '#060e1a' : '#f3c64c',
-                border: invoiceType === 'keycard' ? '1px solid #f3c64c' : '1px solid transparent',
-                whiteSpace: 'nowrap',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Key size={13} /> 3D Smart Keycard
-            </button>
+            {[
+              { id: 'a4', label: 'Consolidated Tax Invoice' },
+              { id: 'room-split', label: 'Room Bill #01499 (Page 3)' },
+              { id: 'food-split', label: 'Cannon Kitchen Food Bill #01500 (Page 2)' },
+              { id: 'grc', label: 'Official GRC Form (Page 1)' },
+              { id: 'money-receipt', label: 'Money Receipt Voucher (Page 5)' },
+              { id: 'pos', label: '80mm Slip' },
+              { id: 'keycard', label: '3D Smart Keycard', isKeycard: true }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setInvoiceType(tab.id)}
+                style={{
+                  flexShrink: 0,
+                  padding: '6px 12px',
+                  borderRadius: '5px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: invoiceType === tab.id 
+                    ? (tab.isKeycard ? 'linear-gradient(135deg, #f3c64c, #d4af37)' : 'var(--gold-glow)') 
+                    : 'transparent',
+                  color: invoiceType === tab.id ? '#060e1a' : '#cbd5e1',
+                  border: invoiceType === tab.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {tab.isKeycard && <Key size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />}
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -954,8 +910,14 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
           </div>
         )}
 
-        {/* VIEW 1: CONSOLIDATED A4 TAX INVOICE */}
-        {invoiceType === 'a4' && (
+        {invoiceType !== 'keycard' && (
+          <div className="invoice-sheet-scroll-wrapper">
+            <div className="mobile-swipe-guide no-print">
+              <span>↔ Swipe horizontally to view full legal A4 columns &amp; totals</span>
+            </div>
+
+            {/* VIEW 1: CONSOLIDATED A4 TAX INVOICE */}
+            {invoiceType === 'a4' && (
           <div className="tax-invoice-sheet">
             <div className="sheet-header">
               <div className="header-left">
@@ -1850,7 +1812,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#dc2626' }}>
-                  G.Regn.No. {booking.grcNo || grcNo || `GRC-${booking.roomNumber}`}
+                  G.Regn.No. {booking.grcNo || editHeader.grcNo || `GRC-${booking.roomNumber}`}
                 </div>
                 <div style={{ fontSize: '11px', color: '#334155' }}>
                   Bill No: <strong>{billNo}</strong>
@@ -2124,6 +2086,8 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
               <div>* Sarai Act 1867 &amp; DPDP Act 2023 Verified *</div>
               <div>Thank you for staying at Hotel Sai International!</div>
             </div>
+          </div>
+        )}
           </div>
         )}
         {/* UNIVERSAL INLINE KEYBOARD EDIT MODE FLOATING HUD BANNER */}

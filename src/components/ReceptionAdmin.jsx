@@ -44,6 +44,7 @@ export default function ReceptionAdmin({
   onAddTransaction,
   onUpdateRoomStatus,
   onNewBooking,
+  onUpdateBooking,
   onRunNightAudit,
   nightAudits = [],
   onExitPMS,
@@ -6706,6 +6707,21 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           onClose={() => setIsReceiptModalOpen(false)}
           booking={selectedReceiptBooking}
           initialType={receiptModalType}
+          onUpdateBooking={(updated) => {
+            if (updated) {
+              if (onUpdateBooking) {
+                onUpdateBooking(updated);
+              }
+              if (updated.roomNumber && updated.guestName && onUpdateRoomStatus) {
+                const targetRoom = rooms.find(r => String(r.roomNumber) === String(updated.roomNumber));
+                if (targetRoom) {
+                  onUpdateRoomStatus(targetRoom.id || targetRoom.roomId, targetRoom.status || 'Occupied', updated.guestName);
+                }
+              }
+              setSelectedReceiptBooking(updated);
+              setFeedbackToast(`Folio & Tax Invoice saved for Room ${updated.roomNumber || ''} (${updated.guestName || ''})`);
+            }
+          }}
         />
       )}
 

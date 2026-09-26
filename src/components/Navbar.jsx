@@ -154,16 +154,19 @@ export default function Navbar({
       <div className="scroll-progress-line" style={{ width: `${scrollPercent}%` }} />
 
       {/* Top Statutory & Proximity Announcement Bar */}
-      <div style={{
+      <div className="navbar-top-strip" style={{
         background: 'linear-gradient(90deg, #0c182b 0%, #13223d 50%, #0c182b 100%)',
         borderBottom: '1px solid rgba(212, 175, 55, 0.25)',
-        padding: '0.4rem 1.5rem',
+        padding: '0.4rem 1rem',
         fontSize: '0.8rem',
         color: 'var(--text-secondary)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
+        maxWidth: '100vw',
+        boxSizing: 'border-box',
+        overflowX: 'hidden',
         gap: '0.5rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -214,18 +217,23 @@ export default function Navbar({
       </div>
 
       {/* IDS Next Enterprise Operational Quick Bar (For Owner & Consultant Audit) */}
-      <div style={{
+      <div className="navbar-erp-quickbar" style={{
         background: 'linear-gradient(90deg, rgba(8,12,24,0.98), rgba(18,24,44,0.98))',
         borderBottom: '1px solid rgba(212, 175, 55, 0.3)',
-        padding: '0.4rem 1.5rem',
+        padding: '0.4rem 1rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        maxWidth: '100vw',
+        width: '100%',
+        boxSizing: 'border-box',
         gap: '0.5rem',
         fontSize: '0.8rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, flexWrap: 'nowrap' }}>
           <span style={{
             fontSize: '0.7rem',
             background: 'rgba(212, 175, 55, 0.25)',
@@ -376,7 +384,7 @@ export default function Navbar({
 
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           <button
             onClick={handleAdminAccess}
             style={{
@@ -476,8 +484,8 @@ export default function Navbar({
                   ✨ 2026 CRAFT ED.
                 </span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Premier 40-Room Executive & Pilgrim Hotel • Sai Priya Nagar • Emil Kowalski UI Motion
+              <div className="hide-on-mobile" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                Premier 40-Room Executive &amp; Pilgrim Hotel • Sai Priya Nagar • Emil Kowalski UI Motion
               </div>
             </div>
           </div>
