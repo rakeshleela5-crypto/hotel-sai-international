@@ -56,6 +56,32 @@ export default function AccountsLedgerModal({
   const [itemSalesCategoryFilter, setItemSalesCategoryFilter] = useState('ALL');
   const [itemSalesSearchQuery, setItemSalesSearchQuery] = useState('');
 
+  // Universal Accounts Search & Quick Edit Mode (Active across all 9 tabs)
+  const [accountsSearchQuery, setAccountsSearchQuery] = useState('');
+  const [accountsQuickFilter, setAccountsQuickFilter] = useState('ALL');
+  const [isAccountsEditActive, setIsAccountsEditActive] = useState(false);
+  const accountsSearchInputRef = React.useRef(null);
+
+  // Keyboard navigation & search focus shortcut for Accountants ('/' to search, Esc to clear, Ctrl+E for direct edit)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+        e.preventDefault();
+        accountsSearchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape' && accountsSearchQuery) {
+        setAccountsSearchQuery('');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setIsAccountsEditActive(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, accountsSearchQuery]);
+
   // Corporate partners and ledger state for dynamic editing & settlement
   const [corporatePartners, setCorporatePartners] = useState(propCorporatePartners || CORPORATE_PARTNERS);
   const [corporateLedger, setCorporateLedger] = useState(INITIAL_CORPORATE_LEDGER);
@@ -257,6 +283,33 @@ export default function AccountsLedgerModal({
     document.body.removeChild(link);
   };
 
+  // Filtered in-house outstanding dataset driven by Universal Search & Quick Filters
+  const filteredInHouseOutstanding = inHouseOutstandingData.filter(item => {
+    if (accountsQuickFilter === 'DUE' && item.cumulativeOutstanding <= 0) return false;
+    if (accountsQuickFilter === 'B2B' && !item.guestName.toLowerCase().includes('ashok') && !item.guestName.toLowerCase().includes('ltd') && !item.guestName.toLowerCase().includes('paper') && !item.guestName.toLowerCase().includes('imfa')) return false;
+    if (!accountsSearchQuery.trim()) return true;
+    const q = accountsSearchQuery.toLowerCase();
+    return (
+      item.roomNumber?.toString().toLowerCase().includes(q) ||
+      item.guestName?.toLowerCase().includes(q) ||
+      item.phone?.toLowerCase().includes(q) ||
+      item.status?.toLowerCase().includes(q)
+    );
+  });
+
+  // Filtered corporate partners dataset driven by Universal Search & Quick Filters
+  const filteredCorporatePartners = corporatePartners.filter(corp => {
+    if (accountsQuickFilter === 'DUE' && Number(corp.openingBalance || 0) <= 0) return false;
+    if (!accountsSearchQuery.trim()) return true;
+    const q = accountsSearchQuery.toLowerCase();
+    return (
+      corp.name?.toLowerCase().includes(q) ||
+      corp.contactPerson?.toLowerCase().includes(q) ||
+      corp.contactPhone?.toLowerCase().includes(q) ||
+      (corp.gstin && corp.gstin.toLowerCase().includes(q))
+    );
+  });
+
   // Sync corporate ledger from Cloudflare D1
   useEffect(() => {
     if (!isOpen) return;
@@ -374,15 +427,16 @@ export default function AccountsLedgerModal({
   const filteredGstRecords = gstFomRecords.filter(r => {
     if (gstFomFilter === 'B2B' && !r.isB2B) return false;
     if (gstFomFilter === 'B2C' && r.isB2B) return false;
-    if (gstFomSearch.trim()) {
-      const q = gstFomSearch.toLowerCase();
+    if (accountsQuickFilter === 'B2B' && !r.isB2B) return false;
+    const searchTarget = (accountsSearchQuery || gstFomSearch).trim().toLowerCase();
+    if (searchTarget) {
       return (
-        r.billNo.toLowerCase().includes(q) ||
-        r.guestName.toLowerCase().includes(q) ||
-        r.roomNo.toLowerCase().includes(q) ||
-        r.company.toLowerCase().includes(q) ||
-        (r.gstin && r.gstin.toLowerCase().includes(q)) ||
-        (r.refNo && r.refNo.toLowerCase().includes(q))
+        r.billNo.toLowerCase().includes(searchTarget) ||
+        r.guestName.toLowerCase().includes(searchTarget) ||
+        r.roomNo.toLowerCase().includes(searchTarget) ||
+        r.company.toLowerCase().includes(searchTarget) ||
+        (r.gstin && r.gstin.toLowerCase().includes(searchTarget)) ||
+        (r.refNo && r.refNo.toLowerCase().includes(searchTarget))
       );
     }
     return true;
@@ -1181,6 +1235,173 @@ export default function AccountsLedgerModal({
           >
             <TrendingUp size={15} /> 📊 Outstanding Aging
           </button>
+        </div>
+
+        {/* Universal Accounting Command & Search Bar for Accountants (Visible across all 9 tabs) */}
+        <div style={{
+          padding: '0.75rem 1.75rem',
+          background: 'linear-gradient(180deg, rgba(20, 24, 38, 0.95) 0%, rgba(13, 17, 28, 0.95) 100%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+        }}>
+          {/* Left: Universal Search Input with Shortcut */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 360px', maxWidth: '580px' }}>
+            <div style={{
+              position: 'relative',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', color: accountsSearchQuery ? 'var(--gold-glow)' : 'var(--text-muted)' }} />
+              <input
+                ref={accountsSearchInputRef}
+                type="text"
+                placeholder="Search Accounts, Debtors, GSTINs, Vouchers, Day Book... (Press '/' to focus)"
+                value={accountsSearchQuery}
+                onChange={(e) => setAccountsSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.55rem 2.5rem 0.55rem 2.2rem',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: accountsSearchQuery ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  boxShadow: accountsSearchQuery ? '0 0 10px rgba(212, 175, 55, 0.2)' : 'none'
+                }}
+              />
+              {accountsSearchQuery ? (
+                <button
+                  onClick={() => setAccountsSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '2px'
+                  }}
+                  title="Clear search (Esc)"
+                >
+                  <X size={14} />
+                </button>
+              ) : (
+                <span style={{
+                  position: 'absolute',
+                  right: '10px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: 'var(--text-muted)',
+                  borderRadius: '4px',
+                  padding: '1px 5px',
+                  fontSize: '0.7rem',
+                  fontFamily: 'monospace'
+                }}>
+                  /
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Center: Quick Scope Filter Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {[
+              { id: 'ALL', label: 'All Ledgers' },
+              { id: 'B2B', label: '🏢 Corporate B2B' },
+              { id: 'GST', label: '🧾 Tax & GST' },
+              { id: 'DAYBOOK', label: '📅 Cash & Vouchers' },
+              { id: 'DUE', label: '⚠️ Overdue Aging' }
+            ].map(chip => (
+              <button
+                key={chip.id}
+                onClick={() => setAccountsQuickFilter(chip.id)}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '20px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: accountsQuickFilter === chip.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.08)',
+                  background: accountsQuickFilter === chip.id ? 'rgba(212, 175, 55, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                  color: accountsQuickFilter === chip.id ? 'var(--gold-glow)' : 'var(--text-muted)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right: Accountant Power Controls (Inline Edit Mode, Add Voucher, CSV Export) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <button
+              onClick={() => setIsAccountsEditActive(prev => !prev)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                background: isAccountsEditActive ? 'rgba(52, 211, 153, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                color: isAccountsEditActive ? '#34d399' : 'var(--text-muted)',
+                border: isAccountsEditActive ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.12)',
+                boxShadow: isAccountsEditActive ? '0 0 10px rgba(52, 211, 153, 0.2)' : 'none'
+              }}
+              title="Toggle Direct Keyboard Editing on all ledger rows and vouchers (Ctrl+E)"
+            >
+              <Edit3 size={14} />
+              {isAccountsEditActive ? '✏️ Edit Mode: ACTIVE' : '✏️ Direct Ledger Edit'}
+            </button>
+
+            <button
+              onClick={() => setShowAddJournalModal(true)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                background: 'rgba(212, 175, 55, 0.15)',
+                color: 'var(--gold-glow)',
+                border: '1px solid rgba(212, 175, 55, 0.4)'
+              }}
+            >
+              <PlusCircle size={14} /> + Post Voucher
+            </button>
+
+            <button
+              onClick={() => handleDownloadOutstandingCSV(outstandingViewType)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.12)'
+              }}
+              title="Download Statement of Accounts / Outstanding Aging (CSV)"
+            >
+              <Download size={14} /> CSV
+            </button>
+          </div>
         </div>
 
         {/* Tab 0: WATERTIGHT AUDIT RECONCILER (PROOF: ₹0.00 DISCREPANCY) */}
@@ -2925,7 +3146,14 @@ export default function AccountsLedgerModal({
                       </tr>
                     </thead>
                     <tbody>
-                      {inHouseOutstandingData.map((row, idx) => (
+                      {filteredInHouseOutstanding.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No in-house guest folios match "{accountsSearchQuery}".
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredInHouseOutstanding.map((row, idx) => (
                         <tr key={idx} style={{
                           borderBottom: '1px solid rgba(255,255,255,0.04)',
                           background: row.todayOutstanding > 0 ? 'rgba(239, 68, 68, 0.03)' : 'transparent'
@@ -3010,7 +3238,8 @@ export default function AccountsLedgerModal({
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      )))
+                    }
                     </tbody>
                     <tfoot>
                       <tr style={{ background: 'rgba(255,255,255,0.06)', fontWeight: 800 }}>
@@ -3093,7 +3322,14 @@ export default function AccountsLedgerModal({
                         </tr>
                       </thead>
                       <tbody>
-                        {corporatePartners.map((corp, idx) => {
+                        {filteredCorporatePartners.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                              No corporate accounts match "{accountsSearchQuery}".
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredCorporatePartners.map((corp, idx) => {
                           const bal = Number(corp.openingBalance || 0);
                           const dso = idx === 0 ? 21 : (idx === 1 ? 28 : (idx === 2 ? 34 : (idx === 3 ? 18 : 45)));
                           const dsoColor = dso <= 30 ? '#34d399' : (dso <= 45 ? '#fbbf24' : '#f87171');
@@ -3137,17 +3373,42 @@ export default function AccountsLedgerModal({
                                 </span>
                               </td>
                               <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center' }}>
-                                <span style={{
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
-                                  background: 'rgba(56, 189, 248, 0.1)',
-                                  color: '#38bdf8',
-                                  border: '1px solid rgba(56, 189, 248, 0.25)'
-                                }}>
-                                  ₹{(corp.creditLimit || 200000).toLocaleString('en-IN')} ({corp.creditDays || 30}d)
-                                </span>
+                                {isAccountsEditActive ? (
+                                  <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '3px' }}>
+                                    <input
+                                      type="number"
+                                      value={corp.creditLimit || 200000}
+                                      onChange={(e) => {
+                                        const val = Number(e.target.value) || 0;
+                                        setCorporatePartners(prev => prev.map(c => c.id === corp.id ? { ...c, creditLimit: val } : c));
+                                      }}
+                                      style={{ width: '85px', padding: '2px 4px', fontSize: '0.72rem', background: '#070b14', border: '1px solid #38bdf8', color: '#fff', borderRadius: '4px', textAlign: 'right' }}
+                                      title="Edit Credit Limit directly"
+                                    />
+                                    <input
+                                      type="number"
+                                      value={corp.creditDays || 30}
+                                      onChange={(e) => {
+                                        const val = Number(e.target.value) || 0;
+                                        setCorporatePartners(prev => prev.map(c => c.id === corp.id ? { ...c, creditDays: val } : c));
+                                      }}
+                                      style={{ width: '85px', padding: '2px 4px', fontSize: '0.72rem', background: '#070b14', border: '1px solid #fbbf24', color: '#fff', borderRadius: '4px', textAlign: 'right' }}
+                                      title="Edit Credit Days directly"
+                                    />
+                                  </div>
+                                ) : (
+                                  <span style={{
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    background: 'rgba(56, 189, 248, 0.1)',
+                                    color: '#38bdf8',
+                                    border: '1px solid rgba(56, 189, 248, 0.25)'
+                                  }}>
+                                    ₹{(corp.creditLimit || 200000).toLocaleString('en-IN')} ({corp.creditDays || 30}d)
+                                  </span>
+                                )}
                               </td>
                               <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center' }}>
                                 <div style={{ display: 'inline-flex', gap: '4px' }}>
@@ -3205,7 +3466,8 @@ export default function AccountsLedgerModal({
                               </td>
                             </tr>
                           );
-                        })}
+                        }))
+                      }
                       </tbody>
                       <tfoot>
                         <tr style={{ background: 'rgba(255,255,255,0.06)', fontWeight: 800 }}>
@@ -4889,6 +5151,11 @@ export default function AccountsLedgerModal({
             onClose={() => setIsBillModalOpen(false)}
             booking={selectedBillBooking}
             initialType="a4"
+            onUpdateBooking={(updated) => {
+              if (updated) {
+                setSelectedBillBooking(updated);
+              }
+            }}
           />
         )}
       </div>

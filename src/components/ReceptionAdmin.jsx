@@ -58,6 +58,8 @@ export default function ReceptionAdmin({
   const [tapeChartViewMode, setTapeChartViewMode] = useState('mysoft'); // 'mysoft' (Screenshot 2 Legacy Tape Chart) or 'modern'
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isInlineEditActive, setIsInlineEditActive] = useState(false);
+  const searchInputRef = useRef(null);
 
   // Folio Actions & GRC Modals State (hotel_documents.pdf Pages 1 & 5)
   const [selectedFolioRoom, setSelectedFolioRoom] = useState(null);
@@ -191,6 +193,11 @@ export default function ReceptionAdmin({
         else if (roomServicesCareOpen) setRoomServicesCareOpen(false);
         else if (isTransferModalOpen) setIsTransferModalOpen(false);
         else if (isWakeUpModalOpen) setIsWakeUpModalOpen(false);
+      } else if (e.key === '/' && document.activeElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -2035,6 +2042,132 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         ))}
       </div>
 
+      {/* UNIVERSAL OPERATIONAL SEARCH & COMMAND STRIP (Active on ALL 15 tabs) */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
+        border: '1px solid rgba(212, 175, 55, 0.35)',
+        borderRadius: '10px',
+        padding: '10px 14px',
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.35)'
+      }}>
+        {/* Instant Universal Search Box */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '300px' }}>
+          <Search size={16} color="var(--gold-glow)" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Universal Search: Room #, Guest Name, Phone, GSTIN, Train, Plate, Staff (Press '/' to focus)..."
+            style={{
+              flex: 1,
+              background: 'rgba(0, 0, 0, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              color: '#fff',
+              fontSize: '0.82rem',
+              outline: 'none'
+            }}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                color: '#cbd5e1',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                fontSize: '0.75rem',
+                cursor: 'pointer'
+              }}
+              title="Clear Search"
+            >
+              ✕ Clear
+            </button>
+          )}
+        </div>
+
+        {/* Status Quick Filter Chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'all', label: 'All Rooms' },
+            { id: 'Available', label: 'Available' },
+            { id: 'Occupied', label: 'Occupied' },
+            { id: 'Vacant Dirty', label: 'Dirty / Cleaning' },
+            { id: 'Maintenance', label: 'Maintenance / OOO' }
+          ].map(f => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setStatusFilter(f.id)}
+              style={{
+                background: statusFilter === f.id ? 'var(--gold-glow)' : 'rgba(255,255,255,0.05)',
+                color: statusFilter === f.id ? '#060e1a' : '#cbd5e1',
+                border: statusFilter === f.id ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Quick Edit Mode & Operational Modals Shortcuts */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setIsInlineEditActive(!isInlineEditActive)}
+            style={{
+              background: isInlineEditActive ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.06)',
+              border: isInlineEditActive ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.15)',
+              color: isInlineEditActive ? '#38bdf8' : '#cbd5e1',
+              borderRadius: '6px',
+              padding: '5px 12px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Edit3 size={13} /> {isInlineEditActive ? '✏️ Inline Edit Mode: ON' : 'Inline Edit Mode: OFF'}
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenAccountsLedger}
+            style={{
+              background: 'rgba(212, 175, 55, 0.15)',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              color: 'var(--gold-glow)',
+              borderRadius: '6px',
+              padding: '5px 10px',
+              fontSize: '0.74rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            📊 Accounts Day Book
+          </button>
+        </div>
+      </div>
+
       {/* TAB: INTERACTIVE BOOKING VISUALIZER (visualize-booking.tsx) */}
       {activeTab === 'visualize-bookings' && (
         <div className="w-full mb-8">
@@ -2776,7 +2909,31 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               </div>
 
                               <div style={{ marginTop: '0.35rem', fontSize: '0.75rem', lineHeight: '1.2' }}>
-                                {isOccupied ? (
+                                {isInlineEditActive && isOccupied ? (
+                                  <div style={{ marginTop: '0.2rem' }} onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="text"
+                                      defaultValue={room.currentGuestName || ''}
+                                      onBlur={(e) => {
+                                        const newName = e.target.value.trim();
+                                        if (newName && onUpdateRoomStatus) {
+                                          onUpdateRoomStatus(room.roomNumber, room.status, newName, room.tariff);
+                                        }
+                                      }}
+                                      placeholder="Type Guest Name..."
+                                      style={{
+                                        width: '100%',
+                                        padding: '2px 4px',
+                                        fontSize: '0.72rem',
+                                        background: 'rgba(0,0,0,0.6)',
+                                        border: '1px solid #38bdf8',
+                                        borderRadius: '3px',
+                                        color: '#fff',
+                                        fontWeight: 700
+                                      }}
+                                    />
+                                  </div>
+                                ) : isOccupied ? (
                                   <>
                                     <div style={{ color: '#fff', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                       {room.currentGuestName || 'Guest In-House'}
@@ -2788,6 +2945,30 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                 ) : isMaint ? (
                                   <div style={{ color: '#f87171', fontWeight: 700 }}>
                                     ⚠️ {room.currentGuestName || 'AC PRBLM'}
+                                  </div>
+                                ) : isInlineEditActive ? (
+                                  <div style={{ marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
+                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>₹</span>
+                                    <input
+                                      type="number"
+                                      defaultValue={room.tariff || 2199}
+                                      onBlur={(e) => {
+                                        const newTariff = Number(e.target.value);
+                                        if (newTariff > 0 && onUpdateRoomStatus) {
+                                          onUpdateRoomStatus(room.roomNumber, room.status, room.currentGuestName, newTariff);
+                                        }
+                                      }}
+                                      style={{
+                                        width: '70px',
+                                        padding: '2px 4px',
+                                        fontSize: '0.72rem',
+                                        background: 'rgba(0,0,0,0.6)',
+                                        border: '1px solid #34d399',
+                                        borderRadius: '3px',
+                                        color: '#34d399',
+                                        fontWeight: 700
+                                      }}
+                                    />
                                   </div>
                                 ) : (
                                   <div style={{ color: '#34d399', fontSize: '0.72rem' }}>

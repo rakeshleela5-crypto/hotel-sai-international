@@ -2,21 +2,178 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Printer, CheckCircle2, Download, ShieldCheck, Hotel, 
   Calendar, User, FileText, Receipt, Sparkles, Building2,
-  CreditCard, Split, UtensilsCrossed, BedDouble, UserCheck, Key
+  CreditCard, Split, UtensilsCrossed, BedDouble, UserCheck, Key,
+  Plus, Trash2, Edit3, Save, Check, RefreshCw, Calculator, Percent
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { DigitalKeycard } from '@/components/ui/digital-keycard';
 
-export default function BookingReceiptModal({ isOpen, onClose, booking, initialType = 'a4' }) {
+// Indian Numbering System Converter for Statutory Tax Invoices
+function convertNumberToIndianWords(num) {
+  if (!num || isNaN(num)) return 'Indian Rupees Zero Only';
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  
+  const inWords = (n) => {
+    if (n === 0) return '';
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : ' ');
+    if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + inWords(n % 100);
+    if (n < 100000) return inWords(Math.floor(n / 1000)) + 'Thousand ' + inWords(n % 1000);
+    if (n < 10000000) return inWords(Math.floor(n / 100000)) + 'Lakh ' + inWords(n % 100000);
+    return inWords(Math.floor(n / 10000000)) + 'Crore ' + inWords(n % 10000000);
+  };
+  
+  const integerPart = Math.floor(Math.abs(num));
+  const decimalPart = Math.round((Math.abs(num) - integerPart) * 100);
+  let words = 'Indian Rupees ' + inWords(integerPart).trim();
+  if (decimalPart > 0) {
+    words += ' and ' + inWords(decimalPart).trim() + ' Paise';
+  }
+  return words + ' Only';
+}
+
+export default function BookingReceiptModal({ 
+  isOpen, 
+  onClose, 
+  booking, 
+  initialType = 'a4',
+  onUpdateBooking,
+  onAddTransaction
+}) {
   // View modes: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'money-receipt' (Page 5), 'pos' (Thermal), 'keycard' (3D RFID)
   const [invoiceType, setInvoiceType] = useState(initialType || 'a4');
   const [isNonGstBill, setIsNonGstBill] = useState(false);
+  const [isLiveEditMode, setIsLiveEditMode] = useState(true);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Editable Guest & Corporate Header Details
+  const [editHeader, setEditHeader] = useState({
+    guestName: '',
+    guestPhone: '',
+    company: '',
+    corporateGstin: '',
+    billingAddress: '',
+    stateCode: '21',
+    stateName: 'Odisha',
+    roomNumber: '301',
+    tier: 'Executive AC',
+    planCode: 'CP',
+    grcNo: '684',
+    checkInDate: '',
+    checkOutDate: '',
+    billNo: ''
+  });
+
+  // Dynamic Line Items State (Room stay, F&B, Add-ons, Custom services)
+  const [lineItems, setLineItems] = useState([]);
+
+  // Frontend GST Engine Controller State
+  const [gstSlab, setGstSlab] = useState(12); // 12% default for rooms <= 7500; options: 12, 18, 5, 0
+  const [taxType, setTaxType] = useState('intra'); // 'intra' (CGST+SGST) or 'inter' (IGST)
+  const [isRcm, setIsRcm] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountReason, setDiscountReason] = useState('Director Approved Concession');
+  const [customRoundOff, setCustomRoundOff] = useState(0);
+
+  // Multi-Tender Breakdown State
+  const [tenders, setTenders] = useState({
+    cash: 500,
+    upi: 1000,
+    upiProvider: 'PhonePe',
+    upiRef: 'UPI-849102',
+    card: 0,
+    cardAuth: '',
+    btc: 0,
+    btcCompany: 'Linde India Ltd'
+  });
+
+  // Synchronize state when modal opens or booking changes
   useEffect(() => {
-    if (isOpen) {
+    if (booking && isOpen) {
       setInvoiceType(initialType || 'a4');
+      const nights = Number(booking.nights || 4);
+      const tariff = Number(booking.tariffPerNight || booking.tariff || 2999);
+      const foodAmt = Number(booking.foodAmount || 900);
+
+      setEditHeader({
+        guestName: booking.guestName || 'MR. P ASHOK',
+        guestPhone: booking.guestPhone || '+91 6305202068',
+        company: booking.company || 'LINDE INDIA LTD',
+        corporateGstin: booking.corporateGstin || '21AAACB2528H1ZA',
+        billingAddress: booking.billingAddress || 'Rayagada Field Project Office, Rayagada - 765001',
+        stateCode: booking.corporateGstin?.slice(0, 2) || '21',
+        stateName: booking.corporateGstin?.slice(0, 2) === '21' ? 'Odisha' : 'Other State',
+        roomNumber: String(booking.roomNumber || '301'),
+        tier: booking.tier || 'Executive AC',
+        planCode: booking.mealPlan || booking.plan || 'CP',
+        grcNo: booking.grcNo || '684',
+        checkInDate: booking.checkInDate || '17-Sep-2026 20:44',
+        checkOutDate: booking.checkOutDate || '21-Sep-2026 14:15',
+        billNo: booking.billNo || `FMBIL2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`
+      });
+
+      // Initial line items
+      const initialItems = [
+        {
+          id: 'item-1',
+          desc: `Accommodation Stay - ${booking.tier || 'Executive AC'} (Room ${booking.roomNumber || '301'})`,
+          subDesc: `Plan: ${booking.mealPlan || 'CP'} • ${nights} Nights Stay`,
+          sac: '996311',
+          qty: nights,
+          rate: tariff,
+          isExempt: false
+        },
+        {
+          id: 'item-2',
+          desc: 'Cannon Kitchen Restaurant - Food & Dining',
+          subDesc: 'Satvik Dining & Thali Service (KOT F2627-18346)',
+          sac: '996331',
+          qty: 1,
+          rate: foodAmt,
+          isExempt: false
+        }
+      ];
+
+      if (Array.isArray(booking.selectedAddOns)) {
+        booking.selectedAddOns.forEach((addon, idx) => {
+          initialItems.push({
+            id: `addon-${idx}`,
+            desc: addon.name || 'Extra Service',
+            subDesc: addon.pricingType === 'per_night' ? `${nights} Nights Package` : 'One-time Facility',
+            sac: addon.sac || '996311',
+            qty: addon.pricingType === 'per_night' ? nights : 1,
+            rate: Number(addon.price || 0),
+            isExempt: false
+          });
+        });
+      }
+
+      setLineItems(initialItems);
+
+      // Auto-detect interstate if corporate GSTIN is outside Odisha (21)
+      const gstinState = booking.corporateGstin ? booking.corporateGstin.slice(0, 2) : '21';
+      if (gstinState && gstinState !== '21') {
+        setTaxType('inter');
+      } else {
+        setTaxType('intra');
+      }
+
+      // Initialize tenders
+      const bTenders = booking.tenders || {};
+      const adv = Number(booking.advanceDeposit || booking.advancePaid || 5000);
+      setTenders({
+        cash: bTenders.cash !== undefined ? bTenders.cash : 500,
+        upi: bTenders.upi !== undefined ? bTenders.upi : (adv >= 1000 ? 1000 : adv),
+        upiProvider: bTenders.upiProvider || 'PhonePe',
+        upiRef: bTenders.upiRef || 'UPI-849102',
+        card: bTenders.card !== undefined ? bTenders.card : 0,
+        cardAuth: bTenders.cardAuth || '',
+        btc: bTenders.btc !== undefined ? bTenders.btc : (booking.isB2b ? Math.max(0, (booking.totalAmount || 13538) - adv) : 0),
+        btcCompany: booking.company || 'Linde India Ltd'
+      });
     }
-  }, [isOpen, initialType]);
+  }, [isOpen, booking, initialType]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -34,37 +191,175 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
     window.print();
   };
 
-  const calculateTaxes = () => {
-    const base = Number(booking.baseTotal || booking.totalAmount / 1.05 || 0);
-    const cgst = Number(booking.cgst || (base * 0.025));
-    const sgst = Number(booking.sgst || (base * 0.025));
-    const total = Number(booking.totalAmount || (base + cgst + sgst));
-    const advance = Number(booking.advancePaid || 0);
-    const balanceDue = total - advance;
-    return { base, cgst, sgst, total, advance, balanceDue };
+  // Live Recalculations from lineItems & GST Engine
+  const baseTaxable = lineItems
+    .filter(item => !isNonGstBill && !item.isExempt)
+    .reduce((sum, item) => sum + (Number(item.qty || 1) * Number(item.rate || 0)), 0);
+
+  const exemptBase = lineItems
+    .filter(item => isNonGstBill || item.isExempt)
+    .reduce((sum, item) => sum + (Number(item.qty || 1) * Number(item.rate || 0)), 0);
+
+  const netTaxable = Math.max(0, baseTaxable - Number(discountAmount || 0));
+
+  const effectiveSlab = isNonGstBill ? 0 : Number(gstSlab || 12);
+  const cgstRate = taxType === 'intra' ? (effectiveSlab / 2) : 0;
+  const sgstRate = taxType === 'intra' ? (effectiveSlab / 2) : 0;
+  const igstRate = taxType === 'inter' ? effectiveSlab : 0;
+
+  const cgstAmount = Number(((netTaxable * cgstRate) / 100).toFixed(2));
+  const sgstAmount = Number(((netTaxable * sgstRate) / 100).toFixed(2));
+  const igstAmount = Number(((netTaxable * igstRate) / 100).toFixed(2));
+  const totalTaxAmount = cgstAmount + sgstAmount + igstAmount;
+
+  const unroundedTotal = netTaxable + exemptBase + totalTaxAmount;
+  const autoRoundOff = Number((Math.round(unroundedTotal) - unroundedTotal).toFixed(2));
+  const effectiveRoundOff = customRoundOff !== 0 ? customRoundOff : autoRoundOff;
+  const grandTotal = Math.round(unroundedTotal + effectiveRoundOff);
+
+  const advancePaid = Number(booking.advanceDeposit || booking.advancePaid || 5000);
+  const balanceDue = Math.max(0, grandTotal - advancePaid);
+
+  const effectiveBillNo = isNonGstBill 
+    ? `NGST2627-${String(editHeader.roomNumber || '1499').padStart(5, '0')}`
+    : (editHeader.billNo || `FMBIL2627-${String(editHeader.roomNumber || '1499').padStart(5, '0')}`);
+  const billNo = effectiveBillNo;
+
+  // Handler to Add a Line Item
+  const handleAddLineItem = (presetType) => {
+    let newItem = {
+      id: `item-${Date.now()}`,
+      desc: 'Custom Service / Facility',
+      subDesc: 'Service Charge',
+      sac: '996311',
+      qty: 1,
+      rate: 500,
+      isExempt: false
+    };
+
+    if (presetType === 'extra-bed') {
+      newItem = {
+        id: `item-${Date.now()}`,
+        desc: 'Extra Bed / Rollaway Mattress with Linen',
+        subDesc: 'Housekeeping Rollaway Bed Facility',
+        sac: '996311',
+        qty: 1,
+        rate: 400,
+        isExempt: false
+      };
+    } else if (presetType === 'station-transfer') {
+      newItem = {
+        id: `item-${Date.now()}`,
+        desc: 'Railway Station / Temple Cab Transfer',
+        subDesc: 'RGDA Station Drop / Maa Majhighariani Shuttle',
+        sac: '996412',
+        qty: 1,
+        rate: 350,
+        isExempt: false
+      };
+    } else if (presetType === 'late-checkout') {
+      newItem = {
+        id: `item-${Date.now()}`,
+        desc: 'Late Check-Out Retention Charge',
+        subDesc: 'Extended Room Occupancy until 16:00 PM',
+        sac: '996311',
+        qty: 1,
+        rate: 500,
+        isExempt: false
+      };
+    } else if (presetType === 'laundry') {
+      newItem = {
+        id: `item-${Date.now()}`,
+        desc: 'Express Laundry & Steam Press Service',
+        subDesc: 'Executive Garment Laundry',
+        sac: '999799',
+        qty: 1,
+        rate: 150,
+        isExempt: false
+      };
+    } else if (presetType === 'dining') {
+      newItem = {
+        id: `item-${Date.now()}`,
+        desc: 'Satvik Executive Dining / In-Room Service',
+        subDesc: 'Chef Special Thali & Fresh Beverages',
+        sac: '996331',
+        qty: 1,
+        rate: 350,
+        isExempt: false
+      };
+    }
+
+    setLineItems(prev => [...prev, newItem]);
   };
 
-  const { base, cgst, sgst, total, advance, balanceDue } = calculateTaxes();
+  // Handler to Delete a Line Item
+  const handleDeleteLineItem = (id) => {
+    if (lineItems.length <= 1) {
+      alert('At least one line item must remain on the invoice.');
+      return;
+    }
+    setLineItems(prev => prev.filter(item => item.id !== id));
+  };
 
-  // Sheet 1 Requirement: Non-GST Billing Series (NGST2627-XXXX) vs GST Tax Invoice (FMBIL2627-XXXX)
-  const gstBillNo = booking.billNo || `FMBIL2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`;
-  const nonGstBillNo = `NGST2627-${String(booking.roomNumber || '1499').padStart(5, '0')}`;
-  const effectiveBillNo = isNonGstBill ? nonGstBillNo : gstBillNo;
-  const billNo = effectiveBillNo;
-  const foodBillNo = `FMBIL2627-${String(Number(booking.roomNumber || 1499) + 1).padStart(5, '0')}`;
-  const planCode = booking.mealPlan || booking.plan || 'CP';
-  const grcNo = booking.grcNo || '684';
+  // Handler to Update a Line Item
+  const handleUpdateLineItem = (id, field, value) => {
+    setLineItems(prev => prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          [field]: field === 'qty' || field === 'rate' ? Number(value) : value
+        };
+      }
+      return item;
+    }));
+  };
 
-  // Calculations for Split Views (Pages 2 & 3 from hotel_documents.pdf & Owner Demo)
-  const roomTariffBase = booking.roomTariffBase || (booking.tariff ? Number(booking.tariff) * (booking.nights || 1) : 11996.00);
-  const roomCgst = Number((roomTariffBase * 0.025).toFixed(2));
-  const roomSgst = Number((roomTariffBase * 0.025).toFixed(2));
-  const roomTotal = Number((roomTariffBase + roomCgst + roomSgst).toFixed(2));
+  // Handler to Save and Propagate to App State, Folio, and Accounts Day Book
+  const handleSaveInvoice = () => {
+    const updated = {
+      ...booking,
+      guestName: editHeader.guestName,
+      guestPhone: editHeader.guestPhone,
+      company: editHeader.company,
+      corporateGstin: editHeader.corporateGstin,
+      billingAddress: editHeader.billingAddress,
+      roomNumber: editHeader.roomNumber,
+      tier: editHeader.tier,
+      mealPlan: editHeader.planCode,
+      checkInDate: editHeader.checkInDate,
+      checkOutDate: editHeader.checkOutDate,
+      billNo: effectiveBillNo,
+      baseTotal: netTaxable,
+      taxableBase: netTaxable,
+      cgst: cgstAmount,
+      sgst: sgstAmount,
+      igst: igstAmount,
+      totalAmount: grandTotal,
+      balanceDue: balanceDue,
+      gstSlab: effectiveSlab,
+      taxType,
+      isNonGstBill,
+      lineItems,
+      tenders,
+      discountAmount,
+      discountReason,
+      effectiveRoundOff
+    };
 
-  const foodTotal = booking.foodAmount || 962.00;
-  const foodBase = Number((foodTotal / 1.05).toFixed(2));
-  const foodCgst = Number((foodBase * 0.025).toFixed(2));
-  const foodSgst = Number((foodBase * 0.025).toFixed(2));
+    if (onUpdateBooking) {
+      onUpdateBooking(updated);
+    }
+
+    // Broadcast update across windows and modals
+    try {
+      window.dispatchEvent(new CustomEvent('hsi_invoice_updated', { detail: updated }));
+    } catch (e) {
+      console.warn('Dispatch failed:', e);
+    }
+
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
 
   return (
     <div className="official-invoice-overlay" onClick={onClose}>
@@ -100,7 +395,69 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {saveSuccess && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: '#10b981',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid #10b981',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <Check size={13} /> Folio Saved &amp; Day Book Synced!
+                </span>
+              )}
+
+              {invoiceType === 'a4' && (
+                <button
+                  type="button"
+                  onClick={() => setIsLiveEditMode(!isLiveEditMode)}
+                  style={{
+                    background: isLiveEditMode ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.06)',
+                    border: isLiveEditMode ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.2)',
+                    color: isLiveEditMode ? '#38bdf8' : '#cbd5e1',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <Edit3 size={14} /> {isLiveEditMode ? '✏️ Live Edit Mode: ACTIVE' : '👁️ Print Preview Mode'}
+                </button>
+              )}
+
+              {invoiceType === 'a4' && isLiveEditMode && (
+                <button
+                  type="button"
+                  onClick={handleSaveInvoice}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    border: '1px solid #34d399',
+                    color: '#fff',
+                    borderRadius: '6px',
+                    padding: '6px 14px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)'
+                  }}
+                >
+                  <Save size={14} /> Save Folio &amp; Sync Day Book
+                </button>
+              )}
+
               {invoiceType !== 'keycard' && (
                 <button 
                   type="button"
@@ -130,6 +487,138 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
               </button>
             </div>
           </div>
+
+          {/* Row 2: Frontend GST Engine & Quick Line-Item Controller Strip */}
+          {invoiceType === 'a4' && isLiveEditMode && (
+            <div style={{
+              background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.98))',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              {/* GST Slab Selector & Tax Mode */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Calculator size={14} /> GST Engine:
+                </span>
+                
+                {/* Slab Dropdown */}
+                <select
+                  value={gstSlab}
+                  onChange={(e) => setGstSlab(Number(e.target.value))}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f8fafc',
+                    border: '1px solid #38bdf8',
+                    borderRadius: '4px',
+                    padding: '3px 8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value={12}>12% Standard (Rooms ≤ ₹7,500)</option>
+                  <option value={18}>18% Luxury (Rooms &gt; ₹7,500)</option>
+                  <option value={5}>5% F&amp;B / Restaurant</option>
+                  <option value={0}>0% Non-GST / Exempt</option>
+                </select>
+
+                {/* Intrastate vs Interstate Switch */}
+                <div style={{ display: 'inline-flex', background: '#020617', padding: '2px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setTaxType('intra')}
+                    style={{
+                      background: taxType === 'intra' ? '#0284c7' : 'transparent',
+                      color: taxType === 'intra' ? '#fff' : '#94a3b8',
+                      border: 'none',
+                      borderRadius: '3px',
+                      padding: '3px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Intrastate (CGST 6% + SGST 6%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTaxType('inter')}
+                    style={{
+                      background: taxType === 'inter' ? '#0284c7' : 'transparent',
+                      color: taxType === 'inter' ? '#fff' : '#94a3b8',
+                      border: 'none',
+                      borderRadius: '3px',
+                      padding: '3px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Interstate (IGST 12%)
+                  </button>
+                </div>
+
+                {/* RCM Toggle */}
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={isRcm}
+                    onChange={(e) => setIsRcm(e.target.checked)}
+                  />
+                  RCM (Reverse Charge)
+                </label>
+
+                {/* Live Discount Input */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', color: '#facc15' }}>
+                  <span>Discount ₹:</span>
+                  <input
+                    type="number"
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
+                    style={{ width: '60px', background: '#020617', color: '#facc15', border: '1px solid #eab308', borderRadius: '4px', padding: '2px 4px', fontSize: '0.75rem', fontWeight: 700, textAlign: 'right' }}
+                  />
+                </div>
+              </div>
+
+              {/* Quick Add Line Item Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Quick Add:</span>
+                <button
+                  type="button"
+                  onClick={() => handleAddLineItem('extra-bed')}
+                  style={{ background: 'rgba(212, 175, 55, 0.15)', border: '1px solid rgba(212, 175, 55, 0.4)', color: 'var(--gold-glow)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
+                >
+                  + Extra Bed (₹400)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddLineItem('station-transfer')}
+                  style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#38bdf8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
+                >
+                  + Station Cab (₹350)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddLineItem('late-checkout')}
+                  style={{ background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.4)', color: '#fb7185', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
+                >
+                  + Late Checkout (₹500)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddLineItem('dining')}
+                  style={{ background: 'rgba(52, 211, 153, 0.15)', border: '1px solid rgba(52, 211, 153, 0.4)', color: '#34d399', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer' }}
+                >
+                  + Satvik Dining (₹350)
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Row 2: Document Switcher Tabs (Independent row, cannot displace the close button) */}
           <div style={{
@@ -427,27 +916,85 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                 <div className="field-row">
                   <span className="field-label">Bill / Invoice No.</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong style={{ color: '#0f172a' }}>{billNo}</strong></span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <input 
+                        type="text" 
+                        value={editHeader.billNo} 
+                        onChange={(e) => setEditHeader(prev => ({ ...prev, billNo: e.target.value }))}
+                        style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', fontWeight: 'bold', width: '150px' }}
+                      />
+                    ) : (
+                      <strong style={{ color: '#0f172a' }}>{billNo}</strong>
+                    )}
+                  </span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Bill Date &amp; Time</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{new Date().toLocaleDateString('en-IN')} 14:15:47</span>
+                  <span className="field-value">
+                    {new Date().toLocaleDateString('en-IN')} 14:15:47
+                  </span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">GRC Number</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong>G.Regn.No. {grcNo}</strong></span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <input 
+                        type="text" 
+                        value={editHeader.grcNo} 
+                        onChange={(e) => setEditHeader(prev => ({ ...prev, grcNo: e.target.value }))}
+                        style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', width: '90px' }}
+                      />
+                    ) : (
+                      <strong>G.Regn.No. {editHeader.grcNo}</strong>
+                    )}
+                  </span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Room Number</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong>Room {booking.roomNumber}</strong> ({booking.tier})</span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <div style={{ display: 'inline-flex', gap: '4px' }}>
+                        <input 
+                          type="text" 
+                          value={editHeader.roomNumber} 
+                          onChange={(e) => setEditHeader(prev => ({ ...prev, roomNumber: e.target.value }))}
+                          style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', fontWeight: 'bold', width: '50px' }}
+                        />
+                        <input 
+                          type="text" 
+                          value={editHeader.tier} 
+                          onChange={(e) => setEditHeader(prev => ({ ...prev, tier: e.target.value }))}
+                          style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', width: '90px' }}
+                        />
+                      </div>
+                    ) : (
+                      <strong>Room {editHeader.roomNumber} ({editHeader.tier})</strong>
+                    )}
+                  </span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Meal Plan</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong>{planCode} (Continental Plan)</strong></span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <select
+                        value={editHeader.planCode}
+                        onChange={(e) => setEditHeader(prev => ({ ...prev, planCode: e.target.value }))}
+                        style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', fontWeight: 'bold' }}
+                      >
+                        <option value="EP">EP (European Plan - Room Only)</option>
+                        <option value="CP">CP (Continental Plan - Satvik Breakfast)</option>
+                        <option value="MAP">MAP (Modified American - Breakfast + Dinner)</option>
+                        <option value="AP">AP (American Plan - All Meals)</option>
+                      </select>
+                    ) : (
+                      <strong>{editHeader.planCode} (Continental Plan)</strong>
+                    )}
+                  </span>
                 </div>
               </div>
 
@@ -455,132 +1002,348 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                 <div className="field-row">
                   <span className="field-label">Guest / Billed To</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value"><strong style={{ textTransform: 'uppercase' }}>{booking.guestName}</strong></span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <input 
+                        type="text" 
+                        value={editHeader.guestName} 
+                        onChange={(e) => setEditHeader(prev => ({ ...prev, guestName: e.target.value }))}
+                        style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', fontWeight: 'bold', width: '180px', textTransform: 'uppercase' }}
+                      />
+                    ) : (
+                      <strong style={{ textTransform: 'uppercase' }}>{editHeader.guestName}</strong>
+                    )}
+                  </span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Contact Mobile</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{booking.guestPhone || '+91 6305202068'}</span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <input 
+                        type="text" 
+                        value={editHeader.guestPhone} 
+                        onChange={(e) => setEditHeader(prev => ({ ...prev, guestPhone: e.target.value }))}
+                        style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', width: '130px' }}
+                      />
+                    ) : (
+                      <span>{editHeader.guestPhone}</span>
+                    )}
+                  </span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Company / Account</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{booking.company || 'LINDE INDIA LTD'}</span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <input 
+                        type="text" 
+                        value={editHeader.company} 
+                        onChange={(e) => setEditHeader(prev => ({ ...prev, company: e.target.value }))}
+                        style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '10px', width: '180px' }}
+                      />
+                    ) : (
+                      <span>{editHeader.company}</span>
+                    )}
+                  </span>
                 </div>
                 <div className="field-row">
                   <span className="field-label">Corporate GSTIN</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value text-bold-gstin">{booking.corporateGstin || '21AAACB2528H1ZA'}</span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <input 
+                        type="text" 
+                        value={editHeader.corporateGstin} 
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase();
+                          setEditHeader(prev => ({ ...prev, corporateGstin: val }));
+                          if (val.length >= 2) {
+                            const statePrefix = val.slice(0, 2);
+                            if (statePrefix !== '21') {
+                              setTaxType('inter');
+                            } else {
+                              setTaxType('intra');
+                            }
+                          }
+                        }}
+                        placeholder="e.g. 21AAACB2528H1ZA"
+                        style={{ border: '1px dashed #38bdf8', padding: '1px 4px', fontSize: '10px', fontWeight: 'bold', width: '160px', fontFamily: 'monospace' }}
+                      />
+                    ) : (
+                      <span className="text-bold-gstin">{editHeader.corporateGstin}</span>
+                    )}
+                  </span>
                 </div>
                 <div className="field-row">
-                  <span className="field-label">Check-In / Check-Out</span>
+                  <span className="field-label">Check-In / Out</span>
                   <span className="field-colon">:</span>
-                  <span className="field-value">{booking.checkInDate || '17-Sep-2026 20:44'} to {booking.checkOutDate || '21-Sep-2026 14:15'}</span>
+                  <span className="field-value">
+                    {isLiveEditMode ? (
+                      <div style={{ display: 'inline-flex', gap: '3px' }}>
+                        <input 
+                          type="text" 
+                          value={editHeader.checkInDate} 
+                          onChange={(e) => setEditHeader(prev => ({ ...prev, checkInDate: e.target.value }))}
+                          style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '9px', width: '100px' }}
+                        />
+                        <span>to</span>
+                        <input 
+                          type="text" 
+                          value={editHeader.checkOutDate} 
+                          onChange={(e) => setEditHeader(prev => ({ ...prev, checkOutDate: e.target.value }))}
+                          style={{ border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '9px', width: '100px' }}
+                        />
+                      </div>
+                    ) : (
+                      <span>{editHeader.checkInDate} to {editHeader.checkOutDate}</span>
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Sheet 1: Explicit Taxable vs Non-Taxable Columns & Non-GST Billing Support */}
+            {/* Sheet 1: Explicit Taxable vs Non-Taxable Columns & Dynamic Line Item Editor */}
             <table className="ledger-table">
               <thead>
                 <tr>
                   <th style={{ width: '30px' }}>#</th>
                   <th>Date &amp; Service Particulars</th>
                   <th style={{ width: '65px', textAlign: 'center' }}>SAC</th>
-                  <th style={{ width: '45px', textAlign: 'center' }}>Qty</th>
+                  <th style={{ width: '50px', textAlign: 'center' }}>Qty</th>
                   <th className="th-amount" style={{ width: '85px' }}>Rate (₹)</th>
                   <th className="th-amount" style={{ width: '95px' }}>Taxable Val (₹)</th>
                   <th className="th-amount" style={{ width: '105px' }}>Non-Taxable (₹)</th>
                   <th className="th-amount" style={{ width: '95px' }}>Line Total (₹)</th>
+                  {isLiveEditMode && <th style={{ width: '30px' }} className="no-print">Act</th>}
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>1</td>
-                  <td>
-                    <strong>Accommodation Stay - {booking.tier} (Room {booking.roomNumber})</strong>
-                    <div style={{ fontSize: '9px', color: '#444' }}>
-                      Plan: {planCode} • 4 Nights Stay (17-Sep to 21-Sep-2026)
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>996311</td>
-                  <td style={{ textAlign: 'center' }}>4</td>
-                  <td className="text-right">₹2,999.00</td>
-                  <td className="text-right">{isNonGstBill ? '₹0.00' : '₹11,996.00'}</td>
-                  <td className="text-right">{isNonGstBill ? '₹11,996.00' : '₹0.00'}</td>
-                  <td className="text-right">₹11,996.00</td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td>
-                    <strong>Cannon Kitchen Restaurant - Food &amp; Dining (KOT F2627-18346)</strong>
-                    <div style={{ fontSize: '9px', color: '#444' }}>
-                      18-Sep (₹280) + 19-Sep (₹310) + 20-Sep (₹310) Dining Orders
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>996331</td>
-                  <td style={{ textAlign: 'center' }}>3</td>
-                  <td className="text-right">₹300.00 avg</td>
-                  <td className="text-right">{isNonGstBill ? '₹0.00' : '₹900.00'}</td>
-                  <td className="text-right">{isNonGstBill ? '₹900.00' : '₹0.00'}</td>
-                  <td className="text-right">₹900.00</td>
-                </tr>
+                {lineItems.map((item, idx) => {
+                  const lineTotal = Number(item.qty || 1) * Number(item.rate || 0);
+                  const isItemTaxable = !isNonGstBill && !item.isExempt;
+                  return (
+                    <tr key={item.id || idx}>
+                      <td>{idx + 1}</td>
+                      <td>
+                        {isLiveEditMode ? (
+                          <div>
+                            <input
+                              type="text"
+                              value={item.desc}
+                              onChange={(e) => handleUpdateLineItem(item.id, 'desc', e.target.value)}
+                              style={{ width: '100%', border: '1px dashed #94a3b8', padding: '2px 4px', fontSize: '10.5px', fontWeight: 'bold' }}
+                            />
+                            <input
+                              type="text"
+                              value={item.subDesc || ''}
+                              onChange={(e) => handleUpdateLineItem(item.id, 'subDesc', e.target.value)}
+                              placeholder="Sub notes / stay details"
+                              style={{ width: '100%', border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '9px', color: '#64748b', marginTop: '2px' }}
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <strong>{item.desc}</strong>
+                            {item.subDesc && <div style={{ fontSize: '9px', color: '#444' }}>{item.subDesc}</div>}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {isLiveEditMode ? (
+                          <input
+                            type="text"
+                            value={item.sac}
+                            onChange={(e) => handleUpdateLineItem(item.id, 'sac', e.target.value)}
+                            style={{ width: '55px', border: '1px dashed #94a3b8', textAlign: 'center', fontSize: '10px' }}
+                          />
+                        ) : (
+                          item.sac
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {isLiveEditMode ? (
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.qty}
+                            onChange={(e) => handleUpdateLineItem(item.id, 'qty', e.target.value)}
+                            style={{ width: '45px', border: '1px dashed #94a3b8', textAlign: 'center', fontSize: '10px' }}
+                          />
+                        ) : (
+                          item.qty
+                        )}
+                      </td>
+                      <td className="text-right">
+                        {isLiveEditMode ? (
+                          <input
+                            type="number"
+                            value={item.rate}
+                            onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)}
+                            style={{ width: '75px', border: '1px dashed #94a3b8', textAlign: 'right', fontSize: '10px' }}
+                          />
+                        ) : (
+                          `₹${Number(item.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                        )}
+                      </td>
+                      <td className="text-right">
+                        {isItemTaxable ? `₹${lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}
+                      </td>
+                      <td className="text-right">
+                        {!isItemTaxable ? `₹${lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}
+                      </td>
+                      <td className="text-right" style={{ fontWeight: 600 }}>
+                        ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      {isLiveEditMode && (
+                        <td style={{ textAlign: 'center' }} className="no-print">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteLineItem(item.id)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                            title="Delete Line Item"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
 
-                {/* QloApps Extra Services & Add-Ons Items */}
-                {Array.isArray(booking.selectedAddOns) && booking.selectedAddOns.map((addon, idx) => (
-                  <tr key={addon.id || idx}>
-                    <td>{3 + idx}</td>
-                    <td>
-                      <strong>{addon.name}</strong>
-                      <div style={{ fontSize: '9px', color: '#444' }}>
-                        Extra Service: {addon.pricingType === 'per_night' ? `${booking.nights || 1} Night(s) Package` : 'One-time Facility Booking'}
+                {/* In edit mode, provide quick add line item trigger */}
+                {isLiveEditMode && (
+                  <tr className="no-print" style={{ background: '#f8fafc' }}>
+                    <td colSpan="9" style={{ padding: '6px 8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>+ Add Line Item:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleAddLineItem('custom')}
+                          style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontSize: '9.5px', cursor: 'pointer' }}
+                        >
+                          + Custom Service
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddLineItem('extra-bed')}
+                          style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontSize: '9.5px', cursor: 'pointer' }}
+                        >
+                          + Extra Bed (₹400)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddLineItem('station-transfer')}
+                          style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontSize: '9.5px', cursor: 'pointer' }}
+                        >
+                          + Station Cab (₹350)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddLineItem('dining')}
+                          style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontSize: '9.5px', cursor: 'pointer' }}
+                        >
+                          + Satvik Dining (₹350)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddLineItem('laundry')}
+                          style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontSize: '9.5px', cursor: 'pointer' }}
+                        >
+                          + Laundry (₹150)
+                        </button>
                       </div>
                     </td>
-                    <td style={{ textAlign: 'center' }}>{addon.sac || '996311'}</td>
-                    <td style={{ textAlign: 'center' }}>{addon.pricingType === 'per_night' ? (booking.nights || 1) : 1}</td>
-                    <td className="text-right">₹{Number(addon.price || 0).toFixed(2)}</td>
-                    <td className="text-right">{isNonGstBill ? '₹0.00' : `₹${Number(addon.total || addon.price || 0).toFixed(2)}`}</td>
-                    <td className="text-right">{isNonGstBill ? `₹${Number(addon.total || addon.price || 0).toFixed(2)}` : '₹0.00'}</td>
-                    <td className="text-right">₹{Number(addon.total || addon.price || 0).toFixed(2)}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Taxable Base (₹):</td>
-                  <td className="text-right" style={{ fontWeight: 'bold' }}>{isNonGstBill ? '₹0.00' : '₹12,896.00'}</td>
+                  <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Taxable Base (₹):</td>
+                  <td className="text-right" style={{ fontWeight: 'bold' }}>
+                    ₹{netTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </td>
+                  {isLiveEditMode && <td className="no-print"></td>}
                 </tr>
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Non-Taxable / Exempt Base (₹):</td>
-                  <td className="text-right" style={{ fontWeight: 'bold', color: isNonGstBill ? '#0284c7' : '#64748b' }}>{isNonGstBill ? '₹12,896.00' : '₹0.00'}</td>
+                  <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Non-Taxable / Exempt Base (₹):</td>
+                  <td className="text-right" style={{ fontWeight: 'bold', color: isNonGstBill ? '#0284c7' : '#64748b' }}>
+                    ₹{exemptBase.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </td>
+                  {isLiveEditMode && <td className="no-print"></td>}
                 </tr>
-                {!isNonGstBill && (
+
+                {discountAmount > 0 && (
+                  <tr>
+                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', color: '#b45309' }}>
+                      Approved Discount / Tariff Concession ({discountReason}):
+                    </td>
+                    <td className="text-right" style={{ color: '#b45309', fontWeight: 600 }}>
+                      -₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    {isLiveEditMode && <td className="no-print"></td>}
+                  </tr>
+                )}
+
+                {!isNonGstBill && taxType === 'intra' && (
                   <>
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'right' }}>Central GST (CGST @ 2.5%):</td>
-                      <td className="text-right">₹320.92</td>
+                      <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right' }}>
+                        Central GST (CGST @ {cgstRate}%):
+                      </td>
+                      <td className="text-right">₹{cgstAmount.toFixed(2)}</td>
+                      {isLiveEditMode && <td className="no-print"></td>}
                     </tr>
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'right' }}>Odisha State GST (SGST @ 2.5%):</td>
-                      <td className="text-right">₹320.92</td>
+                      <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right' }}>
+                        Odisha State GST (SGST @ {sgstRate}%):
+                      </td>
+                      <td className="text-right">₹{sgstAmount.toFixed(2)}</td>
+                      {isLiveEditMode && <td className="no-print"></td>}
                     </tr>
                   </>
                 )}
+
+                {!isNonGstBill && taxType === 'inter' && (
+                  <tr>
+                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right' }}>
+                      Integrated GST (IGST @ {igstRate}% - Interstate Supply):
+                    </td>
+                    <td className="text-right">₹{igstAmount.toFixed(2)}</td>
+                    {isLiveEditMode && <td className="no-print"></td>}
+                  </tr>
+                )}
+
                 {isNonGstBill && (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'right', color: '#64748b', fontStyle: 'italic', fontSize: '9.5px' }}>
+                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', color: '#64748b', fontStyle: 'italic', fontSize: '9.5px' }}>
                       GST Exemption: Exempt / Non-GST Supply under Section 11 of CGST Act
                     </td>
                     <td className="text-right" style={{ color: '#64748b' }}>₹0.00 (Exempt)</td>
+                    {isLiveEditMode && <td className="no-print"></td>}
                   </tr>
                 )}
+
+                {effectiveRoundOff !== 0 && (
+                  <tr>
+                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontSize: '9.5px', color: '#64748b' }}>
+                      Rounding Adjustment (Rule 26/GST):
+                    </td>
+                    <td className="text-right" style={{ fontSize: '9.5px', color: '#64748b' }}>
+                      {effectiveRoundOff >= 0 ? '+' : ''}₹{effectiveRoundOff.toFixed(2)}
+                    </td>
+                    {isLiveEditMode && <td className="no-print"></td>}
+                  </tr>
+                )}
+
                 <tr className="tfoot-round">
-                  <td colSpan="7" style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>
+                  <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>
                     {isNonGstBill ? 'NON-GST BILL TOTAL (INR):' : 'CONSOLIDATED TOTAL (INR):'}
                   </td>
                   <td className="text-right text-net-amount">
-                    {isNonGstBill ? '₹12,896.00' : '₹13,537.84'}
+                    ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
+                  {isLiveEditMode && <td className="no-print"></td>}
                 </tr>
               </tfoot>
             </table>
@@ -588,9 +1351,7 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
             <div className="in-words-row">
               <span className="in-words-label">Amount in Words:</span>
               <span className="in-words-value">
-                {isNonGstBill 
-                  ? 'Indian Rupees Twelve Thousand Eight Hundred Ninety-Six Only' 
-                  : 'Indian Rupees Thirteen Thousand Five Hundred Thirty-Eight Only'}
+                {convertNumberToIndianWords(grandTotal)}
               </span>
             </div>
 
@@ -645,22 +1406,58 @@ export default function BookingReceiptModal({ isOpen, onClose, booking, initialT
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
                       <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Cash Tender</span>
-                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.cash.toLocaleString('en-IN')}</strong>
+                      {isLiveEditMode ? (
+                        <input
+                          type="number"
+                          value={tenders.cash}
+                          onChange={(e) => setTenders(prev => ({ ...prev, cash: Number(e.target.value) || 0 }))}
+                          style={{ width: '100%', border: '1px dashed #94a3b8', fontSize: '11px', fontWeight: 'bold' }}
+                        />
+                      ) : (
+                        <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{Number(tenders.cash || 0).toLocaleString('en-IN')}</strong>
+                      )}
                       <span style={{ display: 'block', fontSize: '8px', color: '#94a3b8' }}>Front Desk Drawer</span>
                     </div>
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
                       <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>{tenders.upiProvider || 'UPI'} (Merchant QR)</span>
-                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.upi.toLocaleString('en-IN')}</strong>
+                      {isLiveEditMode ? (
+                        <input
+                          type="number"
+                          value={tenders.upi}
+                          onChange={(e) => setTenders(prev => ({ ...prev, upi: Number(e.target.value) || 0 }))}
+                          style={{ width: '100%', border: '1px dashed #94a3b8', fontSize: '11px', fontWeight: 'bold' }}
+                        />
+                      ) : (
+                        <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{Number(tenders.upi || 0).toLocaleString('en-IN')}</strong>
+                      )}
                       {tenders.upiRef && <span style={{ display: 'block', fontSize: '8px', color: '#0284c7', fontFamily: 'monospace' }}>{tenders.upiRef}</span>}
                     </div>
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
                       <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Card / POS Swipe</span>
-                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.card.toLocaleString('en-IN')}</strong>
+                      {isLiveEditMode ? (
+                        <input
+                          type="number"
+                          value={tenders.card}
+                          onChange={(e) => setTenders(prev => ({ ...prev, card: Number(e.target.value) || 0 }))}
+                          style={{ width: '100%', border: '1px dashed #94a3b8', fontSize: '11px', fontWeight: 'bold' }}
+                        />
+                      ) : (
+                        <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{Number(tenders.card || 0).toLocaleString('en-IN')}</strong>
+                      )}
                       {tenders.cardAuth && <span style={{ display: 'block', fontSize: '8px', color: '#9333ea', fontFamily: 'monospace' }}>{tenders.cardAuth}</span>}
                     </div>
                     <div style={{ background: '#fff', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '3px' }}>
                       <span style={{ color: '#64748b', display: 'block', fontSize: '9px' }}>Corporate BTC ({tenders.btcCompany})</span>
-                      <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{tenders.btc.toLocaleString('en-IN')}</strong>
+                      {isLiveEditMode ? (
+                        <input
+                          type="number"
+                          value={tenders.btc}
+                          onChange={(e) => setTenders(prev => ({ ...prev, btc: Number(e.target.value) || 0 }))}
+                          style={{ width: '100%', border: '1px dashed #94a3b8', fontSize: '11px', fontWeight: 'bold' }}
+                        />
+                      ) : (
+                        <strong style={{ color: '#0f172a', fontSize: '11px' }}>₹{Number(tenders.btc || 0).toLocaleString('en-IN')}</strong>
+                      )}
                     </div>
                   </div>
 

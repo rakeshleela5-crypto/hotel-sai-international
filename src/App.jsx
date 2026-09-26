@@ -943,6 +943,13 @@ export default function App() {
           isOpen={receiptModalOpen}
           onClose={() => setReceiptModalOpen(false)}
           booking={currentReceiptBooking}
+          onUpdateBooking={(updated) => {
+            if (updated && (updated.bookingId || updated.id)) {
+              const bId = updated.bookingId || updated.id;
+              setBookings(prev => prev.map(b => (b.bookingId === bId || b.id === bId) ? { ...b, ...updated } : b));
+              setCurrentReceiptBooking(updated);
+            }
+          }}
         />
 
         <FoodOrderModal 
