@@ -50,7 +50,7 @@ const InRoomGuestPortal = lazyWithRetry(() => import('./components/InRoomGuestPo
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS, CORPORATE_PARTNERS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
 import { FloatingDock } from '@/components/ui/floating-dock';
-import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale } from 'lucide-react';
+import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale, MessageCircle } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -934,9 +934,14 @@ export default function App() {
               onUpdateRoomStatus={handleUpdateRoomStatus}
               onNewBooking={handleBookingSuccess}
               onRunNightAudit={handleRunNightAudit}
+              onExitPMS={() => setCurrentView('guest')}
+              onOpenMasterFolio={() => setFolioModalOpen(true)}
               onOpenRestaurantPOS={() => setPosModalOpen(true)}
               onOpenAccountsLedger={() => setAccountsModalOpen(true)}
               onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
+              onOpenNightAuditModal={() => setNightAuditModalOpen(true)}
+              onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
+              onOpenRevenueManagement={() => setRevenueModalOpen(true)}
               foodOrders={foodOrders}
               onUpdateOrderStatus={handleUpdateOrderStatus}
               roomServices={roomServices}
@@ -1171,7 +1176,12 @@ export default function App() {
           },
 
           {
-            title: currentView === 'pms' ? "Guest Portal" : "Reception PMS",
+            title: "24/7 WhatsApp Concierge",
+            icon: <MessageCircle className="h-5 w-5 text-emerald-400" />,
+            onClick: () => window.open('https://wa.me/917978043585?text=Hello%20Hotel%20Sai%20International%20Front%20Desk,%20I%20would%20like%20to%20inquire%20about%20a%20booking', '_blank', 'noopener,noreferrer')
+          },
+          {
+            title: currentView === 'pms' ? "Exit PMS (Return to Website)" : "Reception PMS",
             icon: <ShieldCheck className="h-5 w-5" />,
             onClick: () => {
               if (currentView === 'pms') {
@@ -1185,6 +1195,40 @@ export default function App() {
           }
         ]}
       />
+
+      {/* 24/7 Floating WhatsApp Direct Concierge (Bottom Left) */}
+      {currentView === 'guest' && (
+        <a
+          href="https://wa.me/917978043585?text=Hello%20Hotel%20Sai%20International%20Front%20Desk,%20I%20would%20like%20to%20inquire%20about%20a%20booking"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '24px',
+            zIndex: 890,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+            color: '#ffffff',
+            padding: '10px 16px',
+            borderRadius: '50px',
+            boxShadow: '0 8px 24px rgba(37, 211, 102, 0.45)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            textDecoration: 'none',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            transition: 'all 0.2s ease',
+            backdropFilter: 'blur(8px)'
+          }}
+          className="whatsapp-floating-concierge"
+          title="Instant 24/7 Front Desk WhatsApp Support"
+        >
+          <MessageCircle size={18} />
+          <span className="hide-on-mobile">WhatsApp Desk</span>
+        </a>
+      )}
     </div>
   );
 }

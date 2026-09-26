@@ -50,6 +50,7 @@ const path = require('path');
   });
 
   page.on('pageerror', err => {
+    console.log('PAGE ERROR STACK:', err.stack || err);
     consoleErrors.push(err.toString());
   });
 

@@ -3,7 +3,8 @@ import {
   X, Printer, CheckCircle2, Download, ShieldCheck, Hotel, 
   Calendar, User, FileText, Receipt, Sparkles, Building2,
   CreditCard, Split, UtensilsCrossed, BedDouble, UserCheck, Key,
-  Plus, Trash2, Edit3, Save, Check, RefreshCw, Calculator, Percent
+  Plus, Trash2, Edit3, Save, Check, RefreshCw, Calculator, Percent,
+  MessageCircle
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { DigitalKeycard } from '@/components/ui/digital-keycard';
@@ -369,6 +370,40 @@ export default function BookingReceiptModal({
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
+  // WhatsApp GST Tax Folio Dispatch
+  const handleSendWhatsAppInvoice = () => {
+    const rawPhone = (editHeader.guestPhone || booking.guestPhone || '').replace(/\D/g, '');
+    const cleanPhone = rawPhone.length === 10 ? `91${rawPhone}` : (rawPhone.length > 10 ? rawPhone : '916305202068');
+    
+    const msg = 
+`*HOTEL SAI INTERNATIONAL - OFFICIAL GST TAX INVOICE*
+🏛️ *Near Sai Priya Convention, Rayagada, Odisha - 765001*
+📞 Front Desk: +91 79780 43585 | GSTIN: 21AAACB2528H1ZA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dear *${editHeader.guestName || booking.guestName || 'Valued Guest'}*,
+
+Thank you for choosing Hotel Sai International! Here is your official GST tax folio summary:
+
+📄 *Bill / Invoice No:* ${billNo}
+🚪 *Room Number:* ${editHeader.roomNumber || booking.roomNumber} (${editHeader.tier || booking.tier || 'Executive AC'})
+📅 *Stay Duration:* ${editHeader.checkInDate || booking.checkInDate} to ${editHeader.checkOutDate || booking.checkOutDate}
+🏷️ *Tax Category:* ${isNonGstBill ? 'Exempt / Non-GST' : `${gstSlab}% GST (${taxType === 'intra' ? 'CGST+SGST' : 'IGST'})`}
+
+💰 *Taxable Base:* ₹${netTaxable.toLocaleString('en-IN')}
+📊 *Total GST:* ₹${totalTaxAmount.toLocaleString('en-IN')}
+💵 *Grand Total (Rounded):* ₹${grandTotal.toLocaleString('en-IN')}
+✅ *Advance / Deposit Paid:* ₹${advancePaid.toLocaleString('en-IN')}
+${balanceDue > 0 ? `⚠️ *Balance Payable at Desk:* ₹${balanceDue.toLocaleString('en-IN')}` : '✨ *Settlement Status:* Fully Settled & Cleared'}
+
+🔗 *View Digital Folio & RFID Keycard:*
+${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || booking.roomNumber}
+
+🙏 *We wish you a pleasant journey! Jay Jagannath!*`;
+
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="official-invoice-overlay" onClick={onClose}>
       <div 
@@ -479,6 +514,30 @@ export default function BookingReceiptModal({
                   style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Printer size={15} /> Print Document
+                </button>
+              )}
+
+              {invoiceType !== 'keycard' && (
+                <button 
+                  type="button"
+                  onClick={handleSendWhatsAppInvoice} 
+                  style={{ 
+                    padding: '6px 14px', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 700,
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                    border: '1px solid #25D366',
+                    color: '#ffffff',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.35)'
+                  }}
+                  title="Send Official GST Tax Invoice to Guest's WhatsApp"
+                >
+                  <MessageCircle size={15} /> WhatsApp Bill
                 </button>
               )}
 

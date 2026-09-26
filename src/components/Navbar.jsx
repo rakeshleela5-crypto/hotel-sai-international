@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Scale, Hotel, Phone, Clock, Layers, Utensils, Compass, Bot, 
   ShieldCheck, Lock, Sparkles, Building2, Menu, X, ShoppingBag, 
-  MapPin, CheckCircle2, FileText
+  MapPin, CheckCircle2, FileText, MessageCircle, LogOut
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 
@@ -37,6 +37,22 @@ export default function Navbar({
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState('');
   const [scrollPercent, setScrollPercent] = useState(0);
+
+  // Global Escape key listener: Instant return from PMS to guest website
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && currentView === 'pms') {
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        const isEditable = document.activeElement && (document.activeElement.isContentEditable || activeTag === 'input' || activeTag === 'textarea');
+        const hasOpenModal = document.querySelector('.official-invoice-overlay, .modal-overlay, .pos-settle-overlay');
+        if (!isEditable && !hasOpenModal) {
+          setCurrentView('guest');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentView, setCurrentView]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -158,6 +174,23 @@ export default function Navbar({
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
             <Clock size={13} color="#38bdf8" /> 24-Hr Desk: {HOTEL_CONFIG.landline}
           </span>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <a 
+            href="https://wa.me/917978043585?text=Hello%20Hotel%20Sai%20International%20Front%20Desk,%20I%20would%20like%20to%20inquire%20about%20a%20booking" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.35rem', 
+              color: '#4ade80', 
+              textDecoration: 'none',
+              fontWeight: 700
+            }}
+            title="Chat with Hotel Sai Front Desk on WhatsApp"
+          >
+            <MessageCircle size={13} color="#4ade80" /> WhatsApp Desk: +91 79780 43585
+          </a>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
@@ -348,20 +381,30 @@ export default function Navbar({
             onClick={handleAdminAccess}
             style={{
               fontSize: '0.75rem',
-              color: currentView === 'pms' ? '#fff' : '#38bdf8',
-              background: currentView === 'pms' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.04)',
-              border: currentView === 'pms' ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.3)',
-              padding: '0.3rem 0.65rem',
+              color: '#fff',
+              background: currentView === 'pms' ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : 'rgba(255,255,255,0.04)',
+              border: currentView === 'pms' ? '1px solid #f87171' : '1px solid rgba(56, 189, 248, 0.3)',
+              padding: '0.35rem 0.75rem',
               borderRadius: '6px',
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              transition: 'all 0.15s ease'
+              gap: '0.4rem',
+              transition: 'all 0.15s ease',
+              boxShadow: currentView === 'pms' ? '0 0 12px rgba(220, 38, 38, 0.45)' : 'none'
             }}
+            title={currentView === 'pms' ? 'Exit PMS and return to Public Website (Esc)' : 'Open Front Desk PMS Console'}
           >
-            ● {currentView === 'pms' ? 'Exit to Guest View' : 'Front Desk Enterprise PMS'}
+            {currentView === 'pms' ? (
+              <>
+                <LogOut size={13} color="#ffffff" /> Exit PMS to Website (Esc)
+              </>
+            ) : (
+              <>
+                <Lock size={13} color="#38bdf8" /> Front Desk Enterprise PMS
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -532,25 +575,27 @@ export default function Navbar({
               onClick={handleAdminAccess}
               style={{
                 background: currentView === 'pms' 
-                  ? 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)' 
+                  ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' 
                   : 'rgba(12, 24, 43, 0.8)',
                 border: currentView === 'pms' 
-                  ? '1px solid #60a5fa' 
+                  ? '1px solid #f87171' 
                   : '1px solid rgba(212, 175, 55, 0.35)',
                 color: '#fff',
                 padding: '0.5rem 0.95rem',
                 borderRadius: '8px',
                 fontSize: '0.85rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                boxShadow: currentView === 'pms' ? '0 0 15px rgba(56, 189, 248, 0.4)' : 'none'
+                boxShadow: currentView === 'pms' ? '0 0 15px rgba(220, 38, 38, 0.5)' : 'none',
+                cursor: 'pointer'
               }}
+              title={currentView === 'pms' ? 'Exit PMS and return to Public Website (Esc)' : 'Open Front Desk PMS Console'}
             >
               {currentView === 'pms' ? (
                 <>
-                  <ShieldCheck size={16} color="#38bdf8" /> Exit PMS
+                  <LogOut size={16} color="#ffffff" /> Exit PMS to Website
                 </>
               ) : (
                 <>
@@ -587,20 +632,28 @@ export default function Navbar({
               }} 
               style={{ 
                 textAlign: 'left', 
-                color: currentView === 'pms' ? '#38bdf8' : '#facc15', 
-                padding: '0.55rem 0.85rem',
+                color: '#fff', 
+                padding: '0.65rem 0.95rem',
                 borderRadius: '8px',
-                background: currentView === 'pms' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(212, 175, 55, 0.18)',
-                border: currentView === 'pms' ? '1px solid #38bdf8' : '1px solid rgba(212, 175, 55, 0.4)',
+                background: currentView === 'pms' ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' : 'rgba(212, 175, 55, 0.18)',
+                border: currentView === 'pms' ? '1px solid #f87171' : '1px solid rgba(212, 175, 55, 0.4)',
                 fontWeight: 800,
-                fontSize: '0.85rem',
+                fontSize: '0.88rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
                 cursor: 'pointer'
               }}
             >
-              ● {currentView === 'pms' ? 'Exit PMS (Return to Guest View)' : 'Front Desk Enterprise PMS (Tape Chart & Billing)'}
+              {currentView === 'pms' ? (
+                <>
+                  <LogOut size={16} /> 🚪 Exit PMS to Guest Website (Esc)
+                </>
+              ) : (
+                <>
+                  <Lock size={16} /> 🔒 Front Desk Enterprise PMS (Tape Chart & Billing)
+                </>
+              )}
             </button>
             <button onClick={() => { setCurrentView('guest'); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#fff', padding: '0.4rem 0' }}>
               🏨 40-Room Inventory Catalog

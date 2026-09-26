@@ -1160,7 +1160,7 @@ button:focus-visible, .btn:focus-visible {
   cursor: text !important;
 }
 
-/* Actively Focused Editing Element (Blinking Cursor + Luxury Gold Glow) */
+/* Actively Focused Editing Element (Blinking Cursor + Luxury Gold Glow for Dark Themes) */
 [contenteditable="true"]:focus,
 .hsi-currently-editing,
 .hsi-inline-editable:focus {
@@ -1175,6 +1175,31 @@ button:focus-visible, .btn:focus-visible {
   z-index: 50 !important;
 }
 
+/* ==========================================================================
+   BILL ENGINE & STATUTORY INVOICE SHEETS (WHITE PAPER CONTEXT)
+   Keeps text crystal-clear black/navy (#0f172a) on white paper during editing!
+   ========================================================================== */
+.tax-invoice-sheet [contenteditable="true"]:focus,
+.tax-invoice-sheet .hsi-currently-editing,
+.tax-invoice-sheet .hsi-inline-editable:focus,
+.official-invoice-modal-content .tax-invoice-sheet [contenteditable="true"]:focus,
+.official-invoice-modal-content .tax-invoice-sheet .hsi-currently-editing,
+.official-invoice-modal-content .tax-invoice-sheet .hsi-inline-editable:focus {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 1px !important;
+  background-color: #fef08a !important; /* Soft highlighter yellow */
+  color: #0f172a !important; /* Authentic, crystal-clear dark black/navy text */
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.35) !important;
+  border-radius: 2px !important;
+}
+
+.tax-invoice-sheet [contenteditable="true"]:hover,
+.official-invoice-modal-content .tax-invoice-sheet [contenteditable="true"]:hover {
+  outline: 1.5px dashed #2563eb !important;
+  background-color: rgba(254, 240, 138, 0.35) !important;
+  color: #0f172a !important;
+}
+
 [contenteditable="true"] {
   outline: none;
   min-width: 1ch;
@@ -1182,7 +1207,7 @@ button:focus-visible, .btn:focus-visible {
   cursor: text;
 }
 
-/* Save Success Flash Animation */
+/* Save Success Flash Animation for Dark Themes */
 @keyframes hsi-save-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8) !important;
@@ -1202,6 +1227,33 @@ button:focus-visible, .btn:focus-visible {
 .hsi-save-success-flash {
   animation: hsi-save-pulse 1.2s ease-out forwards !important;
 }
+
+/* Save Success Flash Animation for White Paper Invoice Sheets */
+.tax-invoice-sheet .hsi-save-success-flash,
+.official-invoice-modal-content .tax-invoice-sheet .hsi-save-success-flash {
+  animation: hsi-invoice-save-pulse 1.2s ease-out forwards !important;
+}
+
+@keyframes hsi-invoice-save-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7) !important;
+    background-color: #bbf7d0 !important;
+    color: #14532d !important;
+    outline: 2px solid #16a34a !important;
+  }
+  60% {
+    box-shadow: 0 0 10px 2px rgba(22, 163, 74, 0.3) !important;
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
+  }
+  100% {
+    box-shadow: none !important;
+    background-color: transparent !important;
+    color: inherit !important;
+    outline: none !important;
+  }
+}
+
 
 /* Print Cleanliness: Never show edit outlines or edit banners on physical print */
 @media print {

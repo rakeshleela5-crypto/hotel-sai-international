@@ -46,9 +46,14 @@ export default function ReceptionAdmin({
   onNewBooking,
   onRunNightAudit,
   nightAudits = [],
+  onExitPMS,
+  onOpenMasterFolio,
   onOpenRestaurantPOS,
   onOpenAccountsLedger,
   onOpenStoreInventory,
+  onOpenNightAuditModal,
+  onOpenDirectorPortal,
+  onOpenRevenueManagement,
   foodOrders: propFoodOrders,
   onUpdateOrderStatus: propUpdateOrderStatus
 }) {
@@ -129,6 +134,54 @@ export default function ReceptionAdmin({
       minStayFestivalNights: 2
     };
   });
+
+  // Operational Keyboard Highway (F1-F8 & Escape)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      const isInput = document.activeElement && (document.activeElement.isContentEditable || activeTag === 'input' || activeTag === 'textarea');
+      if (isInput) return;
+
+      if (e.key === 'Escape' && onExitPMS) {
+        if (!isReceiptModalOpen && !selectedFolioRoom && !checkoutRoom && !roomQrOpen && !backupOpen && !liveOrdersOpen && !roomServicesCareOpen && !isCheckInReviewOpen) {
+          onExitPMS();
+        }
+      } else if (e.key === 'F1') {
+        e.preventDefault();
+        setActiveDepartment('reception');
+        setActiveTab('tape-chart');
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        if (onOpenRestaurantPOS) onOpenRestaurantPOS();
+      } else if (e.key === 'F3') {
+        e.preventDefault();
+        if (onOpenAccountsLedger) onOpenAccountsLedger();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        if (onOpenMasterFolio) onOpenMasterFolio();
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        if (onOpenStoreInventory) onOpenStoreInventory();
+      } else if (e.key === 'F6') {
+        e.preventDefault();
+        if (onOpenRevenueManagement) onOpenRevenueManagement();
+      } else if (e.key === 'F7') {
+        e.preventDefault();
+        if (onOpenNightAuditModal) onOpenNightAuditModal();
+        else setActiveTab('cashier-audit');
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        if (onOpenDirectorPortal) onOpenDirectorPortal();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    onExitPMS, onOpenRestaurantPOS, onOpenAccountsLedger, onOpenMasterFolio, 
+    onOpenStoreInventory, onOpenRevenueManagement, onOpenNightAuditModal, onOpenDirectorPortal,
+    isReceiptModalOpen, selectedFolioRoom, checkoutRoom, roomQrOpen, backupOpen, liveOrdersOpen, roomServicesCareOpen, isCheckInReviewOpen
+  ]);
 
   // The Wild Oasis Protocol: Pre-Booked Arrivals Scheduled for Today
   const [internalBookings, setInternalBookings] = useState([
@@ -1756,32 +1809,131 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
           </div>
 
-          {/* 3 Role Switcher Buttons */}
-          <div style={{ display: 'flex', gap: '0.4rem', background: 'rgba(0,0,0,0.4)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            {[
-              { id: 'owner', label: '👑 Owner / MD (Eswara)', color: '#fbbf24' },
-              { id: 'receptionist', label: '👤 Receptionist', color: '#38bdf8' },
-              { id: 'accounts', label: '💼 Accounts Lead', color: '#34d399' }
-            ].map(r => (
+          {/* Top Line Right Side: 3 Role Switcher Buttons & Exit PMS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', background: 'rgba(0,0,0,0.4)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              {[
+                { id: 'owner', label: '👑 Owner / MD (Eswara)', color: '#fbbf24' },
+                { id: 'receptionist', label: '👤 Receptionist', color: '#38bdf8' },
+                { id: 'accounts', label: '💼 Accounts Lead', color: '#34d399' }
+              ].map(r => (
+                <button
+                  key={r.id}
+                  onClick={() => setActiveRole(r.id)}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: '6px',
+                    border: activeRole === r.id ? `1px solid ${r.color}` : '1px solid transparent',
+                    background: activeRole === r.id ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: activeRole === r.id ? r.color : '#94a3b8',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+
+            {onExitPMS && (
               <button
-                key={r.id}
-                onClick={() => setActiveRole(r.id)}
+                type="button"
+                onClick={onExitPMS}
                 style={{
-                  padding: '0.35rem 0.8rem',
-                  borderRadius: '6px',
-                  border: activeRole === r.id ? `1px solid ${r.color}` : '1px solid transparent',
-                  background: activeRole === r.id ? 'rgba(255,255,255,0.12)' : 'transparent',
-                  color: activeRole === r.id ? r.color : '#94a3b8',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                  border: '1px solid #f87171',
+                  color: '#ffffff',
+                  padding: '0.4rem 0.95rem',
+                  borderRadius: '7px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.45)',
                   transition: 'all 0.15s ease'
                 }}
+                title="Exit Front Desk PMS and Return to Guest Website (Shortcut: Esc)"
               >
-                {r.label}
+                <LogOut size={14} color="#ffffff" /> Exit PMS (Esc)
               </button>
-            ))}
+            )}
           </div>
+        </div>
+
+        {/* Rapid Cross-Module Interconnection Highway (F1-F8 One-Touch Switcher) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.55rem 0.2rem',
+          overflowX: 'auto',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          scrollbarWidth: 'none'
+        }}>
+          <span style={{
+            fontSize: '0.72rem',
+            color: 'var(--gold-glow)',
+            fontWeight: 800,
+            letterSpacing: '0.04em',
+            paddingRight: '0.35rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            whiteSpace: 'nowrap'
+          }}>
+            ⚡ FAST RAIL:
+          </span>
+
+          {[
+            { key: 'F1', label: 'Front Desk', color: '#38bdf8', onClick: () => { setActiveDepartment('reception'); setActiveTab('tape-chart'); } },
+            { key: 'F2', label: 'Fenugreek POS', color: '#fbbf24', onClick: onOpenRestaurantPOS },
+            { key: 'F3', label: 'Day Book & Tax', color: '#34d399', onClick: onOpenAccountsLedger },
+            { key: 'F4', label: 'Master Folio', color: '#60a5fa', onClick: onOpenMasterFolio },
+            { key: 'F5', label: 'Mandi Store', color: '#a78bfa', onClick: onOpenStoreInventory },
+            { key: 'F6', label: 'G3 RMS Rates', color: '#f59e0b', onClick: onOpenRevenueManagement },
+            { key: 'F7', label: 'Night Audit', color: '#c084fc', onClick: onOpenNightAuditModal || (() => setActiveTab('cashier-audit')) },
+            { key: 'F8', label: 'Director Portal', color: '#facc15', onClick: onOpenDirectorPortal }
+          ].map(item => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={item.onClick}
+              style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: item.color,
+                borderRadius: '6px',
+                padding: '0.28rem 0.65rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
+              title={`Quick switch to ${item.label} (${item.key})`}
+            >
+              <kbd style={{
+                background: 'rgba(0,0,0,0.55)',
+                border: '1px solid rgba(255,255,255,0.22)',
+                borderRadius: '4px',
+                padding: '1px 5px',
+                fontSize: '0.66rem',
+                fontFamily: 'monospace',
+                color: '#fff',
+                boxShadow: 'inset 0 -1px 0 rgba(0,0,0,0.4)'
+              }}>
+                {item.key}
+              </kbd>
+              {item.label}
+            </button>
+          ))}
         </div>
 
         {/* Bottom Line: 5 Department Master Section Tabs */}
@@ -2011,6 +2163,29 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           >
             <Clock size={15} /> Night Audit
           </button>
+          {onExitPMS && (
+            <button 
+              onClick={onExitPMS}
+              style={{ 
+                padding: '0.55rem 1.15rem', 
+                fontSize: '0.85rem', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '0.4rem',
+                background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                border: '1px solid #f87171',
+                color: '#ffffff',
+                borderRadius: '8px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.45)',
+                transition: 'all 0.15s ease'
+              }}
+              title="Exit Front Desk PMS and Return to Guest Website (Shortcut: Esc)"
+            >
+              <LogOut size={15} color="#ffffff" /> Exit PMS (Esc)
+            </button>
+          )}
         </div>
       </div>
 
