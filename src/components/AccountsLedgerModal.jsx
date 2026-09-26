@@ -101,6 +101,17 @@ export default function AccountsLedgerModal({
     { voucher: 'EXP-903', item: 'Local Courier & Police Register dispatch', amount: 250.00, category: 'Front Desk & Admin', date: '2026-09-22', approvedBy: 'Front Desk Mgr' }
   ]);
   const [showAddJournalModal, setShowAddJournalModal] = useState(false);
+  const [isBankDepositModalOpen, setIsBankDepositModalOpen] = useState(false);
+  const [bankDepositData, setBankDepositData] = useState({
+    bankName: 'State Bank of India (SBI)',
+    branch: 'Rayagada Main Branch (Code: 0172)',
+    accountNumber: '3891002100049281',
+    accountName: 'HOTEL SAI INTERNATIONAL',
+    pan: 'AAACB2528H',
+    denominations: { 500: 25, 200: 15, 100: 45, 50: 20, 20: 10, 10: 15 }
+  });
+  const [isPettyCashPrintOpen, setIsPettyCashPrintOpen] = useState(false);
+  const [selectedPettyCashForPrint, setSelectedPettyCashForPrint] = useState(null);
   const [journalForm, setJournalForm] = useState({
     date: '2026-09-22',
     category: 'Kitchen Raw Material',
@@ -880,6 +891,94 @@ export default function AccountsLedgerModal({
   const totalPettyCash = pettyCashEntries.reduce((sum, e) => sum + e.amount, 0);
   const cashIn = dayBookData.collections.find(c => c.mode.startsWith('Cash'))?.gross || 0;
   const expectedCashInDrawer = dayBookData.openingFloat + cashIn - totalPettyCash;
+
+  const handleExportTallyXml = () => {
+    const xmlHeader = `<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>HOTEL SAI INTERNATIONAL</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>`;
+
+    const xmlFooter = `
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>`;
+
+    const vouchersXml = dayBookData.collections.map((col, idx) => `
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Receipt" ACTION="Create">
+            <DATE>20260926</DATE>
+            <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>RCP-HSI-2026-${String(idx + 1).padStart(4, '0')}</VOUCHERNUMBER>
+            <NARRATION>Hotel Sai International Daily Collection - ${col.mode}</NARRATION>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>${col.mode.includes('Cash') ? 'Cash-in-Hand' : col.mode.includes('UPI') ? 'SBI Current A/c - UPI' : col.mode.includes('Corporate') ? 'Sundry Debtors - BTC' : 'HDFC Bank - POS Card'}</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-${col.gross.toFixed(2)}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Room Stay Revenue</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>${(col.gross * 0.88).toFixed(2)}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Output CGST 6%</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>${(col.gross * 0.06).toFixed(2)}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Output SGST 6%</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <AMOUNT>${(col.gross * 0.06).toFixed(2)}</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>`).join('');
+
+    const fullXml = xmlHeader + vouchersXml + xmlFooter;
+    const blob = new Blob([fullXml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Tally_DayBook_HotelSai_${new Date().toISOString().slice(0, 10)}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportDayBookCsv = () => {
+    const headers = ['Voucher Type', 'Payment Mode', 'Count', 'Notes', 'Gross Amount (INR)', 'Net Taxable (INR)', 'GST Amount (INR)'];
+    const rows = dayBookData.collections.map(c => [
+      'Daily Receipt',
+      `"${c.mode}"`,
+      c.count,
+      `"${c.notes}"`,
+      c.gross.toFixed(2),
+      (c.gross * 0.88).toFixed(2),
+      (c.gross * 0.12).toFixed(2)
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `DayBook_HotelSai_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
 
   // Monthly Corporate B2B GST Data (Formatted for GSTR-1 Table 4A & GSTR-2B)
   const corporateGstInvoices = [
@@ -2581,6 +2680,90 @@ export default function AccountsLedgerModal({
 
         {activeTab === 'day-book' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
+            {/* Day Book Action Toolbar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ color: '#fff', fontSize: '1.2rem', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Calendar size={18} color="#34d399" /> Statutory Accounts Day Book &amp; Cash Reconciliation
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Hotel Sai International • Rayagada, Odisha • TallyPrime &amp; GST Compatible
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleExportTallyXml}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.8rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: 'rgba(212, 175, 55, 0.15)',
+                    border: '1px solid var(--gold-glow)',
+                    color: 'var(--gold-glow)',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Export Day Book Vouchers in TallyPrime XML Format"
+                >
+                  <Download size={14} color="var(--gold-glow)" /> Tally XML
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportDayBookCsv}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.8rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    border: '1px solid #38bdf8',
+                    color: '#38bdf8',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Download CSV Spreadsheet for Excel"
+                >
+                  <FileSpreadsheet size={14} color="#38bdf8" /> Excel CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsBankDepositModalOpen(true)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.8rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: 'rgba(52, 211, 153, 0.15)',
+                    border: '1px solid #34d399',
+                    color: '#34d399',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Generate SBI Rayagada Branch Cash Deposit Slip"
+                >
+                  <Building2 size={14} color="#34d399" /> Bank Deposit Slip
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn-primary-gold"
+                  style={{ padding: '0.45rem 0.95rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  title="Print Official Day Book Statement"
+                >
+                  <Printer size={14} /> Print Day Book
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Gross Daily Collections</span>
@@ -3963,6 +4146,175 @@ export default function AccountsLedgerModal({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: BANK CASH DEPOSIT CHALLAN (SBI RAYAGADA BRANCH) */}
+        {isBankDepositModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100000,
+            padding: '1rem',
+            backdropFilter: 'blur(6px)'
+          }}>
+            <div style={{
+              background: '#0d1322',
+              border: '2px solid rgba(52, 211, 153, 0.4)',
+              borderRadius: '14px',
+              width: '100%',
+              maxWidth: 680,
+              padding: '1.75rem',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
+              maxHeight: '92vh',
+              overflowY: 'auto'
+            }}>
+              {/* Slip Top Controls */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <Building2 size={22} color="#34d399" />
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', color: '#fff', margin: 0, fontWeight: 700 }}>
+                      Bank Cash Deposit Challan (Pay-In Slip)
+                    </h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      State Bank of India (SBI) • Rayagada Main Branch (0172)
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="btn-primary-gold"
+                    style={{ padding: '0.45rem 0.95rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <Printer size={15} /> Print Deposit Slip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBankDepositModalOpen(false)}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.4rem' }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Printable Challan Sheet */}
+              <div style={{
+                background: '#ffffff',
+                color: '#0f172a',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                fontFamily: 'serif',
+                border: '2px solid #047857'
+              }}>
+                <div style={{ textAlign: 'center', borderBottom: '2px solid #047857', paddingBottom: '0.6rem', marginBottom: '1rem' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#047857', fontWeight: 800, letterSpacing: '0.5px' }}>
+                    STATE BANK OF INDIA • CASH DEPOSIT CHALLAN
+                  </h2>
+                  <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+                    Branch: Rayagada Main Branch (Odisha) • Branch Code: 0172 • IFS Code: SBIN0000172
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.82rem', marginBottom: '1rem', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.75rem' }}>
+                  <div><strong>Account Title:</strong> HOTEL SAI INTERNATIONAL</div>
+                  <div style={{ textAlign: 'right' }}><strong>Date:</strong> {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                  <div><strong>Current A/c No:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem' }}>3891002100049281</span></div>
+                  <div style={{ textAlign: 'right' }}><strong>PAN No:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>AAACB2528H</span></div>
+                  <div><strong>Mobile:</strong> +91 79780 43585</div>
+                  <div style={{ textAlign: 'right' }}><strong>Deposit Type:</strong> Daily Counter Cash Collections</div>
+                </div>
+
+                {/* Denominations Table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderTop: '1px solid #94a3b8', borderBottom: '1px solid #94a3b8' }}>
+                      <th style={{ padding: '0.4rem', textAlign: 'left' }}>Notes Denomination</th>
+                      <th style={{ padding: '0.4rem', textAlign: 'center' }}>Number of Pieces</th>
+                      <th style={{ padding: '0.4rem', textAlign: 'right' }}>Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { note: 500, count: bankDepositData.denominations[500] || 0 },
+                      { note: 200, count: bankDepositData.denominations[200] || 0 },
+                      { note: 100, count: bankDepositData.denominations[100] || 0 },
+                      { note: 50, count: bankDepositData.denominations[50] || 0 },
+                      { note: 20, count: bankDepositData.denominations[20] || 0 },
+                      { note: 10, count: bankDepositData.denominations[10] || 0 }
+                    ].map((row, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '0.4rem' }}>₹{row.note} ×</td>
+                        <td style={{ padding: '0.4rem', textAlign: 'center' }}>
+                          <input
+                            type="number"
+                            min="0"
+                            value={row.count}
+                            onChange={(e) => {
+                              const val = Math.max(0, parseInt(e.target.value) || 0);
+                              setBankDepositData({
+                                ...bankDepositData,
+                                denominations: { ...bankDepositData.denominations, [row.note]: val }
+                              });
+                            }}
+                            style={{
+                              width: 60,
+                              textAlign: 'center',
+                              padding: '2px 4px',
+                              border: '1px solid #94a3b8',
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                              fontSize: '0.82rem'
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: '0.4rem', textAlign: 'right', fontWeight: 700 }}>
+                          ₹{(row.note * row.count).toLocaleString('en-IN')}.00
+                        </td>
+                      </tr>
+                    ))}
+                    <tr style={{ background: '#f8fafc', fontWeight: 800, borderTop: '2px solid #047857' }}>
+                      <td colSpan={2} style={{ padding: '0.5rem', textAlign: 'left', color: '#047857' }}>
+                        TOTAL DEPOSIT AMOUNT
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'right', color: '#047857', fontSize: '1rem' }}>
+                        ₹{([500, 200, 100, 50, 20, 10].reduce((sum, n) => sum + (n * (bankDepositData.denominations[n] || 0)), 0)).toLocaleString('en-IN')}.00
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                {/* Amount in words and Signatures */}
+                <div style={{ fontSize: '0.8rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '4px', marginBottom: '1.25rem', border: '1px solid #e2e8f0' }}>
+                  <strong>Amount in words:</strong> Indian Rupees {(function(n) {
+                    if (n === 0) return 'Zero';
+                    return n.toLocaleString('en-IN');
+                  })([500, 200, 100, 50, 20, 10].reduce((sum, n) => sum + (n * (bankDepositData.denominations[n] || 0)), 0))} Only
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px dashed #94a3b8', fontSize: '0.8rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ height: '35px' }}></div>
+                    <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                      Signature of Depositor (Chief Cashier)
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ height: '35px' }}></div>
+                    <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                      SBI Cash Officer Seal &amp; Signature
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

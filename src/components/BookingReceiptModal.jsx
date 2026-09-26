@@ -513,7 +513,14 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                   className="btn-primary-gold" 
                   style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Printer size={15} /> Print Document
+                  <Printer size={15} /> {
+                    invoiceType === 'grc' ? 'Print GRC Card (Form A)' :
+                    invoiceType === 'money-receipt' ? 'Print Advance Receipt' :
+                    invoiceType === 'pos' ? 'Print Thermal Slip' :
+                    invoiceType === 'room-split' ? 'Print Room Folio' :
+                    invoiceType === 'food-split' ? 'Print Dining Folio' :
+                    'Print Tax Invoice'
+                  }
                 </button>
               )}
 

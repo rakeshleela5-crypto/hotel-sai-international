@@ -6,7 +6,7 @@ import {
   Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
   Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle,
   ArrowRightLeft, Edit3, MessageCircle, TrendingUp, QrCode, Database,
-  BellRing, Car, Globe, Radio, Bell, Sliders, LogOut, Coffee
+  BellRing, Car, Globe, Radio, Bell, Sliders, LogOut, Coffee, Briefcase
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -113,6 +113,48 @@ export default function ReceptionAdmin({
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isWakeUpModalOpen, setIsWakeUpModalOpen] = useState(false);
   const [isTransitModalOpen, setIsTransitModalOpen] = useState(false);
+  const [isRoomRackPrintOpen, setIsRoomRackPrintOpen] = useState(false);
+  const [isPolicePrintOpen, setIsPolicePrintOpen] = useState(false);
+  const [isHousekeepingPrintOpen, setIsHousekeepingPrintOpen] = useState(false);
+  const [isLuggageModalOpen, setIsLuggageModalOpen] = useState(false);
+  const [luggagePasses, setLuggagePasses] = useState([
+    {
+      id: 'LUG-2026-041',
+      roomNumber: '204',
+      guestName: 'K. RAMA MURTHY',
+      phone: '+91 98480 33119',
+      bagsCount: 2,
+      bagType: '1 Strolley + 1 Backpack',
+      droppedTime: '11:15 AM',
+      pickupTime: '07:30 PM',
+      trainNo: '18448 Hirakhand Exp',
+      lockerNo: 'Locker-03',
+      status: 'In Custody'
+    },
+    {
+      id: 'LUG-2026-042',
+      roomNumber: '302',
+      guestName: 'M. BALARAM PRASAD',
+      phone: '+91 94372 10982',
+      bagsCount: 1,
+      bagType: 'Executive Laptop Bag',
+      droppedTime: '12:00 PM',
+      pickupTime: '05:45 PM',
+      trainNo: '18517 Korba Express',
+      lockerNo: 'Locker-05',
+      status: 'In Custody'
+    }
+  ]);
+  const [luggageForm, setLuggageForm] = useState({
+    roomNumber: '101',
+    guestName: '',
+    phone: '',
+    bagsCount: 2,
+    bagType: 'Trolley Bags',
+    pickupTime: '07:00 PM',
+    trainNo: '18448 Hirakhand Exp',
+    lockerNo: 'Locker-06'
+  });
 
   // The Wild Oasis Features: Check-In Review Modal & Internal Arrivals Management
   const [selectedArrivalForCheckIn, setSelectedArrivalForCheckIn] = useState(null);
@@ -1770,6 +1812,44 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
     setTimeout(() => setPoliceDispatchSent(false), 5000);
   };
 
+  const handleAddLuggagePass = (e) => {
+    e.preventDefault();
+    if (!luggageForm.guestName || !luggageForm.phone) {
+      alert('Please enter guest name and phone number');
+      return;
+    }
+    const newPass = {
+      id: `LUG-${Date.now().toString().slice(-6)}`,
+      roomNumber: luggageForm.roomNumber,
+      guestName: luggageForm.guestName,
+      phone: luggageForm.phone,
+      bagsCount: Number(luggageForm.bagsCount) || 1,
+      bagType: luggageForm.bagType || 'Luggage',
+      droppedTime: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      pickupTime: luggageForm.pickupTime || '07:00 PM',
+      trainNo: luggageForm.trainNo || 'Train Transfer',
+      lockerNo: luggageForm.lockerNo || 'Locker-01',
+      status: 'In Custody'
+    };
+    setLuggagePasses([newPass, ...luggagePasses]);
+    setLuggageForm({
+      roomNumber: '101',
+      guestName: '',
+      phone: '',
+      bagsCount: 2,
+      bagType: 'Trolley Bags',
+      pickupTime: '07:00 PM',
+      trainNo: '18448 Hirakhand Exp',
+      lockerNo: 'Locker-06'
+    });
+    setFeedbackToast(`Luggage Pass ${newPass.id} issued for ${newPass.guestName}!`);
+  };
+
+  const handleReleaseLuggage = (passId) => {
+    setLuggagePasses(luggagePasses.map(lp => lp.id === passId ? { ...lp, status: 'Released to Guest' } : lp));
+    setFeedbackToast(`Luggage pass ${passId} safely released to guest.`);
+  };
+
   return (
     <section 
       id="reception-admin-container" 
@@ -2141,6 +2221,30 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 {roomServicesList.filter(r => r.status === 'Pending').length} Pending
               </span>
             )}
+          </button>
+          <button 
+            onClick={() => setIsRoomRackPrintOpen(true)}
+            className="btn-outline-gold"
+            style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            title="Print 40-Room Daily Tape Chart Rack & Arrivals Manifest"
+          >
+            <Printer size={15} color="var(--gold-glow)" /> Print Room Rack
+          </button>
+          <button 
+            onClick={() => setIsLuggageModalOpen(true)}
+            className="btn-outline-gold"
+            style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            title="Bell Desk Luggage Storage & Custody Tags"
+          >
+            <Briefcase size={15} color="#38bdf8" /> Luggage Pass
+          </button>
+          <button 
+            onClick={() => setIsWakeUpModalOpen(true)}
+            className="btn-outline-gold"
+            style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            title="Pilgrim & Train Wake-Up Call Scheduler"
+          >
+            <Bell size={15} color="#facc15" /> Wake-Up Calls
           </button>
           <button 
             onClick={() => setBlockRoomOpen(true)}
@@ -4295,7 +4399,16 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsHousekeepingPrintOpen(true)}
+                  className="btn-outline-gold"
+                  style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  title="Print Daily 40-Room Floor Attendant Assignment & Linen Checklist"
+                >
+                  <Printer size={14} color="var(--gold-glow)" /> Print Housekeeping Work Order
+                </button>
                 <button
                   onClick={() => {
                     setWorkOrderForm({
@@ -4822,13 +4935,24 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </div>
             </div>
 
-            <button 
-              onClick={dispatchPoliceRegisterWhatsApp}
-              className="btn-primary-gold"
-              style={{ fontSize: '0.85rem' }}
-            >
-              <Send size={15} /> Dispatch Register to Police Station
-            </button>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                onClick={() => setIsPolicePrintOpen(true)}
+                className="btn-outline-gold"
+                style={{ fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem' }}
+                title="Print Official Form C Sarai Act Arrival Register"
+              >
+                <Printer size={15} color="var(--gold-glow)" /> Print Form C Sarai Register
+              </button>
+              <button 
+                onClick={dispatchPoliceRegisterWhatsApp}
+                className="btn-primary-gold"
+                style={{ fontSize: '0.85rem' }}
+              >
+                <Send size={15} /> Dispatch Register to Police Station
+              </button>
+            </div>
           </div>
 
           {policeDispatchSent && (
@@ -5151,13 +5275,24 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsTransferModalOpen(true)}
-                className="btn-primary-gold"
-                style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
-              >
-                <Car size={16} /> + Schedule Station Transfer
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn-outline-gold"
+                  style={{ padding: '0.55rem 1rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  title="Print Today's Station Transfer Schedule"
+                >
+                  <Printer size={15} color="var(--gold-glow)" /> Print Transfer Schedule
+                </button>
+                <button
+                  onClick={() => setIsTransferModalOpen(true)}
+                  className="btn-primary-gold"
+                  style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                >
+                  <Car size={16} /> + Schedule Station Transfer
+                </button>
+              </div>
             </div>
 
             {/* Transfer KPI Summary Bar */}
@@ -5278,6 +5413,14 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                           >
                             📱 Alert Driver
                           </a>
+                          <button
+                            type="button"
+                            onClick={() => window.print()}
+                            style={{ padding: '0.25rem 0.5rem', background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', border: '1px solid var(--gold-glow)', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                            title="Print Transfer Docket / Driver Slip"
+                          >
+                            🖨️ Slip
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -7732,6 +7875,634 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         breakfastRate={opsSettings?.breakfastRate || 250}
         cabRate={opsSettings?.stationDropRate || 350}
       />
+
+      {/* MODAL 1: STATUTORY SARAI ACT 1867 DAILY POLICE REGISTER (FORM C) */}
+      {isPolicePrintOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.88)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100000,
+          padding: '1rem',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <div style={{
+            background: '#0d1322',
+            border: '2px solid rgba(212, 175, 55, 0.4)',
+            borderRadius: '14px',
+            width: '100%',
+            maxWidth: 1100,
+            maxHeight: '94vh',
+            overflowY: 'auto',
+            padding: '1.5rem',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>
+                  🚨 Statutory Police Register (Form C) • Rayagada Town Police Station
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Under Section 3 of The Sarai Act, 1867 &amp; Odisha Lodging House Act
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn-primary-gold"
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Printer size={15} /> Print Form C Register
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPolicePrintOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.4rem' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Manifest Sheet */}
+            <div style={{ background: '#ffffff', color: '#0f172a', padding: '1.75rem', borderRadius: '8px', fontFamily: 'serif' }}>
+              <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '1px', color: '#475569' }}>
+                  GOVERNMENT OF ODISHA • POLICE DEPARTMENT
+                </div>
+                <h2 style={{ margin: '0.2rem 0', fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
+                  DAILY GUEST ARRIVAL &amp; DEPARTURE MANIFEST (FORM C)
+                </h2>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>
+                  HOTEL SAI INTERNATIONAL • Near Sai Priya Convention, Rayagada - 765001 (Odisha)
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  Jurisdiction: Rayagada Town Police Station • District: Rayagada • Sarai Registration No: RGDA-SARAI-2019/042
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '1rem', fontWeight: 600 }}>
+                <div><strong>Date of Report:</strong> {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                <div><strong>Time of Dispatch:</strong> {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                <div><strong>Total In-House Guests:</strong> {bookings.filter(b => b.bookingStatus === 'Checked In' || b.status === 'Checked In').length || 18}</div>
+              </div>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', border: '1px solid #0f172a' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #0f172a', textAlign: 'left' }}>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>S.N</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Room</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Guest Name</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Mobile No</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Govt ID (Type &amp; Masked)</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>State / Country</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Arrived From</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Proceeding To</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Vehicle Reg.</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>Purpose</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { room: '101', name: 'MR. P ASHOK', phone: '+91 6305202068', idType: 'Aadhaar (Masked)', idNum: 'XXXX-XXXX-7890', state: 'Andhra Pradesh', from: 'Visakhapatnam', to: 'Linde Plant Jaykaypur', vehicle: 'AP-31-CK-9021', purpose: 'Corporate Audit' },
+                    { room: '102', name: 'SUBHASH CHANDRA DAS', phone: '+91 94371 88291', idType: 'Driving Lic.', idNum: 'OD-18-XXXX-8291', state: 'Odisha (BBS)', from: 'Bhubaneswar', to: 'JK Paper Mills', vehicle: 'OD-02-AX-4412', purpose: 'Technical Inspection' },
+                    { room: '204', name: 'K. RAMA MURTHY', phone: '+91 98480 33119', idType: 'Aadhaar (Masked)', idNum: 'XXXX-XXXX-3119', state: 'Andhra Pradesh', from: 'Srikakulam', to: 'Maa Majhighariani', vehicle: 'AP-30-T-8821', purpose: 'Pilgrimage Darshan' },
+                    { room: '206', name: 'LAVAKANTA OJHA', phone: '+91 94371 44520', idType: 'Passport', idNum: 'Z-XXXX-4520', state: 'Odisha', from: 'Cuttack', to: 'Akchem Rayagada', vehicle: 'OD-05-M-1029', purpose: 'Business Conference' },
+                    { room: '301', name: 'UTKARSH SRIVASTAVA', phone: '+91 94370 88912', idType: 'Aadhaar (Masked)', idNum: 'XXXX-XXXX-8912', state: 'Uttar Pradesh', from: 'Varanasi', to: 'Koraput Tourism', vehicle: 'Train 18447', purpose: 'Travel & Tourism' },
+                    { room: '304', name: 'BIJAY PASWAN', phone: '+91 98610 33812', idType: 'Voter ID', idNum: 'JH-XXXX-3812', state: 'Jharkhand', from: 'Ranchi', to: 'PRADAN Field Office', vehicle: 'Train 18105', purpose: 'NGO Field Survey' }
+                  ].map((row, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem', textAlign: 'center' }}>{idx + 1}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem', fontWeight: 700 }}>{row.room}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem', fontWeight: 600 }}>{row.name}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>{row.phone}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>{row.idType}: {row.idNum}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>{row.state}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>{row.from}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>{row.to}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>{row.vehicle}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '0.35rem' }}>{row.purpose}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px dashed #94a3b8', fontSize: '0.82rem' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ height: '35px' }}></div>
+                  <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                    Front Desk Duty Officer (Hotel Sai International)
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ height: '35px' }}></div>
+                  <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                    Rayagada Town Police Station Desk Officer Seal &amp; G.D. Entry No.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: 40-ROOM DAILY TAPE CHART RACK & ARRIVALS MANIFEST PRINT */}
+      {isRoomRackPrintOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.88)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100000,
+          padding: '1rem',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <div style={{
+            background: '#0d1322',
+            border: '2px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '14px',
+            width: '100%',
+            maxWidth: 1050,
+            maxHeight: '94vh',
+            overflowY: 'auto',
+            padding: '1.5rem',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Printer size={18} color="#38bdf8" /> Daily Room Rack &amp; Tape Chart Clipboard Sheet
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Front Desk Morning/Evening Handover &amp; Physical Inspection Sheet
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn-primary-gold"
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Printer size={15} /> Print Room Rack
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsRoomRackPrintOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.4rem' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Rack Sheet */}
+            <div style={{ background: '#ffffff', color: '#0f172a', padding: '1.5rem', borderRadius: '8px', fontFamily: 'sans-serif' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0284c7', paddingBottom: '0.6rem', marginBottom: '1rem' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#0284c7', fontWeight: 800 }}>
+                    HOTEL SAI INTERNATIONAL • 40-ROOM TAPE CHART RACK
+                  </h2>
+                  <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                    Front Desk Physical Clipboard Summary • Rayagada, Odisha
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
+                  <div><strong>Date:</strong> {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                  <div><strong>Generated:</strong> {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+              </div>
+
+              {/* Occupancy Summary Badges */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginBottom: '1rem', textAlign: 'center' }}>
+                <div style={{ background: '#f0fdf4', border: '1px solid #86efac', padding: '0.4rem', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 700 }}>OCCUPIED</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#15803d' }}>
+                    {rooms.filter(r => r.status === 'Occupied').length}
+                  </div>
+                </div>
+                <div style={{ background: '#eff6ff', border: '1px solid #93c5fd', padding: '0.4rem', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 700 }}>VACANT CLEAN</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1d4ed8' }}>
+                    {rooms.filter(r => r.status === 'Available' || r.status === 'Vacant Clean').length}
+                  </div>
+                </div>
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '0.4rem', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#92400e', fontWeight: 700 }}>VACANT DIRTY</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b45309' }}>
+                    {rooms.filter(r => r.status === 'Vacant Dirty' || r.status === 'Cleaning').length}
+                  </div>
+                </div>
+                <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.4rem', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#991b1b', fontWeight: 700 }}>MAINTENANCE</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b91c1c' }}>
+                    {rooms.filter(r => r.status === 'Maintenance').length}
+                  </div>
+                </div>
+                <div style={{ background: '#faf5ff', border: '1px solid #d8b4fe', padding: '0.4rem', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#6b21a8', fontWeight: 700 }}>OCCUPANCY %</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#7e22ce' }}>
+                    {Math.round((rooms.filter(r => r.status === 'Occupied').length / (rooms.length || 39)) * 100)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* 39 Rooms Detailed Grid */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', marginBottom: '1.25rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #0f172a', textAlign: 'left' }}>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1' }}>Room</th>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1' }}>Tier / Category</th>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1' }}>Status</th>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1' }}>In-House Guest Name</th>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1' }}>Check-In</th>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1' }}>Check-Out</th>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1', textAlign: 'right' }}>Tariff (₹)</th>
+                    <th style={{ padding: '0.3rem', border: '1px solid #cbd5e1', textAlign: 'right' }}>Balance Due</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rooms.slice(0, 39).map((room, idx) => {
+                    const booking = bookings.find(b => (b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) && (b.bookingStatus === 'Checked In' || b.status === 'Checked In'));
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', fontWeight: 700 }}>{room.roomNumber}</td>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1' }}>{room.tier}</td>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', fontWeight: 600, color: room.status === 'Occupied' ? '#15803d' : room.status === 'Maintenance' ? '#b91c1c' : '#1d4ed8' }}>
+                          {room.status}
+                        </td>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', fontWeight: 600 }}>
+                          {room.currentGuestName || booking?.guestName || '-'}
+                        </td>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1' }}>{booking?.checkInDate || '-'}</td>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1' }}>{booking?.checkOutDate || '-'}</td>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', textAlign: 'right' }}>₹{room.price || 1899}</td>
+                        <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 700, color: (booking?.balanceDue || 0) > 0 ? '#dc2626' : '#15803d' }}>
+                          {booking ? `₹${(booking.balanceDue || 0).toLocaleString('en-IN')}` : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', paddingTop: '1rem', borderTop: '1px dashed #94a3b8', fontSize: '0.8rem' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ height: '30px' }}></div>
+                  <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                    Front Desk Cashier / Receptionist Sign
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ height: '30px' }}></div>
+                  <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                    Operations Manager / GM Verification
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: HOUSEKEEPING DAILY FLOOR ASSIGNMENT & WORK ORDER PRINT */}
+      {isHousekeepingPrintOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.88)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100000,
+          padding: '1rem',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <div style={{
+            background: '#0d1322',
+            border: '2px solid rgba(212, 175, 55, 0.4)',
+            borderRadius: '14px',
+            width: '100%',
+            maxWidth: 1050,
+            maxHeight: '94vh',
+            overflowY: 'auto',
+            padding: '1.5rem',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🧹 Housekeeping Daily Floor Attendant &amp; Linen Checklist
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Room Turnover • Linen Replacement • Amenities Replenishment
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn-primary-gold"
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Printer size={15} /> Print Work Order
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsHousekeepingPrintOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.4rem' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Sheet */}
+            <div style={{ background: '#ffffff', color: '#0f172a', padding: '1.5rem', borderRadius: '8px', fontFamily: 'sans-serif' }}>
+              <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '0.6rem', marginBottom: '1rem' }}>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
+                  HOTEL SAI INTERNATIONAL • HOUSEKEEPING WORK ORDER
+                </h2>
+                <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                  Daily Room Attendant Floor Allocation &amp; Inspection Manifest • Rayagada
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <div>Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                  <div>Shift: Morning (07:00 - 15:30)</div>
+                  <div>Floor Supervisor: P. Bikram (Ext. 04)</div>
+                </div>
+              </div>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem', marginBottom: '1rem' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #0f172a', textAlign: 'left' }}>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1' }}>Room</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1' }}>Floor</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1' }}>Status</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1' }}>Turnover Type</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>Bed Sheet [✓]</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>Towels (2x) [✓]</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>Water Bottles [✓]</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>Toiletries [✓]</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1' }}>Attendant Sign</th>
+                    <th style={{ padding: '0.35rem', border: '1px solid #cbd5e1' }}>Supervisor Audit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rooms.slice(0, 39).map((room, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', fontWeight: 700 }}>{room.roomNumber}</td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1' }}>Floor {room.floor || '2'}</td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', fontWeight: 600 }}>{room.status}</td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1' }}>
+                        {room.status === 'Occupied' ? 'Stayover Service' : room.status === 'Vacant Dirty' ? 'Departure Turnover' : 'Touch-Up / Dusting'}
+                      </td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>[ ]</td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>[ ]</td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>[ ]</td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>[ ]</td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1' }}></td>
+                      <td style={{ padding: '0.28rem', border: '1px solid #cbd5e1', textAlign: 'center' }}>Pass / Re-clean</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', paddingTop: '1rem', borderTop: '1px dashed #94a3b8', fontSize: '0.8rem' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ height: '30px' }}></div>
+                  <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                    Housekeeping Executive Sign
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ height: '30px' }}></div>
+                  <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 700 }}>
+                    Front Desk Reception Handover Sign
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: BELL DESK LUGGAGE STORAGE & CUSTODY TAGS */}
+      {isLuggageModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.88)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100000,
+          padding: '1rem',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <div style={{
+            background: '#0d1322',
+            border: '2px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '14px',
+            width: '100%',
+            maxWidth: 880,
+            maxHeight: '94vh',
+            overflowY: 'auto',
+            padding: '1.75rem',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Briefcase size={22} color="#38bdf8" />
+                <div>
+                  <h3 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>
+                    Bell Desk Luggage Custody &amp; Storage Pass
+                  </h3>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    For checked-out transit guests awaiting trains &amp; temple visits
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLuggageModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.4rem' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Luggage Registration Form */}
+            <form onSubmit={handleAddLuggagePass} style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38bdf8', marginBottom: '0.75rem' }}>
+                + Issue New Luggage Custody Tag
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.82rem' }}>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '3px' }}>Room No:</label>
+                  <input
+                    type="text"
+                    value={luggageForm.roomNumber}
+                    onChange={(e) => setLuggageForm({ ...luggageForm, roomNumber: e.target.value })}
+                    style={{ width: '100%', padding: '0.4rem', background: '#060e1a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px' }}
+                    placeholder="e.g. 204 or Walk-in"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '3px' }}>Guest Name:</label>
+                  <input
+                    type="text"
+                    value={luggageForm.guestName}
+                    onChange={(e) => setLuggageForm({ ...luggageForm, guestName: e.target.value })}
+                    style={{ width: '100%', padding: '0.4rem', background: '#060e1a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px' }}
+                    placeholder="Guest Full Name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '3px' }}>Mobile Phone:</label>
+                  <input
+                    type="text"
+                    value={luggageForm.phone}
+                    onChange={(e) => setLuggageForm({ ...luggageForm, phone: e.target.value })}
+                    style={{ width: '100%', padding: '0.4rem', background: '#060e1a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px' }}
+                    placeholder="+91 94370 00000"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '3px' }}>No. of Bags:</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={luggageForm.bagsCount}
+                    onChange={(e) => setLuggageForm({ ...luggageForm, bagsCount: e.target.value })}
+                    style={{ width: '100%', padding: '0.4rem', background: '#060e1a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '3px' }}>Luggage Description:</label>
+                  <input
+                    type="text"
+                    value={luggageForm.bagType}
+                    onChange={(e) => setLuggageForm({ ...luggageForm, bagType: e.target.value })}
+                    style={{ width: '100%', padding: '0.4rem', background: '#060e1a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px' }}
+                    placeholder="e.g. 2 Trolleys + 1 Backpack"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '3px' }}>Pickup Time &amp; Train:</label>
+                  <input
+                    type="text"
+                    value={luggageForm.trainNo}
+                    onChange={(e) => setLuggageForm({ ...luggageForm, trainNo: e.target.value })}
+                    style={{ width: '100%', padding: '0.4rem', background: '#060e1a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px' }}
+                    placeholder="e.g. 07:30 PM (18448 Hirakhand)"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '3px' }}>Locker Slot:</label>
+                  <input
+                    type="text"
+                    value={luggageForm.lockerNo}
+                    onChange={(e) => setLuggageForm({ ...luggageForm, lockerNo: e.target.value })}
+                    style={{ width: '100%', padding: '0.4rem', background: '#060e1a', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px' }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '0.75rem', textAlign: 'right' }}>
+                <button
+                  type="submit"
+                  className="btn-primary-gold"
+                  style={{ padding: '0.45rem 1.25rem', fontSize: '0.82rem' }}
+                >
+                  + Generate Luggage Pass &amp; Locker Tag
+                </button>
+              </div>
+            </form>
+
+            {/* Currently Stored Luggage Table */}
+            <h4 style={{ color: '#fff', fontSize: '0.95rem', marginBottom: '0.6rem' }}>
+              Active Luggage in Locker Storage ({luggagePasses.filter(l => l.status === 'In Custody').length})
+            </h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                    <th style={{ padding: '0.5rem' }}>Pass ID</th>
+                    <th style={{ padding: '0.5rem' }}>Room</th>
+                    <th style={{ padding: '0.5rem' }}>Guest Name</th>
+                    <th style={{ padding: '0.5rem' }}>Bags</th>
+                    <th style={{ padding: '0.5rem' }}>Locker Slot</th>
+                    <th style={{ padding: '0.5rem' }}>Pickup Schedule</th>
+                    <th style={{ padding: '0.5rem' }}>Status</th>
+                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {luggagePasses.map((pass, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: 'var(--gold-glow)' }}>{pass.id}</td>
+                      <td style={{ padding: '0.5rem', fontWeight: 700, color: '#fff' }}>{pass.roomNumber}</td>
+                      <td style={{ padding: '0.5rem', fontWeight: 600, color: '#fff' }}>{pass.guestName}</td>
+                      <td style={{ padding: '0.5rem', color: 'var(--text-secondary)' }}>{pass.bagsCount} ({pass.bagType})</td>
+                      <td style={{ padding: '0.5rem', color: '#38bdf8' }}>{pass.lockerNo}</td>
+                      <td style={{ padding: '0.5rem', color: '#facc15' }}>{pass.pickupTime} • {pass.trainNo}</td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          fontSize: '0.72rem',
+                          background: pass.status === 'In Custody' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                          color: pass.status === 'In Custody' ? '#38bdf8' : '#34d399',
+                          border: `1px solid ${pass.status === 'In Custody' ? '#38bdf8' : '#34d399'}`
+                        }}>
+                          {pass.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => window.print()}
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', background: 'rgba(212, 175, 55, 0.2)', border: '1px solid var(--gold-glow)', color: 'var(--gold-glow)', borderRadius: '4px', cursor: 'pointer' }}
+                            title="Print 2-Part Luggage Tag &amp; Slip"
+                          >
+                            🖨️ Tag
+                          </button>
+                          <a
+                            href={`https://wa.me/91${pass.phone.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(`Hotel Sai International - Luggage Claim Pass: ${pass.id} for ${pass.guestName} (${pass.bagsCount} Bags). Stored in ${pass.lockerNo}. Pickup time: ${pass.pickupTime}. Please present this message at reception to collect your bags.`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid #22c55e', color: '#4ade80', borderRadius: '4px', textDecoration: 'none' }}
+                          >
+                            💬 WhatsApp
+                          </a>
+                          {pass.status === 'In Custody' && (
+                            <button
+                              type="button"
+                              onClick={() => handleReleaseLuggage(pass.id)}
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid #10b981', color: '#10b981', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                              ✓ Release
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FLOATING ACTION TOAST */}
       {feedbackToast && (
