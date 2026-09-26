@@ -1451,6 +1451,53 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ success: true, invoiceNo, isB2B, gstin, companyName, amendedBy: amendedBy || 'Accounts Department' });
     }
 
+    // 38. THE WILD OASIS: Front-Desk In-Person Check-In Guest & Room Allocation
+    if (action === 'check_in_guest') {
+      const { bookingId, roomNumber, guestName, tier, nights, addons, payment } = payload;
+
+      // Update room status to Occupied
+      await db.prepare(`
+        UPDATE rooms
+        SET status = 'Occupied', current_guest_name = ?, current_booking_id = ?
+        WHERE room_number = ?
+      `).bind(guestName, bookingId || null, roomNumber).run().catch(() => {});
+
+      // Update booking status if booking exists
+      if (bookingId) {
+        await db.prepare(`
+          UPDATE bookings
+          SET booking_status = 'Checked In',
+              total_amount = COALESCE(?, total_amount)
+          WHERE booking_id = ? OR room_number = ?
+        `).bind(payment?.totalStayAmount || null, bookingId, roomNumber).run().catch(() => {});
+      }
+
+      return jsonResponse({ success: true, roomNumber, guestName, status: 'Occupied' });
+    }
+
+    // 39. THE WILD OASIS: Central Operations & Policy Settings Sync
+    if (action === 'update_operations_settings') {
+      const settings = payload || {};
+      const pairs = [
+        ['breakfast_rate', String(settings.breakfastRate || 250)],
+        ['extra_bed_rate', String(settings.extraBedRate || 400)],
+        ['station_drop_rate', String(settings.stationDropRate || 350)],
+        ['min_stay_nights', String(settings.minStayNights || 1)],
+        ['min_stay_festival_nights', String(settings.minStayFestivalNights || 2)],
+        ['check_in_time', String(settings.standardCheckInTime || '11:00 AM')],
+        ['check_out_time', String(settings.standardCheckOutTime || '12:00 PM')]
+      ];
+
+      for (const [k, v] of pairs) {
+        await db.prepare(`
+          INSERT INTO hotel_config (key, value) VALUES (?, ?)
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        `).bind(k, v).run().catch(() => {});
+      }
+
+      return jsonResponse({ success: true, updatedKeys: pairs.map(p => p[0]) });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error) {

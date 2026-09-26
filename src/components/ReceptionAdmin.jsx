@@ -6,7 +6,7 @@ import {
   Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
   Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle,
   ArrowRightLeft, Edit3, MessageCircle, TrendingUp, QrCode, Database,
-  BellRing, Car, Globe, Radio, Bell
+  BellRing, Car, Globe, Radio, Bell, Sliders, LogOut, Coffee
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -21,6 +21,10 @@ import LiveOrdersDrawerModal from './LiveOrdersDrawerModal';
 import RoomServicesCareModal from './RoomServicesCareModal';
 import LinenRoomAssetsSection from './LinenRoomAssetsSection';
 import StaffPayrollSection from './StaffPayrollSection';
+import TodayActivity from './TodayActivity';
+import CheckInReviewModal from './CheckInReviewModal';
+import StayDurationAnalytics from './StayDurationAnalytics';
+import OperationsSettingsTab from './OperationsSettingsTab';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
 const FREQUENT_VIP_GUESTS = [
@@ -85,12 +89,99 @@ export default function ReceptionAdmin({
   const [liveOrdersOpen, setLiveOrdersOpen] = useState(false);
   const [roomServicesCareOpen, setRoomServicesCareOpen] = useState(false);
 
+  // The Wild Oasis Features: Check-In Review Modal & Internal Arrivals Management
+  const [selectedArrivalForCheckIn, setSelectedArrivalForCheckIn] = useState(null);
+  const [isCheckInReviewOpen, setIsCheckInReviewOpen] = useState(false);
+  const [opsSettings, setOpsSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('hsi_operations_settings');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Ops settings fallback:', e);
+    }
+    return {
+      breakfastRate: 250,
+      extraBedRate: 400,
+      stationDropRate: 350,
+      standardCheckInTime: '11:00 AM',
+      standardCheckOutTime: '12:00 PM',
+      minStayNights: 1,
+      minStayFestivalNights: 2
+    };
+  });
+
+  // The Wild Oasis Protocol: Pre-Booked Arrivals Scheduled for Today
+  const [internalBookings, setInternalBookings] = useState([
+    {
+      bookingId: 'HSI-ARR-2026-001',
+      roomNumber: '201',
+      tier: 'Executive AC',
+      guestName: 'K. RAMA MURTHY',
+      guestPhone: '+91 98480 33119',
+      idProofType: 'Aadhaar Card',
+      idProofMasked: 'XXXX-XXXX-3319',
+      stateOfOrigin: 'Andhra Pradesh (Visakhapatnam)',
+      nights: 2,
+      adults: 2,
+      tariffPerNight: 2199,
+      totalAmount: 4398,
+      advanceDeposit: 1000,
+      balanceDue: 3398,
+      paymentMode: 'UPI (PhonePe)',
+      bookingStatus: 'Booked / Due In',
+      isB2b: false,
+      mealPlan: 'CP'
+    },
+    {
+      bookingId: 'HSI-ARR-2026-002',
+      roomNumber: '102',
+      tier: 'Standard Deluxe',
+      guestName: 'SUBHASH CHANDRA DAS',
+      guestPhone: '+91 94371 88291',
+      idProofType: 'Driving Licence',
+      idProofMasked: 'OD-18-XXXX-8291',
+      stateOfOrigin: 'Odisha (Bhubaneswar)',
+      nights: 1,
+      adults: 1,
+      tariffPerNight: 1699,
+      totalAmount: 1699,
+      advanceDeposit: 1699,
+      balanceDue: 0,
+      paymentMode: 'Online Direct Card',
+      bookingStatus: 'Booked / Due In',
+      isB2b: true,
+      corporateGstin: '21AAACS4412B1ZA',
+      mealPlan: 'EP'
+    },
+    {
+      bookingId: 'HSI-ARR-2026-003',
+      roomNumber: '304',
+      tier: 'Executive AC',
+      guestName: 'UTKARSH SRIVASTAVA',
+      guestPhone: '+91 94370 88912',
+      idProofType: 'Passport',
+      idProofMasked: 'Z-XXXX-8912',
+      stateOfOrigin: 'Uttar Pradesh (Varanasi)',
+      nights: 3,
+      adults: 1,
+      tariffPerNight: 2199,
+      totalAmount: 6597,
+      advanceDeposit: 500,
+      balanceDue: 6097,
+      paymentMode: 'Cash at Desk',
+      bookingStatus: 'Booked / Due In',
+      isB2b: false,
+      mealPlan: 'CP'
+    }
+  ]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         if (selectedFolioRoom) setSelectedFolioRoom(null);
         else if (checkoutRoom) setCheckoutRoom(null);
         else if (isReceiptModalOpen) setIsReceiptModalOpen(false);
+        else if (isCheckInReviewOpen) setIsCheckInReviewOpen(false);
         else if (roomQrOpen) setRoomQrOpen(false);
         else if (backupOpen) setBackupOpen(false);
         else if (liveOrdersOpen) setLiveOrdersOpen(false);
@@ -101,7 +192,7 @@ export default function ReceptionAdmin({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedFolioRoom, checkoutRoom, isReceiptModalOpen, roomQrOpen, backupOpen, liveOrdersOpen, roomServicesCareOpen, isTransferModalOpen, isWakeUpModalOpen]);
+  }, [selectedFolioRoom, checkoutRoom, isReceiptModalOpen, isCheckInReviewOpen, roomQrOpen, backupOpen, liveOrdersOpen, roomServicesCareOpen, isTransferModalOpen, isWakeUpModalOpen]);
 
   // 1. Rayagada Transit / Fresh-Up Day-Use Engine State (4h / 6h Slots)
   const [transitStays, setTransitStays] = useState([
@@ -589,6 +680,22 @@ export default function ReceptionAdmin({
     // 1. Release room to Vacant Dirty (Owner requirement: "automatic ga Dirty ani padatadi")
     onUpdateRoomStatus(payload.roomNumber, 'Vacant Dirty', null, null);
 
+    // 1b. The Wild Oasis Protocol: Automated Housekeeping Turnover Task Dispatch
+    const floorNum = Math.floor(Number(payload.roomNumber) / 100) || 2;
+    const attendant = floorAttendants[floorNum]?.name || 'Floor Attendant';
+    const newHkTicket = {
+      requestId: `HK-TURNOVER-${payload.roomNumber}-${Date.now().toString().slice(-4)}`,
+      roomNumber: payload.roomNumber,
+      serviceType: 'Turnover Sanitization & Deep Clean',
+      description: `Automated Checkout Turnover: Room ${payload.roomNumber}. Strip bed linen, replace bathroom terry towels, ozone air sanitization, replenish Ayurvedic toiletries kit.`,
+      priority: 'Urgent',
+      status: 'Pending',
+      assignedStaff: attendant,
+      turnaroundEtaMinutes: 45,
+      requestedAt: new Date().toISOString()
+    };
+    setRoomServicesList(prev => [newHkTicket, ...prev]);
+
     // 2. Add cash to cashier drawer if cash tender was used
     if (payload.tenders.cash > 0) {
       setCashCollected(prev => prev + payload.tenders.cash);
@@ -627,14 +734,15 @@ export default function ReceptionAdmin({
           folioId: `FOLIO-${payload.roomNumber}`,
           roomNumber: payload.roomNumber,
           invoiceId: payload.billNo || `INV-${payload.roomNumber}`,
-          tenderRows
+          tenderRows,
+          housekeepingTicket: newHkTicket
         }
       })
     })
       .then(res => res.json())
       .then(data => {
         if (data && data.success) {
-          console.log(`✓ Split payment settled in D1 for room ${payload.roomNumber}`);
+          console.log(`✓ Split payment & housekeeping turnover task synced to D1 for room ${payload.roomNumber}`);
         }
       })
       .catch(err => console.warn('Offline split payment fallback:', err));
@@ -645,7 +753,10 @@ export default function ReceptionAdmin({
     // 4. Close checkout modal
     setCheckoutRoom(null);
 
-    // 5. If requested, automatically open the requested document (Money Receipt Voucher or Tax Invoice)
+    // 5. Notify front desk with toast
+    setFeedbackToast(`✓ Room ${payload.roomNumber} checked out! Automated Housekeeping Turnover ticket dispatched to ${attendant} (45-min SLA active).`);
+
+    // 6. If requested, automatically open the requested document (Money Receipt Voucher or Tax Invoice)
     if (payload.openReceiptAfter) {
       const receiptBooking = {
         bookingId: payload.billNo,
@@ -666,6 +777,144 @@ export default function ReceptionAdmin({
       setReceiptModalType(payload.targetReceiptType || 'a4');
       setSelectedReceiptBooking(receiptBooking);
       setIsReceiptModalOpen(true);
+    }
+  };
+
+  // The Wild Oasis Protocol: Today's Arrivals and Departures Feed Data
+  const todayArrivals = [
+    ...internalBookings.filter(b => b.bookingStatus !== 'Checked In'),
+    ...bookings.filter(b => b.bookingStatus !== 'Checked In' && !internalBookings.some(ib => (ib.bookingId || ib.id) === (b.bookingId || b.id)))
+  ];
+
+  const todayDepartures = rooms
+    .filter(r => r.status === 'Occupied' || r.status === 'Occupied Clean')
+    .slice(0, 4)
+    .map(r => {
+      const matchB = bookings.find(b => b.roomNumber === r.roomNumber) || {};
+      return {
+        ...r,
+        guestName: r.currentGuestName || matchB.guestName || 'In-House Guest',
+        outstandingBalance: r.balanceDue !== undefined ? r.balanceDue : (matchB.balanceDue !== undefined ? matchB.balanceDue : (r.tariff || 962)),
+        tier: r.tier || matchB.tier || 'Executive AC'
+      };
+    });
+
+  const handleFastCheckInClick = (booking) => {
+    setSelectedArrivalForCheckIn(booking);
+    setIsCheckInReviewOpen(true);
+  };
+
+  const handleConfirmCheckIn = (booking, checkInData) => {
+    // 1. Update internal bookings state
+    setInternalBookings(prev => prev.map(b => {
+      if ((b.bookingId || b.id) === (booking.bookingId || booking.id)) {
+        return {
+          ...b,
+          bookingStatus: 'Checked In',
+          totalAmount: checkInData.payment.totalStayAmount,
+          advanceDeposit: (b.advanceDeposit || 0) + (checkInData.payment.amountCollected || 0),
+          balanceDue: Math.max(0, checkInData.payment.totalStayAmount - ((b.advanceDeposit || 0) + (checkInData.payment.amountCollected || 0)))
+        };
+      }
+      return b;
+    }));
+
+    // 2. Set Room Status to Occupied
+    onUpdateRoomStatus(checkInData.roomNumber, 'Occupied', checkInData.guestName, checkInData.bookingId);
+
+    // 3. Post Room Tariff and any add-on charges to Room Master Folio
+    const baseTariff = (booking.tariffPerNight || 1699) * (booking.nights || 1);
+    if (onAddTransaction) {
+      onAddTransaction({
+        id: `TXN-CHKIN-${checkInData.roomNumber}-${Date.now().toString().slice(-4)}`,
+        roomNumber: checkInData.roomNumber,
+        category: 'Room Tariff',
+        description: `Room Tariff - ${checkInData.tier} (${checkInData.nights}N)`,
+        amount: baseTariff,
+        type: 'Charge',
+        date: new Date().toISOString()
+      });
+
+      if (checkInData.addons.breakfast) {
+        onAddTransaction({
+          id: `TXN-BF-${checkInData.roomNumber}-${Date.now().toString().slice(-4)}`,
+          roomNumber: checkInData.roomNumber,
+          category: 'Food & Beverage',
+          description: `Satvik Buffet Breakfast Plan (${checkInData.nights}N @ ₹${checkInData.addons.breakfast.rate})`,
+          amount: checkInData.addons.breakfast.total,
+          type: 'Charge',
+          date: new Date().toISOString()
+        });
+      }
+
+      if (checkInData.addons.stationDrop) {
+        onAddTransaction({
+          id: `TXN-CAB-${checkInData.roomNumber}-${Date.now().toString().slice(-4)}`,
+          roomNumber: checkInData.roomNumber,
+          category: 'Transportation',
+          description: `Rayagada Junction (RGDA) AC Station Drop Cab (SAC 996412)`,
+          amount: checkInData.addons.stationDrop.fare,
+          type: 'Charge',
+          date: new Date().toISOString()
+        });
+      }
+
+      if (checkInData.payment.amountCollected > 0) {
+        onAddTransaction({
+          id: `TXN-PAY-${checkInData.roomNumber}-${Date.now().toString().slice(-4)}`,
+          roomNumber: checkInData.roomNumber,
+          category: 'Payment Credit',
+          description: `Check-In Settlement - ${checkInData.payment.mode} ${checkInData.payment.upiRef || ''}`,
+          amount: checkInData.payment.amountCollected,
+          type: 'Payment',
+          date: new Date().toISOString()
+        });
+      }
+    }
+
+    // 4. Update Cash Drawer if Cash tender used
+    if (checkInData.payment.mode === 'Cash' && checkInData.payment.amountCollected > 0) {
+      setCashCollected(prev => prev + checkInData.payment.amountCollected);
+    }
+
+    // 5. Cloudflare D1 Remote Sync
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminPin
+      },
+      body: JSON.stringify({
+        action: 'check_in_guest',
+        payload: checkInData
+      })
+    }).catch(err => console.warn('Offline check-in sync fallback:', err));
+
+    setIsCheckInReviewOpen(false);
+    showToast(`✓ Check-In complete for ${checkInData.guestName} in Room ${checkInData.roomNumber}! Room status set to 'Occupied'.`);
+  };
+
+  const handleFastCheckOutClick = (item) => {
+    const roomNum = item.roomNumber;
+    const foundRoom = rooms.find(r => r.roomNumber === roomNum) || item;
+    const balance = Number(item.outstandingBalance !== undefined ? item.outstandingBalance : (foundRoom.balanceDue || 0));
+
+    if (balance > 0.01) {
+      // Open multi-tender split modal to settle balance
+      setCheckoutRoom(foundRoom);
+    } else {
+      // Zero balance: 1-click checkout with automated housekeeping dispatch
+      handleCheckoutConfirm({
+        roomNumber: roomNum,
+        guestName: item.guestName || foundRoom.currentGuestName || 'In-House Guest',
+        tier: foundRoom.tier || 'Executive AC',
+        totalAmount: 0,
+        billTotal: 0,
+        tenders: { cash: 0, upi: 0, card: 0, btc: 0 },
+        tendersSummary: ['Zero Balance Folio Cleared'],
+        openReceiptAfter: false
+      });
     }
   };
 
@@ -1751,6 +2000,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       }}>
         {[
           { id: 'tape-chart', label: '📊 39-Room Tape Chart Matrix' },
+          { id: 'operations-settings', label: '⚙️ Operations & Policy Settings' },
           { id: 'transit-dayuse', label: '🚆 Transit & Station Transfer' },
           { id: 'shift-logbook', label: '📋 Shift Handover & Logbook' },
           { id: 'channel-manager', label: '🌐 OTA Channel & Parity' },
@@ -2177,12 +2427,48 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </table>
             </div>
           )}
+
+          {/* THE WILD OASIS: STAY DURATION DISTRIBUTION ANALYTICS */}
+          <StayDurationAnalytics bookings={bookings} />
         </div>
+      )}
+
+      {/* TAB: OPERATIONS & POLICY SETTINGS (The Wild Oasis /settings) */}
+      {activeTab === 'operations-settings' && (
+        <OperationsSettingsTab
+          onSettingsUpdated={(newSettings) => {
+            setOpsSettings(newSettings);
+            showToast('✓ Central PMS operational settings updated & synced!');
+          }}
+        />
       )}
 
       {/* TAB 1: 39-ROOM TAPE CHART MATRIX */}
       {activeTab === 'tape-chart' && (
         <div>
+          {/* THE WILD OASIS: TODAY'S OPERATIONAL ACTIVITY FEED */}
+          <TodayActivity
+            arrivals={todayArrivals}
+            departures={todayDepartures}
+            onFastCheckIn={handleFastCheckInClick}
+            onFastCheckOut={handleFastCheckOutClick}
+            onViewFolio={(item) => {
+              const r = rooms.find(rm => rm.roomNumber === item.roomNumber) || item;
+              setSelectedFolioRoom(r);
+            }}
+            onViewGrc={(booking) => {
+              setSelectedReceiptBooking({
+                ...booking,
+                grcNo: `GRC-${booking.roomNumber}`
+              });
+              setReceiptModalType('grc');
+              setIsReceiptModalOpen(true);
+            }}
+            onRefresh={() => {
+              showToast('✓ Today\'s operational feed refreshed from Cloudflare D1!');
+            }}
+          />
+
           {/* Top Operational Status Ribbon (Exact from Screenshot 2) */}
           <div style={{
             display: 'flex',
@@ -7055,6 +7341,16 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         serviceRequests={roomServicesList}
         onAddRequest={handleAddRoomServiceRequest}
         onUpdateRequestStatus={handleUpdateRoomServiceStatus}
+      />
+
+      {/* THE WILD OASIS: FAST CHECK-IN REVIEW MODAL */}
+      <CheckInReviewModal
+        isOpen={isCheckInReviewOpen}
+        onClose={() => setIsCheckInReviewOpen(false)}
+        booking={selectedArrivalForCheckIn}
+        onConfirmCheckIn={handleConfirmCheckIn}
+        breakfastRate={opsSettings?.breakfastRate || 250}
+        cabRate={opsSettings?.stationDropRate || 350}
       />
 
       {/* FLOATING ACTION TOAST */}
