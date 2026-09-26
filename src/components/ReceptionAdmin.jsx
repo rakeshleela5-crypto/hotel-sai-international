@@ -25,6 +25,7 @@ import TodayActivity from './TodayActivity';
 import CheckInReviewModal from './CheckInReviewModal';
 import StayDurationAnalytics from './StayDurationAnalytics';
 import OperationsSettingsTab from './OperationsSettingsTab';
+import D1LiveDatabaseExplorer from './D1LiveDatabaseExplorer';
 import { useUniversalInlineEdit, InlineEditorBanner, InlineText } from './UniversalInlineEditor';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
@@ -2320,7 +2321,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           { id: 'linen-assets', label: '🧺 Linen & Room Assets (Part 3)' },
           { id: 'staff-payroll', label: '👥 Staff Attendance & Payroll (Part 1)' },
           { id: 'police-register', label: '🚨 Sarai Act Police Register' },
-          { id: 'dpdp', label: '🛡️ DPDP Act 2023 Compliance' }
+          { id: 'dpdp', label: '🛡️ DPDP Act 2023 Compliance' },
+          { id: 'd1-database-explorer', label: '🗄️ D1 Live DB Explorer (SQL Tables)' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -5452,6 +5454,13 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* CLOUDFLARE D1 LIVE DATABASE EXPLORER TAB (Direct Tabular Schema Mirroring) */}
+      {/* ========================================================================= */}
+      {activeTab === 'd1-database-explorer' && (
+        <D1LiveDatabaseExplorer localContextData={{ rooms, bookings }} />
       )}
 
       {/* ========================================================================= */}
