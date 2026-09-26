@@ -82,12 +82,15 @@ export default function ReceptionAdmin({
     }
   ]);
 
-  // Operational Modals: Room QR, Backup JSON, Live Food Orders, Room Services Care
+  // Operational Modals: Room QR, Backup JSON, Live Food Orders, Room Services Care, Transit, Transfer, Wake-Up
   const [roomQrOpen, setRoomQrOpen] = useState(false);
   const [selectedRoomForQr, setSelectedRoomForQr] = useState('101');
   const [backupOpen, setBackupOpen] = useState(false);
   const [liveOrdersOpen, setLiveOrdersOpen] = useState(false);
   const [roomServicesCareOpen, setRoomServicesCareOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isWakeUpModalOpen, setIsWakeUpModalOpen] = useState(false);
+  const [isTransitModalOpen, setIsTransitModalOpen] = useState(false);
 
   // The Wild Oasis Features: Check-In Review Modal & Internal Arrivals Management
   const [selectedArrivalForCheckIn, setSelectedArrivalForCheckIn] = useState(null);
@@ -229,7 +232,6 @@ export default function ReceptionAdmin({
       depositPaid: 1500
     }
   ]);
-  const [isTransitModalOpen, setIsTransitModalOpen] = useState(false);
   const [transitForm, setTransitForm] = useState({
     roomNumber: '',
     guestName: '',
@@ -297,7 +299,6 @@ export default function ReceptionAdmin({
       dispatchStatus: 'Scheduled'
     }
   ]);
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [newTransferForm, setNewTransferForm] = useState({
     guestName: '',
     roomNumber: '101',
@@ -356,7 +357,6 @@ export default function ReceptionAdmin({
     { id: 'WUC-2', roomNumber: '402', guestName: 'P. K. Mohapatra (JK Paper)', time: '06:00 AM', train: 'Plant Inspection Vehicle at 06:45 AM', status: 'Active Scheduled', notes: 'Pack fresh Satvik ginger tea in flask' },
     { id: 'WUC-3', roomNumber: '105', guestName: 'SUBHASH CHANDRA DAS', time: '06:30 AM', train: 'Maa Majhigouri Morning Darshan', status: 'Completed', notes: 'Guest awake and dispatched to temple' }
   ]);
-  const [isWakeUpModalOpen, setIsWakeUpModalOpen] = useState(false);
   const [newWakeUpForm, setNewWakeUpForm] = useState({
     roomNumber: '101',
     guestName: '',

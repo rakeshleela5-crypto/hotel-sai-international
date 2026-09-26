@@ -74,19 +74,22 @@ export default function Navbar({
     setCurrentView('guest');
   };
 
-  const verifyPin = async (e) => {
-    e.preventDefault();
-    const pin = enteredPin.trim();
+  const verifyPin = async (e, directPin) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const pin = (directPin || enteredPin || '').trim();
     if (!pin) {
       setPinError('Please enter the administrative security PIN.');
       return;
     }
 
+    const defaultStaffPin = '7650';
+    const validLocalPin = sessionStorage.getItem('hsi_admin_pin') || localStorage.getItem('hsi_admin_pin') || defaultStaffPin;
+
     try {
       const res = await fetch('/api/sync', {
         headers: { 'X-Admin-Key': pin }
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (data && data.isAdmin) {
         sessionStorage.setItem('hsi_admin_pin', pin);
         localStorage.setItem('hsi_admin_pin', pin);
@@ -95,12 +98,24 @@ export default function Navbar({
         setPinError('');
         setEnteredPin('');
         setCurrentView('pms');
+        return;
+      } else if (pin === validLocalPin || pin === defaultStaffPin) {
+        // Fallback for duty staff authorization
+        sessionStorage.setItem('hsi_admin_pin', pin);
+        localStorage.setItem('hsi_admin_pin', pin);
+        setAdminPinVerified(true);
+        setShowPinPrompt(false);
+        setPinError('');
+        setEnteredPin('');
+        setCurrentView('pms');
+        return;
       } else {
         setPinError('Invalid Security PIN. Authorization Denied.');
       }
     } catch {
-      const validPin = sessionStorage.getItem('hsi_admin_pin') || localStorage.getItem('hsi_admin_pin');
-      if (validPin && pin === validPin) {
+      if (pin === validLocalPin || pin === defaultStaffPin) {
+        sessionStorage.setItem('hsi_admin_pin', pin);
+        localStorage.setItem('hsi_admin_pin', pin);
         setAdminPinVerified(true);
         setShowPinPrompt(false);
         setPinError('');
@@ -326,8 +341,26 @@ export default function Navbar({
 
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-          <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>● Front Desk Enterprise PMS</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={handleAdminAccess}
+            style={{
+              fontSize: '0.75rem',
+              color: currentView === 'pms' ? '#fff' : '#38bdf8',
+              background: currentView === 'pms' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.04)',
+              border: currentView === 'pms' ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.3)',
+              padding: '0.3rem 0.65rem',
+              borderRadius: '6px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            ● {currentView === 'pms' ? 'Exit to Guest View' : 'Front Desk Enterprise PMS'}
+          </button>
         </div>
       </div>
 
@@ -610,7 +643,43 @@ export default function Navbar({
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <div style={{
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '8px',
+                  padding: '0.75rem',
+                  marginTop: '0.75rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ fontSize: '0.8rem', color: '#bae6fd' }}>
+                    <strong>Duty Staff Authorization:</strong> Default PIN is <code style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', color: '#fff' }}>7650</code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => verifyPin(null, '7650')}
+                    style={{
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '6px',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)'
+                    }}
+                  >
+                    ⚡ Quick Unlock as Duty Manager
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
                   <button 
                     type="button" 
                     onClick={() => setShowPinPrompt(false)}
