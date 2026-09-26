@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { DigitalKeycard } from '@/components/ui/digital-keycard';
+import { useUniversalInlineEdit, InlineEditorBanner } from './UniversalInlineEditor';
 
 // Indian Numbering System Converter for Statutory Tax Invoices
 function convertNumberToIndianWords(num) {
@@ -46,6 +47,13 @@ export default function BookingReceiptModal({
   const [isNonGstBill, setIsNonGstBill] = useState(false);
   const [isLiveEditMode, setIsLiveEditMode] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const receiptContainerRef = useRef(null);
+
+  useUniversalInlineEdit({
+    isActive: isLiveEditMode,
+    containerRef: receiptContainerRef,
+    storagePrefix: 'hsi_receipt'
+  });
 
   // Editable Guest & Corporate Header Details
   const [editHeader, setEditHeader] = useState({
@@ -363,7 +371,12 @@ export default function BookingReceiptModal({
 
   return (
     <div className="official-invoice-overlay" onClick={onClose}>
-      <div className="official-invoice-modal-content" style={{ maxWidth: 1040, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+      <div 
+        ref={receiptContainerRef} 
+        className={`official-invoice-modal-content ${isLiveEditMode ? 'hsi-live-edit-active' : ''}`} 
+        style={{ maxWidth: 1040, width: '100%', position: 'relative' }} 
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Action Bar (Hidden in Print) */}
         <div className="invoice-action-bar no-print" style={{ 
           display: 'flex', 
@@ -413,7 +426,7 @@ export default function BookingReceiptModal({
                 </span>
               )}
 
-              {invoiceType === 'a4' && (
+              {invoiceType !== 'keycard' && (
                 <button
                   type="button"
                   onClick={() => setIsLiveEditMode(!isLiveEditMode)}
@@ -435,7 +448,7 @@ export default function BookingReceiptModal({
                 </button>
               )}
 
-              {invoiceType === 'a4' && isLiveEditMode && (
+              {invoiceType !== 'keycard' && isLiveEditMode && (
                 <button
                   type="button"
                   onClick={handleSaveInvoice}
@@ -2047,6 +2060,18 @@ export default function BookingReceiptModal({
             </div>
           </div>
         )}
+        {/* UNIVERSAL INLINE KEYBOARD EDIT MODE FLOATING HUD BANNER */}
+        <InlineEditorBanner
+          isActive={isLiveEditMode}
+          onToggle={() => setIsLiveEditMode(false)}
+          label="Folio & Receipt Keyboard Edit Mode"
+          onReset={() => {
+            if (window.confirm('Reset all receipt text edits back to default?')) {
+              localStorage.removeItem('hsi_receipt_edits');
+              window.location.reload();
+            }
+          }}
+        />
       </div>
     </div>
   );

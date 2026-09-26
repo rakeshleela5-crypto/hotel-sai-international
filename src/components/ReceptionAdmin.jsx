@@ -25,6 +25,7 @@ import TodayActivity from './TodayActivity';
 import CheckInReviewModal from './CheckInReviewModal';
 import StayDurationAnalytics from './StayDurationAnalytics';
 import OperationsSettingsTab from './OperationsSettingsTab';
+import { useUniversalInlineEdit, InlineEditorBanner, InlineText } from './UniversalInlineEditor';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
 const FREQUENT_VIP_GUESTS = [
@@ -60,6 +61,20 @@ export default function ReceptionAdmin({
   const [searchTerm, setSearchTerm] = useState('');
   const [isInlineEditActive, setIsInlineEditActive] = useState(false);
   const searchInputRef = useRef(null);
+  const receptionContainerRef = useRef(null);
+
+  const handleInlineSave = ({ target, newText, oldText, field, roomId, bookingId }) => {
+    if (roomId && field === 'guestName' && onUpdateRoomStatus) {
+      onUpdateRoomStatus(roomId, 'Occupied', newText);
+    }
+  };
+
+  useUniversalInlineEdit({
+    isActive: isInlineEditActive,
+    containerRef: receptionContainerRef,
+    onSave: handleInlineSave,
+    storagePrefix: 'hsi_pms'
+  });
 
   // Folio Actions & GRC Modals State (hotel_documents.pdf Pages 1 & 5)
   const [selectedFolioRoom, setSelectedFolioRoom] = useState(null);
@@ -1703,7 +1718,12 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
   };
 
   return (
-    <section style={{ padding: '2rem 1.5rem 4rem 1.5rem', maxWidth: 1580, margin: '0 auto' }}>
+    <section 
+      id="reception-admin-container" 
+      ref={receptionContainerRef} 
+      className={`reception-admin-root ${isInlineEditActive ? 'hsi-live-edit-active' : ''}`} 
+      style={{ padding: '2rem 1.5rem 4rem 1.5rem', maxWidth: 1580, margin: '0 auto', position: 'relative' }}
+    >
       {/* 5-DEPARTMENT CONSOLE & 3-ROLE AUTHORIZATION BAR (Owner Video Requirement) */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(12, 24, 43, 0.98), rgba(6, 14, 26, 0.99))',
@@ -2822,6 +2842,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                         return (
                           <div
                             key={room.roomNumber}
+                            data-room-id={room.roomNumber}
                             style={{
                               background: bgColor,
                               border: `1px solid ${borderColor}`,
@@ -2831,11 +2852,14 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               flexDirection: 'column',
                               justifyContent: 'space-between',
                               minHeight: 110,
-                              cursor: 'pointer',
+                              cursor: isInlineEditActive ? 'default' : 'pointer',
                               position: 'relative',
                               transition: 'transform 0.15s ease, box-shadow 0.15s ease'
                             }}
                             onClick={() => {
+                              if (isInlineEditActive) {
+                                return; // Allow in-place text editing without popping up modals
+                              }
                               if (isVacant) {
                                 setWalkInRoom(room.roomNumber);
                                 setWalkInRate(room.tariff);
@@ -7557,6 +7581,18 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           <span>{feedbackToast}</span>
         </div>
       )}
+      {/* UNIVERSAL INLINE KEYBOARD EDIT MODE FLOATING HUD BANNER */}
+      <InlineEditorBanner
+        isActive={isInlineEditActive}
+        onToggle={() => setIsInlineEditActive(false)}
+        label="PMS Universal Keyboard Edit Mode"
+        onReset={() => {
+          if (window.confirm('Reset all inline text edits back to default values?')) {
+            localStorage.removeItem('hsi_pms_edits');
+            window.location.reload();
+          }
+        }}
+      />
     </section>
   );
 }

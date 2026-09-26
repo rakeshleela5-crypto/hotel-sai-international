@@ -1087,3 +1087,138 @@ button:focus-visible, .btn:focus-visible {
   }
 }
 
+/* ==========================================================================
+   UNIVERSAL INLINE KEYBOARD EDITING SYSTEM (CLICK-TO-TYPE WYSIWYG)
+   ========================================================================== */
+
+.hsi-live-edit-active {
+  position: relative;
+}
+
+/* Any text element inside active live edit container indicates click-to-edit */
+.hsi-live-edit-active p,
+.hsi-live-edit-active span,
+.hsi-live-edit-active h1,
+.hsi-live-edit-active h2,
+.hsi-live-edit-active h3,
+.hsi-live-edit-active h4,
+.hsi-live-edit-active h5,
+.hsi-live-edit-active h6,
+.hsi-live-edit-active td,
+.hsi-live-edit-active th,
+.hsi-live-edit-active label,
+.hsi-live-edit-active strong,
+.hsi-live-edit-active b,
+.hsi-live-edit-active small,
+.hsi-live-edit-active em,
+.hsi-inline-editable {
+  cursor: text !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Hover Cue: subtle dashed gold outline showing the user this is click-to-type */
+.hsi-live-edit-active p:hover,
+.hsi-live-edit-active span:hover,
+.hsi-live-edit-active h1:hover,
+.hsi-live-edit-active h2:hover,
+.hsi-live-edit-active h3:hover,
+.hsi-live-edit-active h4:hover,
+.hsi-live-edit-active h5:hover,
+.hsi-live-edit-active h6:hover,
+.hsi-live-edit-active td:hover,
+.hsi-live-edit-active th:hover,
+.hsi-live-edit-active label:hover,
+.hsi-live-edit-active strong:hover,
+.hsi-live-edit-active b:hover,
+.hsi-live-edit-active small:hover,
+.hsi-inline-editable:hover {
+  outline: 1.5px dashed rgba(243, 198, 76, 0.75) !important;
+  outline-offset: 2px !important;
+  background-color: rgba(243, 198, 76, 0.12) !important;
+  border-radius: 3px !important;
+}
+
+/* Keep interactive controls pristine: buttons, inputs, links, dropdowns */
+.hsi-live-edit-active button,
+.hsi-live-edit-active button *,
+.hsi-live-edit-active input,
+.hsi-live-edit-active textarea,
+.hsi-live-edit-active select,
+.hsi-live-edit-active a,
+.hsi-live-edit-active svg,
+.hsi-live-edit-active svg *,
+.no-inline-edit,
+.no-inline-edit * {
+  cursor: pointer !important;
+  outline: none !important;
+  background-color: inherit;
+}
+
+.hsi-live-edit-active input,
+.hsi-live-edit-active textarea {
+  cursor: text !important;
+}
+
+/* Actively Focused Editing Element (Blinking Cursor + Luxury Gold Glow) */
+[contenteditable="true"]:focus,
+.hsi-currently-editing,
+.hsi-inline-editable:focus {
+  outline: 2px solid var(--gold-glow, #f3c64c) !important;
+  outline-offset: 2px !important;
+  background-color: rgba(6, 14, 26, 0.98) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(243, 198, 76, 0.5) !important;
+  border-radius: 4px !important;
+  min-width: 1ch !important;
+  display: inline-block !important;
+  z-index: 50 !important;
+}
+
+[contenteditable="true"] {
+  outline: none;
+  min-width: 1ch;
+  display: inline-block;
+  cursor: text;
+}
+
+/* Save Success Flash Animation */
+@keyframes hsi-save-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8) !important;
+    background-color: rgba(16, 185, 129, 0.35) !important;
+    color: #34d399 !important;
+  }
+  60% {
+    box-shadow: 0 0 14px 4px rgba(16, 185, 129, 0.45) !important;
+    background-color: rgba(16, 185, 129, 0.2) !important;
+  }
+  100% {
+    box-shadow: none !important;
+    background-color: transparent !important;
+  }
+}
+
+.hsi-save-success-flash {
+  animation: hsi-save-pulse 1.2s ease-out forwards !important;
+}
+
+/* Print Cleanliness: Never show edit outlines or edit banners on physical print */
+@media print {
+  .hsi-live-edit-active p,
+  .hsi-live-edit-active span,
+  .hsi-live-edit-active td,
+  .hsi-live-edit-active th,
+  .hsi-inline-editable,
+  [contenteditable="true"] {
+    outline: none !important;
+    background: transparent !important;
+  }
+  .no-print,
+  .hsi-inline-banner {
+    display: none !important;
+  }
+}
+
+
+

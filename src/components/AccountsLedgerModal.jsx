@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_SALES_REPORT_2026_09_24, GST_FOM_RECORDS_2026_09_25 } from '../data/hotelData';
 import BookingReceiptModal from './BookingReceiptModal';
+import { useUniversalInlineEdit, InlineEditorBanner } from './UniversalInlineEditor';
 
 export default function AccountsLedgerModal({
   isOpen,
@@ -61,6 +62,13 @@ export default function AccountsLedgerModal({
   const [accountsQuickFilter, setAccountsQuickFilter] = useState('ALL');
   const [isAccountsEditActive, setIsAccountsEditActive] = useState(false);
   const accountsSearchInputRef = React.useRef(null);
+  const ledgerContainerRef = React.useRef(null);
+
+  useUniversalInlineEdit({
+    isActive: isAccountsEditActive,
+    containerRef: ledgerContainerRef,
+    storagePrefix: 'hsi_accounts'
+  });
 
   // Keyboard navigation & search focus shortcut for Accountants ('/' to search, Esc to clear, Ctrl+E for direct edit)
   useEffect(() => {
@@ -991,7 +999,10 @@ export default function AccountsLedgerModal({
       justifyContent: 'center',
       padding: '1rem'
     }}>
-      <div className="glass-panel" style={{
+      <div 
+        ref={ledgerContainerRef}
+        className={`glass-panel ${isAccountsEditActive ? 'hsi-live-edit-active' : ''}`} 
+        style={{
         width: '100%',
         maxWidth: 1360,
         height: '94vh',
@@ -5158,6 +5169,18 @@ export default function AccountsLedgerModal({
             }}
           />
         )}
+        {/* UNIVERSAL INLINE KEYBOARD EDIT MODE FLOATING HUD BANNER */}
+        <InlineEditorBanner
+          isActive={isAccountsEditActive}
+          onToggle={() => setIsAccountsEditActive(false)}
+          label="Accounts Ledger Keyboard Edit Mode"
+          onReset={() => {
+            if (window.confirm('Reset all accounts inline text edits to default?')) {
+              localStorage.removeItem('hsi_accounts_edits');
+              window.location.reload();
+            }
+          }}
+        />
       </div>
     </div>
   );
