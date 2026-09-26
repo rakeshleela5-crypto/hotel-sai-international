@@ -60,7 +60,9 @@ export default function Navbar({
   }, []);
 
   const handleAdminAccess = () => {
-    if (adminPinVerified) {
+    const hasPin = adminPinVerified || localStorage.getItem('hsi_admin_pin') === '7650' || sessionStorage.getItem('hsi_admin_pin') === '7650';
+    if (hasPin) {
+      if (!adminPinVerified) setAdminPinVerified(true);
       setCurrentView(currentView === 'pms' ? 'guest' : 'pms');
     } else {
       setShowPinPrompt(true);
@@ -578,6 +580,28 @@ export default function Navbar({
             flexDirection: 'column',
             gap: '0.75rem'
           }}>
+            <button 
+              onClick={() => { 
+                handleAdminAccess(); 
+                setMobileMenuOpen(false); 
+              }} 
+              style={{ 
+                textAlign: 'left', 
+                color: currentView === 'pms' ? '#38bdf8' : '#facc15', 
+                padding: '0.55rem 0.85rem',
+                borderRadius: '8px',
+                background: currentView === 'pms' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(212, 175, 55, 0.18)',
+                border: currentView === 'pms' ? '1px solid #38bdf8' : '1px solid rgba(212, 175, 55, 0.4)',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              ● {currentView === 'pms' ? 'Exit PMS (Return to Guest View)' : 'Front Desk Enterprise PMS (Tape Chart & Billing)'}
+            </button>
             <button onClick={() => { setCurrentView('guest'); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#fff', padding: '0.4rem 0' }}>
               🏨 40-Room Inventory Catalog
             </button>

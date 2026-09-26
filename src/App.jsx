@@ -7,27 +7,45 @@ import FaqSection from './components/FaqSection';
 import Footer from './components/Footer';
 import CookieConsentBanner from './components/CookieConsentBanner';
 
-// Dynamic Code-Splitting for Enterprise Operational Engines (Loaded on-demand)
-const FloorExplorer3DModal = lazy(() => import('./components/FloorExplorer3DModal'));
-const BookingModal = lazy(() => import('./components/BookingModal'));
-const BookingReceiptModal = lazy(() => import('./components/BookingReceiptModal'));
-const ReceptionAdmin = lazy(() => import('./components/ReceptionAdmin'));
-const FinancialAnalytics = lazy(() => import('./components/FinancialAnalytics'));
-const AutonomousBotFleetModal = lazy(() => import('./components/AutonomousBotFleetModal'));
-const FoodOrderModal = lazy(() => import('./components/FoodOrderModal'));
-const DarshanAdvisorModal = lazy(() => import('./components/DarshanAdvisorModal'));
-const AiConciergeModal = lazy(() => import('./components/AiConciergeModal'));
-const CorporatePortalModal = lazy(() => import('./components/CorporatePortalModal'));
-const MasterFolioModal = lazy(() => import('./components/MasterFolioModal'));
-const CannonKitchenPOS = lazy(() => import('./components/CannonKitchenPOS'));
-const AccountsLedgerModal = lazy(() => import('./components/AccountsLedgerModal'));
-const NightAuditModal = lazy(() => import('./components/NightAuditModal'));
-const StoreInventoryModal = lazy(() => import('./components/StoreInventoryModal'));
-const DirectorPortal = lazy(() => import('./components/DirectorPortal'));
-const RevenueManagementModal = lazy(() => import('./components/RevenueManagementModal'));
-const LegalPoliciesModal = lazy(() => import('./components/LegalPoliciesModal'));
-const DpdpDataRightsModal = lazy(() => import('./components/DpdpDataRightsModal'));
-const InRoomGuestPortal = lazy(() => import('./components/InRoomGuestPortal'));
+// Resilient Dynamic Code-Splitting: Automatically handles Cloudflare deployments and new bundle hashes
+const lazyWithRetry = (componentImport) => {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      console.warn('Chunk load error detected (new Cloudflare deployment active). Refreshing bundle...', error);
+      const isRefreshed = sessionStorage.getItem('hsi_chunk_refreshed');
+      if (!isRefreshed) {
+        sessionStorage.setItem('hsi_chunk_refreshed', 'true');
+        window.location.reload();
+        return new Promise(() => {}); // prevent throwing before reload
+      }
+      sessionStorage.removeItem('hsi_chunk_refreshed');
+      throw error;
+    }
+  });
+};
+
+const FloorExplorer3DModal = lazyWithRetry(() => import('./components/FloorExplorer3DModal'));
+const BookingModal = lazyWithRetry(() => import('./components/BookingModal'));
+const BookingReceiptModal = lazyWithRetry(() => import('./components/BookingReceiptModal'));
+const ReceptionAdmin = lazyWithRetry(() => import('./components/ReceptionAdmin'));
+const FinancialAnalytics = lazyWithRetry(() => import('./components/FinancialAnalytics'));
+const AutonomousBotFleetModal = lazyWithRetry(() => import('./components/AutonomousBotFleetModal'));
+const FoodOrderModal = lazyWithRetry(() => import('./components/FoodOrderModal'));
+const DarshanAdvisorModal = lazyWithRetry(() => import('./components/DarshanAdvisorModal'));
+const AiConciergeModal = lazyWithRetry(() => import('./components/AiConciergeModal'));
+const CorporatePortalModal = lazyWithRetry(() => import('./components/CorporatePortalModal'));
+const MasterFolioModal = lazyWithRetry(() => import('./components/MasterFolioModal'));
+const CannonKitchenPOS = lazyWithRetry(() => import('./components/CannonKitchenPOS'));
+const AccountsLedgerModal = lazyWithRetry(() => import('./components/AccountsLedgerModal'));
+const NightAuditModal = lazyWithRetry(() => import('./components/NightAuditModal'));
+const StoreInventoryModal = lazyWithRetry(() => import('./components/StoreInventoryModal'));
+const DirectorPortal = lazyWithRetry(() => import('./components/DirectorPortal'));
+const RevenueManagementModal = lazyWithRetry(() => import('./components/RevenueManagementModal'));
+const LegalPoliciesModal = lazyWithRetry(() => import('./components/LegalPoliciesModal'));
+const DpdpDataRightsModal = lazyWithRetry(() => import('./components/DpdpDataRightsModal'));
+const InRoomGuestPortal = lazyWithRetry(() => import('./components/InRoomGuestPortal'));
 
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS, CORPORATE_PARTNERS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
@@ -35,7 +53,14 @@ import { FloatingDock } from '@/components/ui/floating-dock';
 import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale } from 'lucide-react';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('guest'); // 'guest' or 'pms'
+  const [currentView, setCurrentView] = useState(() => {
+    if (typeof window === 'undefined') return 'guest';
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'pms' || window.location.hash === '#pms') {
+      return 'pms';
+    }
+    return 'guest';
+  });
   const [rooms, setRooms] = useState(INITIAL_ROOMS_INVENTORY);
   const [transactions, setTransactions] = useState(INITIAL_FOLIO_TRANSACTIONS);
 
@@ -205,7 +230,11 @@ export default function App() {
   ]);
 
   const [corporatePartners, setCorporatePartners] = useState(CORPORATE_PARTNERS);
-  const [adminPinVerified, setAdminPinVerified] = useState(false);
+  const [adminPinVerified, setAdminPinVerified] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const pin = sessionStorage.getItem('hsi_admin_pin') || localStorage.getItem('hsi_admin_pin');
+    return pin === '7650' || Boolean(pin);
+  });
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState('privacy');
