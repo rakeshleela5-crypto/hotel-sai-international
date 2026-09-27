@@ -640,6 +640,80 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
     showFeedback(`✓ Transferred ₹${txToMove.debit.toFixed(2)} [${txToMove.desc}] from Room ${room.roomNumber} to Room ${transferTargetRoom} successfully!`);
     setSelectedTxToTransfer(null);
   };
+  // 40 Rooms List for Universal Quick Switcher
+  const allRoomsCatalog = rooms && rooms.length > 0 ? rooms : [
+    { roomNumber: '101', tier: 'Standard Deluxe', status: 'Available', tariff: 1699 },
+    { roomNumber: '102', tier: 'Standard Deluxe', status: 'Available', tariff: 1699 },
+    { roomNumber: '201', tier: 'Deluxe Room', status: 'Available', tariff: 2199 },
+    { roomNumber: '204', tier: 'Deluxe Room', status: 'Occupied', currentGuestName: 'K. RAMA MURTHY', balanceDue: 450, tariff: 2199 },
+    { roomNumber: '301', tier: 'Executive AC', status: 'Occupied', currentGuestName: 'MR. P ASHOK', balanceDue: 962, tariff: 2999 },
+    { roomNumber: '302', tier: 'Executive AC', status: 'Occupied', currentGuestName: 'M. BALARAM PRASAD', balanceDue: 1850, tariff: 2999 },
+    { roomNumber: '401', tier: 'Presidential Suite', status: 'Available', tariff: 4999 },
+    { roomNumber: '402', tier: 'Presidential Suite', status: 'Occupied', currentGuestName: 'SAHANAWAZ', balanceDue: 2199, tariff: 4999 }
+  ];
+
+  const filteredRooms = allRoomsCatalog.filter(r => {
+    if (!roomSearchTerm.trim()) return true;
+    const term = roomSearchTerm.toLowerCase();
+    return (
+      r.roomNumber.toLowerCase().includes(term) ||
+      (r.currentGuestName && r.currentGuestName.toLowerCase().includes(term)) ||
+      (r.tier && r.tier.toLowerCase().includes(term)) ||
+      (r.status && r.status.toLowerCase().includes(term))
+    );
+  }).sort((a, b) => {
+    if (a.status === 'Occupied' && b.status !== 'Occupied') return -1;
+    if (b.status === 'Occupied' && a.status !== 'Occupied') return 1;
+    return a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true });
+  });
+
+  // 17 Primary Folio Actions with Smart Keyword Search
+  const ALL_ACTIONS = [
+    { id: 'ledger', label: '1. Folio Ledger & Voids', icon: Receipt, color: '#38bdf8', keywords: ['void', 'reverse', 'audit', 'credit note', 'memo', 'bill', 'view'] },
+    { id: 'charges', label: '2. Post Charges (11 Types)', icon: PlusCircle, color: '#38bdf8', keywords: ['post', 'room service', 'laundry', 'pos', 'extra', 'food', 'charge', 'add'] },
+    { id: 'late-checkout', label: '3. Remove Tariff (Late Waiver)', icon: Clock, color: '#fbbf24', keywords: ['tariff', 'waiver', 'late', 'discount', 'half day', 'checkout'] },
+    { id: 'transfer-folio', label: '4. Transfer Folio (Inter-Room Bill)', icon: ArrowRightLeft, color: '#a78bfa', keywords: ['transfer', 'inter-room', 'move', 'balance', 'route'] },
+    { id: 'split-folio', label: '5. Split Folio (Room vs F&B)', icon: Split, color: '#34d399', keywords: ['split', 'food', 'beverage', 'room vs f&b', 'separate', 'dining'] },
+    { id: 'link-room', label: '6. Link Room (Multi-Room)', icon: Link2, color: '#60a5fa', keywords: ['link', 'master', 'family', 'group', 'multi-room', 'connect'] },
+    { id: 'change-room', label: '7. Change Room (Room Shift)', icon: RefreshCw, color: '#fbbf24', keywords: ['shift', 'change', 'upgrade', 'swap', 'move room'] },
+    { id: 'edit-guest', label: '8. Edit Guest & GSTIN Details', icon: UserCheck, color: '#38bdf8', keywords: ['guest', 'gstin', 'company', 'tax', 'profile', 'name', 'phone'] },
+    { id: 'split-settle', label: '9. Split-Tender Settlement', icon: CheckCheck, color: '#34d399', keywords: ['settle', 'phonepe', 'cash', 'upi', 'tender', 'checkout', 'payment'] },
+    { id: 'advance', label: '10. Tag Advance (Deposit Receipt)', icon: DollarSign, color: '#34d399', keywords: ['advance', 'deposit', 'receipt', 'qr', 'upi', 'pre-payment'] },
+    { id: 'paid-out', label: '11. Paid Out (Drawer Cash)', icon: MinusCircle, color: '#f87171', keywords: ['paid out', 'drawer', 'cash', 'vendor', 'disbursement', 'taxi'] },
+    { id: 'allowance', label: '12. Allowance & Courtesy Discount', icon: Tag, color: '#fb923c', keywords: ['allowance', 'courtesy', 'rebate', 'discount', 'concession'] },
+    { id: 'pax-change', label: '13. Pax Change (Single ↔ Double)', icon: Users, color: '#a78bfa', keywords: ['pax', 'single', 'double', 'triple', 'occupancy', 'guest count', 'extra bed'] },
+    { id: 'sub-folio-windows', label: '14. Sub-Folio Windows (A: BTC / B: Extras)', icon: Layers, color: '#38bdf8', keywords: ['sub-folio', 'window a', 'window b', 'btc', 'corporate', 'extras', 'dual', 'route'] },
+    { id: 'dispute-escrow', label: '15. Disputed Item Escrow (Hold)', icon: ShieldAlert, color: '#fb923c', keywords: ['dispute', 'escrow', 'hold', 'contested', 'fast checkout', 'lock'] },
+    { id: 'colleague-split', label: '16. Colleague 50/50 & Custom % Split', icon: Split, color: '#34d399', keywords: ['colleague', '50/50', 'split bill', 'two bills', 'gst', 'share', 'whatsapp'] },
+    { id: 'caution-deposit', label: '17. Caution / Security Deposit & Refund', icon: ShieldCheck, color: '#10b981', keywords: ['caution', 'security', 'key refund', 'deposit', 'return', 'voucher'] }
+  ];
+
+  const filteredActions = ALL_ACTIONS.filter(act => {
+    if (!actionSearchTerm.trim()) return true;
+    const term = actionSearchTerm.toLowerCase();
+    return act.label.toLowerCase().includes(term) ||
+      act.id.toLowerCase().includes(term) ||
+      (act.keywords && act.keywords.some(k => k.toLowerCase().includes(term)));
+  });
+
+  // Filtered Ledger Transactions (Search Bar 3)
+  const visibleLedgerTransactions = folioTransactions.filter(tx => {
+    if (ledgerCategoryFilter !== 'ALL') {
+      if (ledgerCategoryFilter === 'TARIFF' && tx.type !== 'TARIFF' && tx.type !== 'ROOM_RENT') return false;
+      if (ledgerCategoryFilter === 'DINING' && tx.type !== 'DINING' && !tx.type?.includes('RESTAURANT') && !tx.type?.includes('FOOD')) return false;
+      if (ledgerCategoryFilter === 'ADVANCE' && tx.type !== 'ADVANCE' && tx.type !== 'SETTLEMENT') return false;
+      if (ledgerCategoryFilter === 'REVERSAL' && tx.type !== 'REVERSAL' && !tx.isReversed) return false;
+    }
+    if (!ledgerSearchTerm.trim()) return true;
+    const term = ledgerSearchTerm.toLowerCase();
+    return (
+      (tx.desc && tx.desc.toLowerCase().includes(term)) ||
+      (tx.id && tx.id.toLowerCase().includes(term)) ||
+      (tx.date && tx.date.toLowerCase().includes(term)) ||
+      (tx.operator && tx.operator.toLowerCase().includes(term)) ||
+      (tx.sac && tx.sac.toLowerCase().includes(term))
+    );
+  });
 
   return (
     <div style={{
