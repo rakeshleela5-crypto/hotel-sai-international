@@ -2480,7 +2480,29 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
 
           <button
             type="button"
-            onClick={onOpenAccountsLedger}
+            onClick={() => onOpenAccountsLedger && onOpenAccountsLedger('tally-erp')}
+            style={{
+              background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(3, 105, 161, 0.25))',
+              border: '1px solid #38bdf8',
+              color: '#38bdf8',
+              borderRadius: '6px',
+              padding: '5px 12px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)'
+            }}
+            title="Launch Dedicated TallyPrime Accounting Terminal (F4-F9)"
+          >
+            ⌨️ Tally Prime ERP
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenAccountsLedger && onOpenAccountsLedger('day-book')}
             style={{
               background: 'rgba(212, 175, 55, 0.15)',
               border: '1px solid rgba(212, 175, 55, 0.3)',

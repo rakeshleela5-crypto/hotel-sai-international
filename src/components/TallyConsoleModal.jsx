@@ -102,7 +102,12 @@ export const INITIAL_DAYBOOK_VOUCHERS = [
   }
 ];
 
-export default function TallyConsoleModal({ isOpen, onClose }) {
+export default function TallyConsoleModal({ 
+  isOpen = true, 
+  onClose, 
+  isEmbedded = false, 
+  onToggleFullscreen 
+}) {
   // Navigation: 'gateway', 'voucher-entry', 'day-book', 'chart-of-accounts', 'tally-export'
   const [currentView, setCurrentView] = useState('gateway');
   const [voucherType, setVoucherType] = useState('Receipt'); // 'Contra', 'Payment', 'Receipt', 'Journal', 'Sales', 'Purchase'
@@ -134,7 +139,7 @@ export default function TallyConsoleModal({ isOpen, onClose }) {
 
   // Keyboard Navigation Handling (Tally ERP 9 / TallyPrime Hotkeys)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen && !isEmbedded) return;
 
     const handleKeyDown = (e) => {
       // Escape: Step back or exit
@@ -372,57 +377,70 @@ export default function TallyConsoleModal({ isOpen, onClose }) {
     setTimeout(() => setNotification(''), 5000);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isEmbedded) return null;
 
-  return (
+  const terminalContent = (
     <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(5, 8, 20, 0.95)',
-      backdropFilter: 'blur(14px)',
-      zIndex: 2100,
+      width: '100%',
+      maxWidth: isEmbedded ? '100%' : 1280,
+      height: isEmbedded ? 'auto' : '92vh',
+      minHeight: isEmbedded ? '800px' : undefined,
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem',
+      flexDirection: 'column',
+      borderRadius: '12px',
+      border: '2px solid #0284c7',
+      backgroundColor: '#0a192f',
+      color: '#e2e8f0',
+      boxShadow: isEmbedded ? '0 10px 40px rgba(0,0,0,0.6)' : '0 25px 80px rgba(0,0,0,0.95)',
+      overflow: 'hidden',
       fontFamily: "'Courier New', Courier, monospace"
     }}>
+      {/* Tally Prime Style Top Header */}
       <div style={{
-        width: '100%',
-        maxWidth: 1280,
-        height: '92vh',
+        backgroundColor: '#0369a1',
+        padding: '0.6rem 1.2rem',
         display: 'flex',
-        flexDirection: 'column',
-        borderRadius: '12px',
-        border: '2px solid #0284c7',
-        backgroundColor: '#0a192f',
-        color: '#e2e8f0',
-        boxShadow: '0 25px 80px rgba(0,0,0,0.95)',
-        overflow: 'hidden'
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        color: '#ffffff',
+        fontWeight: 700,
+        fontSize: '0.9rem',
+        borderBottom: '2px solid #38bdf8'
       }}>
-        {/* Tally Prime Style Top Header */}
-        <div style={{
-          backgroundColor: '#0369a1',
-          padding: '0.6rem 1.2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          color: '#ffffff',
-          fontWeight: 700,
-          fontSize: '0.9rem',
-          borderBottom: '2px solid #38bdf8'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-            <span style={{ backgroundColor: '#f59e0b', color: '#000', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 900 }}>
-              TALLY PRIME CONSOLE
-            </span>
-            <span>Gateway of Tally • {HOTEL_CONFIG.legalName} • FY 2026-2027</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <span style={{ backgroundColor: '#f59e0b', color: '#000', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 900 }}>
+            TALLY PRIME CONSOLE
+          </span>
+          <span>Gateway of Tally • {HOTEL_CONFIG.legalName} • FY 2026-2027</span>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '0.75rem', color: '#bae6fd', fontFamily: 'sans-serif' }}>
-              Hotkeys: <kbd style={{ background: '#075985', padding: '0.1rem 0.3rem', borderRadius: 3 }}>F4-F9</kbd> Vouchers • <kbd style={{ background: '#075985', padding: '0.1rem 0.3rem', borderRadius: 3 }}>Alt+C</kbd> New Ledger • <kbd style={{ background: '#075985', padding: '0.1rem 0.3rem', borderRadius: 3 }}>Esc</kbd> Back
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <span style={{ fontSize: '0.75rem', color: '#bae6fd', fontFamily: 'sans-serif' }}>
+            Hotkeys: <kbd style={{ background: '#075985', padding: '0.1rem 0.3rem', borderRadius: 3 }}>F4-F9</kbd> Vouchers • <kbd style={{ background: '#075985', padding: '0.1rem 0.3rem', borderRadius: 3 }}>Alt+C</kbd> New Ledger • <kbd style={{ background: '#075985', padding: '0.1rem 0.3rem', borderRadius: 3 }}>Esc</kbd> Back
+          </span>
+          {onToggleFullscreen && (
+            <button
+              type="button"
+              onClick={onToggleFullscreen}
+              style={{
+                background: 'rgba(56, 189, 248, 0.2)',
+                border: '1px solid #38bdf8',
+                color: '#38bdf8',
+                padding: '3px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Open Tally Prime in Fullscreen Terminal Window"
+            >
+              ⛶ Fullscreen
+            </button>
+          )}
+          {onClose && (
             <button
               onClick={onClose}
               style={{
@@ -437,11 +455,13 @@ export default function TallyConsoleModal({ isOpen, onClose }) {
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
+              title="Close Console"
             >
               <X size={16} />
             </button>
-          </div>
+          )}
         </div>
+      </div>
 
         {/* Action Notification Bar */}
         {notification && (
@@ -1502,7 +1522,27 @@ export default function TallyConsoleModal({ isOpen, onClose }) {
           </div>
         )}
 
-      </div>
+    </div>
+  );
+
+  if (isEmbedded) {
+    return terminalContent;
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(5, 8, 20, 0.95)',
+      backdropFilter: 'blur(14px)',
+      zIndex: 2100,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1rem',
+      fontFamily: "'Courier New', Courier, monospace"
+    }}>
+      {terminalContent}
     </div>
   );
 }

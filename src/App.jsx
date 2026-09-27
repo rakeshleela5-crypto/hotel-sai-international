@@ -50,7 +50,7 @@ const InRoomGuestPortal = lazyWithRetry(() => import('./components/InRoomGuestPo
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS, CORPORATE_PARTNERS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
 import { FloatingDock } from '@/components/ui/floating-dock';
-import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale, MessageCircle } from 'lucide-react';
+import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale, MessageCircle, Terminal } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -273,7 +273,13 @@ export default function App() {
 
   const [posModalOpen, setPosModalOpen] = useState(false);
   const [accountsModalOpen, setAccountsModalOpen] = useState(false);
+  const [accountsInitialTab, setAccountsInitialTab] = useState('tally-erp');
   const [nightAuditModalOpen, setNightAuditModalOpen] = useState(false);
+
+  const handleOpenAccountsWithTab = (tab = 'tally-erp') => {
+    setAccountsInitialTab(tab);
+    setAccountsModalOpen(true);
+  };
   const [storeInventoryModalOpen, setStoreInventoryModalOpen] = useState(false);
   const [directorPortalOpen, setDirectorPortalOpen] = useState(false);
   const [revenueModalOpen, setRevenueModalOpen] = useState(false);
@@ -951,7 +957,7 @@ export default function App() {
               onExitPMS={() => setCurrentView('guest')}
               onOpenMasterFolio={handleOpenMasterFolio}
               onOpenRestaurantPOS={() => setPosModalOpen(true)}
-              onOpenAccountsLedger={() => setAccountsModalOpen(true)}
+              onOpenAccountsLedger={(tab) => handleOpenAccountsWithTab(tab || 'tally-erp')}
               onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
               onOpenNightAuditModal={() => setNightAuditModalOpen(true)}
               onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
@@ -1073,6 +1079,7 @@ export default function App() {
             transactions={transactions}
             corporatePartners={corporatePartners}
             onAddTransaction={handleAddTransaction}
+            initialTab={accountsInitialTab}
           />
         )}
 
@@ -1187,9 +1194,14 @@ export default function App() {
             onClick: () => setFloorExplorerOpen(true)
           },
           {
+            title: "Tally Prime ERP",
+            icon: <Terminal className="h-5 w-5 text-sky-400" />,
+            onClick: () => handleOpenAccountsWithTab('tally-erp')
+          },
+          {
             title: "Accounts Day Book",
             icon: <Scale className="h-5 w-5" />,
-            onClick: () => setAccountsModalOpen(true)
+            onClick: () => handleOpenAccountsWithTab('reconciliation-audit')
           },
           {
             title: "Cannon Kitchen POS",

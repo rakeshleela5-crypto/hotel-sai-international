@@ -5,7 +5,7 @@ import {
   TrendingUp, CreditCard, Clock, AlertTriangle, Search,
   Zap, PieChart, Info, Check, ArrowUpRight, Edit3, PlusCircle,
   Briefcase, Percent, Scale, UtensilsCrossed, Award, CheckCheck, FileSpreadsheet,
-  FilePlus, RefreshCw, FileCheck, Send, Mail
+  FilePlus, RefreshCw, FileCheck, Send, Mail, BookOpen, Terminal, Layers
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_SALES_REPORT_2026_09_24, GST_FOM_RECORDS_2026_09_25 } from '../data/hotelData';
 import BookingReceiptModal from './BookingReceiptModal';
@@ -20,12 +20,19 @@ export default function AccountsLedgerModal({
   rooms = [],
   transactions = [],
   corporatePartners: propCorporatePartners = null,
-  onAddTransaction
+  onAddTransaction,
+  initialTab = 'reconciliation-audit'
 }) {
   const [selectedBillBooking, setSelectedBillBooking] = useState(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('reconciliation-audit'); // 'flash-report', 'sales-summary', 'day-book', 'corp-gst', 'corp-ledger', 'outstanding'
+  const [activeTab, setActiveTab] = useState(initialTab || 'reconciliation-audit');
+  
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
   const [selectedCorporate, setSelectedCorporate] = useState('CORP-05'); // Ashok Leyland Limited by default
   const [selectedMonth, setSelectedMonth] = useState('09');
   const [selectedYear, setSelectedYear] = useState('2026');
@@ -1230,7 +1237,7 @@ export default function AccountsLedgerModal({
           overflowX: 'auto'
         }}>
           <button
-            onClick={() => setIsTallyConsoleOpen(true)}
+            onClick={() => setActiveTab('tally-erp')}
             style={{
               padding: '0.5rem 1.1rem',
               borderRadius: '8px',
@@ -1240,15 +1247,15 @@ export default function AccountsLedgerModal({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.45rem',
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-              color: '#ffffff',
-              border: '1px solid #38bdf8',
+              background: activeTab === 'tally-erp' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'rgba(2, 132, 199, 0.15)',
+              color: activeTab === 'tally-erp' ? '#ffffff' : '#38bdf8',
+              border: activeTab === 'tally-erp' ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.3)',
               whiteSpace: 'nowrap',
-              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.4)'
+              boxShadow: activeTab === 'tally-erp' ? '0 2px 10px rgba(2, 132, 199, 0.5)' : 'none'
             }}
-            title="Launch Gateway of Tally & Double-Entry Accounting Hub"
+            title="Gateway of Tally & Double-Entry Accounting Hub"
           >
-            <BookOpen size={15} /> ⌨️ Tally Prime Console (F4-F9)
+            <Terminal size={15} /> ⌨️ Tally Prime ERP (F4-F9)
           </button>
 
           <button
@@ -1396,19 +1403,19 @@ export default function AccountsLedgerModal({
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '8px',
-              fontWeight: 600,
+              fontWeight: 700,
               fontSize: '0.82rem',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.45rem',
-              background: activeTab === 'corp-gst' ? 'rgba(168, 85, 247, 0.2)' : 'transparent',
+              background: activeTab === 'corp-gst' ? 'rgba(168, 85, 247, 0.25)' : 'transparent',
               color: activeTab === 'corp-gst' ? '#c084fc' : 'var(--text-muted)',
               border: activeTab === 'corp-gst' ? '1px solid #c084fc' : '1px solid transparent',
               whiteSpace: 'nowrap'
             }}
           >
-            <FileText size={15} /> 🏛️ Monthly GSTR-1 / GSTR-2B Statement
+            <FileText size={15} /> 🏛️ GST Portal Filing & GSTR-2B ITC
           </button>
 
           <button
@@ -1598,6 +1605,74 @@ export default function AccountsLedgerModal({
             </button>
           </div>
         </div>
+
+        {/* Dedicated Tab: TALLY PRIME ERP & DAY BOOK HUB */}
+        {activeTab === 'tally-erp' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.75rem', background: '#070f1e' }}>
+            <div style={{
+              marginBottom: '1rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.8rem',
+              background: 'linear-gradient(90deg, rgba(2, 132, 199, 0.18) 0%, rgba(10, 25, 47, 0.95) 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <Terminal size={20} color="#38bdf8" />
+                  <h3 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 800 }}>
+                    TallyPrime ERP Terminal & Gateway of Tally
+                  </h3>
+                  <span style={{ background: '#f59e0b', color: '#000', fontSize: '0.72rem', fontWeight: 900, padding: '2px 8px', borderRadius: '4px' }}>
+                    INDIAN ACCOUNTING STANDARD
+                  </span>
+                </div>
+                <p style={{ margin: '0.3rem 0 0', color: '#94a3b8', fontSize: '0.8rem' }}>
+                  Keyboard-first double-entry balanced voucher engine (F4 Contra, F5 Payment, F6 Receipt, F7 Journal, F8 Sales, F9 Purchase). Alt+C for instant master ledger creation, and 1-click XML export for desktop TallyPrime.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsTallyConsoleOpen(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    border: '1px solid #38bdf8',
+                    color: '#fff',
+                    padding: '0.5rem 1.1rem',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)'
+                  }}
+                  title="Expand to Fullscreen Modal Window"
+                >
+                  ⛶ Open Fullscreen Console
+                </button>
+              </div>
+            </div>
+
+            {/* In-Tab Embedded Tally Prime Console */}
+            <TallyConsoleModal
+              isOpen={true}
+              isEmbedded={true}
+              onToggleFullscreen={() => setIsTallyConsoleOpen(true)}
+              bookings={bookings}
+              transactions={transactions}
+              corporateLedger={corporateLedger}
+            />
+          </div>
+        )}
 
         {/* Tab 0: WATERTIGHT AUDIT RECONCILER (PROOF: ₹0.00 DISCREPANCY) */}
         {activeTab === 'reconciliation-audit' && (
