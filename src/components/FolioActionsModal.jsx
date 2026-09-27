@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  X, Check, DollarSign, ArrowRightLeft, Users, Link2, 
+  Search, X, Check, DollarSign, ArrowRightLeft, Users, Link2, 
   RefreshCw, MinusCircle, PlusCircle, FileText, UserCheck, 
   Split, Building2, Calendar, ShieldCheck, AlertCircle, 
   CreditCard, CheckCircle2, ChevronRight, Tag, RotateCcw, 
