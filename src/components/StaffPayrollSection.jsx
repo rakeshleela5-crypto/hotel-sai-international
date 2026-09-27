@@ -103,6 +103,7 @@ export default function StaffPayrollSection({
           <title>Salary Payment Voucher - ${staff.name}</title>
           <style>
             @page { size: A5 landscape; margin: 10mm; }
+            *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             body { font-family: -apple-system, sans-serif; color: #0f172a; margin: 0; padding: 16px; }
             .voucher { border: 2px solid #0f172a; border-radius: 8px; padding: 20px; }
             .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 10px; }

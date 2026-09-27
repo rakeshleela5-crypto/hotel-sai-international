@@ -629,7 +629,7 @@ Includes 12% GST on Room & 5% GST on Restaurant dining.
       justifyContent: 'center',
       padding: '1rem'
     }}>
-      <div className="glass-panel" style={{
+      <div className="glass-panel printable-sheet printable-folio" style={{
         width: '100%',
         maxWidth: 1280,
         maxHeight: '94vh',
@@ -641,7 +641,7 @@ Includes 12% GST on Room & 5% GST on Restaurant dining.
         flexDirection: 'column'
       }}>
         {/* Header Bar */}
-        <div style={{
+        <div className="no-print" style={{
           padding: '1.25rem 2rem',
           borderBottom: '1px solid rgba(212, 175, 55, 0.2)',
           display: 'flex',

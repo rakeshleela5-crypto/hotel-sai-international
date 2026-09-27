@@ -955,7 +955,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
             {/* VIEW 1: CONSOLIDATED A4 TAX INVOICE */}
             {invoiceType === 'a4' && (
-          <div className="tax-invoice-sheet">
+          <div className={`tax-invoice-sheet ${!includeLetterhead ? 'preprinted-pad-mode' : ''}`}>
             <div className="sheet-header">
               <div className="header-left">
                 <span className="page-mark">
@@ -1575,7 +1575,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
         {/* VIEW 2: ROOM TARIFF INVOICE (Page 3 of hotel_documents.pdf - Bill #01499) */}
         {invoiceType === 'room-split' && (
-          <div className="tax-invoice-sheet">
+          <div className={`tax-invoice-sheet ${!includeLetterhead ? 'preprinted-pad-mode' : ''}`}>
             <div className="sheet-header">
               <div className="header-left">
                 <span className="page-mark" style={{ background: '#0284c7' }}>CORPORATE LODGING REIMBURSEMENT COPY</span>
@@ -1708,7 +1708,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
         {/* VIEW 3: CANNON KITCHEN RESTAURANT FOOD INVOICE (Page 2 of hotel_documents.pdf - Bill #01500) */}
         {invoiceType === 'food-split' && (
-          <div className="tax-invoice-sheet">
+          <div className={`tax-invoice-sheet ${!includeLetterhead ? 'preprinted-pad-mode' : ''}`}>
             <div className="sheet-header">
               <div className="header-left">
                 <span className="page-mark" style={{ background: '#059669' }}>F&amp;B DINING MEAL REIMBURSEMENT COPY</span>
@@ -1830,7 +1830,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
         {/* VIEW 4: OFFICIAL GUEST REGISTRATION CARD (Page 1 of hotel_documents.pdf - G.Regn.No. 684) */}
         {invoiceType === 'grc' && (
-          <div className="tax-invoice-sheet" style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #0f172a' }}>
+          <div className={`tax-invoice-sheet ${!includeLetterhead ? 'preprinted-pad-mode' : ''}`} style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #0f172a' }}>
             <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.5px' }}>
@@ -1915,7 +1915,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
         {/* VIEW 4B: OFFICIAL CASH / UPI MONEY RECEIPT VOUCHER (Page 5 & Owner Video Demo) */}
         {invoiceType === 'money-receipt' && (
-          <div className="tax-invoice-sheet" style={{ 
+          <div className={`tax-invoice-sheet ${!includeLetterhead ? 'preprinted-pad-mode' : ''}`} style={{ 
             background: '#ffffff', 
             color: '#0f172a', 
             border: '2px solid #b91c1c', 
@@ -2050,7 +2050,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
         {/* VIEW 5: 80MM THERMAL SLIP */}
         {invoiceType === 'pos' && (
-          <div className="printable-receipt" style={{
+          <div className="printable-receipt thermal-receipt-sheet printable-pos-slip" style={{
             background: '#ffffff',
             color: '#060e1a',
             padding: '1.5rem',

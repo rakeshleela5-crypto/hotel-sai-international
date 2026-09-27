@@ -1228,76 +1228,168 @@ button:focus-visible, .btn:focus-visible {
 }
 
 /* ==========================================================================
-   PRINT MEDIA QUERIES (80mm Thermal Slip & A4 Official Tax Invoice)
+   UNIVERSAL HOTEL PRINT ENGINE (A4 Laser, Statutory Registers & 80mm Thermal POS)
    ========================================================================== */
+@page {
+  margin: 8mm 10mm;
+  size: A4 portrait;
+}
+
+@page thermal-receipt {
+  size: 80mm auto;
+  margin: 1mm 2mm;
+}
+
 @media print {
-  body * {
-    visibility: hidden;
+  /* Force exact color, border, and background graphics across all browsers */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    text-shadow: none !important;
   }
-  
-  .official-invoice-overlay {
-    position: static !important;
-    padding: 0 !important;
+
+  /* Hide screen chrome, navigation bars, buttons, and action panels */
+  nav,
+  aside,
+  header.no-print,
+  footer.no-print,
+  .no-print,
+  .invoice-action-bar,
+  .modal-close-btn,
+  .hsi-inline-banner,
+  .doc-switcher-tab,
+  button:not(.print-keep),
+  .btn-primary-gold,
+  .btn-outline-gold,
+  .btn-outline,
+  .chat-widget,
+  .floating-action-btn,
+  .room-quick-actions {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Base Document Reset */
+  html, body {
     background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    font-size: 11pt;
+  }
+
+  /* When printing any modal, promote it out of fixed positioning */
+  .official-invoice-overlay,
+  .pos-print-overlay,
+  .modal-overlay,
+  div[style*="position: fixed"] {
+    position: static !important;
+    background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
   }
-  
-  .official-invoice-overlay *,
+
+  /* Universal Visibility Elevation for Printable Target Containers */
+  body:has(.tax-invoice-sheet, .printable-receipt, .printable-audit-pack, .printable-sheet, .printable-ledger, .printable-pos-slip) * {
+    visibility: hidden;
+  }
+
   .tax-invoice-sheet,
-  .tax-invoice-sheet * {
-    visibility: visible;
-  }
-  
-  .tax-invoice-sheet {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 210mm; /* A4 */
-    margin: 0;
-    padding: 12mm 15mm;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
-  .printable-receipt, .printable-receipt * {
-    visibility: visible;
-  }
-  
-  .printable-receipt {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 80mm;
-    margin: 0;
-    padding: 5mm;
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-family: monospace;
-    font-size: 11px;
-    box-shadow: none !important;
-    border: none !important;
+  .tax-invoice-sheet *,
+  .printable-receipt,
+  .printable-receipt *,
+  .printable-audit-pack,
+  .printable-audit-pack *,
+  .printable-sheet,
+  .printable-sheet *,
+  .printable-ledger,
+  .printable-ledger *,
+  .printable-pos-slip,
+  .printable-pos-slip * {
+    visibility: visible !important;
   }
 
-  .printable-audit-pack, .printable-audit-pack * {
-    visibility: visible;
-  }
-
-  .printable-audit-pack {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 210mm;
-    margin: 0;
-    padding: 10mm;
+  /* -------------------------------------------------------------
+     A4 DOCUMENT SHEETS (Tax Invoices, GRC, Money Receipts, Vouchers)
+     Static flow positioning enables natural multi-page pagination!
+     ------------------------------------------------------------- */
+  .tax-invoice-sheet,
+  .printable-sheet,
+  .printable-audit-pack,
+  .printable-ledger {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 6mm 10mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
-    border: 1px solid #ccc !important;
+    border: none !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    page-break-after: auto;
   }
 
-  .invoice-action-bar, .no-print, .modal-close-btn {
-    display: none !important;
+  /* Pre-printed stationery clearance: 48mm top clearance when header is toggled OFF */
+  .tax-invoice-sheet.preprinted-pad-mode {
+    padding-top: 48mm !important;
+  }
+
+  /* Prevent awkward page-breaks inside table rows, totals, and signatures */
+  table, tr, td, th {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .signature-block,
+  .page-break-avoid,
+  .tax-summary-box {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* -------------------------------------------------------------
+     80MM THERMAL COUNTERTOP POS RECEIPT (KOT & Customer Slip)
+     ------------------------------------------------------------- */
+  .printable-receipt,
+  .printable-pos-slip,
+  .thermal-receipt-sheet {
+    page: thermal-receipt;
+    position: static !important;
+    display: block !important;
+    width: 76mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 2mm 3mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 9pt !important;
+    line-height: 1.25 !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  .printable-receipt table,
+  .printable-pos-slip table,
+  .thermal-receipt-sheet table {
+    width: 100% !important;
+    font-size: 8.5pt !important;
   }
 }
 

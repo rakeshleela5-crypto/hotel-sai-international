@@ -98,6 +98,7 @@ export default function RoomQrModal({
           <title>Hotel Sai International - Room ${selectedRoom} QR Standee</title>
           <style>
             @page { size: A5 portrait; margin: 12mm; }
+            *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             body { 
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
               color: #0f172a; 

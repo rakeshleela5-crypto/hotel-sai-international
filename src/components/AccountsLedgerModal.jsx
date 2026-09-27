@@ -1100,7 +1100,7 @@ export default function AccountsLedgerModal({
     }}>
       <div 
         ref={ledgerContainerRef}
-        className={`glass-panel ${isAccountsEditActive ? 'hsi-live-edit-active' : ''}`} 
+        className={`glass-panel printable-ledger printable-sheet ${isAccountsEditActive ? 'hsi-live-edit-active' : ''}`} 
         style={{
         width: '100%',
         maxWidth: 1360,
@@ -1113,7 +1113,7 @@ export default function AccountsLedgerModal({
         overflow: 'hidden'
       }}>
         {/* Header Bar */}
-        <div style={{
+        <div className="no-print" style={{
           padding: '1.1rem 2rem',
           borderBottom: '1px solid rgba(212, 175, 55, 0.25)',
           background: 'linear-gradient(90deg, rgba(20,25,48,0.98), rgba(12,16,32,0.99))',
@@ -1158,7 +1158,7 @@ export default function AccountsLedgerModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div style={{
+        <div className="no-print" style={{
           display: 'flex',
           gap: '0.4rem',
           padding: '0.65rem 1.5rem',
@@ -1348,7 +1348,7 @@ export default function AccountsLedgerModal({
         </div>
 
         {/* Universal Accounting Command & Search Bar for Accountants (Visible across all 9 tabs) */}
-        <div style={{
+        <div className="no-print" style={{
           padding: '0.75rem 1.75rem',
           background: 'linear-gradient(180deg, rgba(20, 24, 38, 0.95) 0%, rgba(13, 17, 28, 0.95) 100%)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',

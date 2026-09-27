@@ -5709,7 +5709,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           </div>
 
           {/* RAYAGADA JUNCTION (RGDA) STATION TRANSFER & LOGISTICS DISPATCH (Inspired by Open-Hotel-PMS) */}
-          <div className="glass-panel" style={{ padding: '1.4rem 1.75rem', marginTop: '1.5rem', borderLeft: '4px solid #f59e0b' }}>
+          <div className="glass-panel printable-sheet" style={{ padding: '1.4rem 1.75rem', marginTop: '1.5rem', borderLeft: '4px solid #f59e0b' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -5726,7 +5726,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div className="no-print" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => window.print()}
@@ -7189,7 +7189,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           justifyContent: 'center',
           padding: '1rem'
         }}>
-          <div className="glass-panel" style={{
+          <div className="glass-panel printable-sheet" style={{
             width: '100%',
             maxWidth: 680,
             maxHeight: '94vh',
@@ -7389,7 +7389,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             {/* Action Bar (No-Print) */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
               <button
                 type="button"
                 onClick={() => setHandoverVoucherModalOpen(false)}
@@ -8367,7 +8367,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             padding: '1.5rem',
             boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
               <div>
                 <h3 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>
                   🚨 Statutory Police Register (Form C) • Rayagada Town Police Station
@@ -8396,7 +8396,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             {/* Printable Manifest Sheet */}
-            <div style={{ background: '#ffffff', color: '#0f172a', padding: '1.75rem', borderRadius: '8px', fontFamily: 'serif' }}>
+            <div className="printable-sheet" style={{ background: '#ffffff', color: '#0f172a', padding: '1.75rem', borderRadius: '8px', fontFamily: 'serif' }}>
               <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '1px', color: '#475569' }}>
                   GOVERNMENT OF ODISHA • POLICE DEPARTMENT
@@ -8501,7 +8501,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             padding: '1.5rem',
             boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
               <div>
                 <h3 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Printer size={18} color="#38bdf8" /> Daily Room Rack &amp; Tape Chart Clipboard Sheet
@@ -8530,7 +8530,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             {/* Printable Rack Sheet */}
-            <div style={{ background: '#ffffff', color: '#0f172a', padding: '1.5rem', borderRadius: '8px', fontFamily: 'sans-serif' }}>
+            <div className="printable-sheet" style={{ background: '#ffffff', color: '#0f172a', padding: '1.5rem', borderRadius: '8px', fontFamily: 'sans-serif' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0284c7', paddingBottom: '0.6rem', marginBottom: '1rem' }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#0284c7', fontWeight: 800 }}>
@@ -8662,7 +8662,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             padding: '1.5rem',
             boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
               <div>
                 <h3 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   🧹 Housekeeping Daily Floor Attendant &amp; Linen Checklist
@@ -8691,7 +8691,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             {/* Printable Sheet */}
-            <div style={{ background: '#ffffff', color: '#0f172a', padding: '1.5rem', borderRadius: '8px', fontFamily: 'sans-serif' }}>
+            <div className="printable-sheet" style={{ background: '#ffffff', color: '#0f172a', padding: '1.5rem', borderRadius: '8px', fontFamily: 'sans-serif' }}>
               <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '0.6rem', marginBottom: '1rem' }}>
                 <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
                   HOTEL SAI INTERNATIONAL • HOUSEKEEPING WORK ORDER

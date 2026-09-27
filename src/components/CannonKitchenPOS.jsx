@@ -2939,7 +2939,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
             MODAL: AUTHENTIC KITCHEN ORDER TICKET (KOT) THERMAL SLIP
             ======================================================== */}
         {printKotModalOrder && (
-          <div style={{
+          <div className="pos-print-overlay" style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(0,0,0,0.85)',
@@ -2950,7 +2950,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
             zIndex: 100000,
             padding: '1rem'
           }}>
-            <div style={{
+            <div className="printable-receipt printable-pos-slip thermal-receipt-sheet" style={{
               background: '#ffffff',
               color: '#000000',
               width: '100%',
@@ -3050,7 +3050,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+              <div className="no-print" style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
                 <button
                   onClick={() => window.print()}
                   style={{
@@ -3432,7 +3432,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
             MODAL: AUTHENTIC TAX INVOICE PRINTABLE SLIP
             ======================================================== */}
         {settledTaxReceipt && (
-          <div style={{
+          <div className="pos-print-overlay" style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(0,0,0,0.85)',
@@ -3443,7 +3443,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
             zIndex: 100000,
             padding: '1rem'
           }}>
-            <div style={{
+            <div className="printable-receipt printable-pos-slip thermal-receipt-sheet" style={{
               background: '#ffffff',
               color: '#000000',
               width: '100%',
@@ -3543,7 +3543,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+              <div className="no-print" style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
                 <button
                   onClick={() => window.print()}
                   style={{
