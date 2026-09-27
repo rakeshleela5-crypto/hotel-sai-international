@@ -4,7 +4,7 @@ import {
   RefreshCw, MinusCircle, PlusCircle, FileText, UserCheck, 
   Split, Building2, Calendar, ShieldCheck, AlertCircle, 
   CreditCard, CheckCircle2, ChevronRight, Tag, RotateCcw, 
-  Receipt, Clock, Lock, CheckCheck
+  Receipt, Clock, Lock, CheckCheck, Sparkles
 } from 'lucide-react';
 import { HOTEL_CONFIG, POST_CHARGE_CATEGORIES, CORPORATE_PARTNERS } from '../data/hotelData';
 
@@ -18,7 +18,8 @@ export default function FolioActionsModal({
   onUpdateFolio,
   onShiftRoom,
   onCheckoutRoom,
-  onOpenSplitInvoice
+  onOpenSplitInvoice,
+  onOpenMasterFolio
 }) {
   if (!isOpen || !room) return null;
 
@@ -458,6 +459,34 @@ export default function FolioActionsModal({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+            {onOpenMasterFolio && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenMasterFolio(room.roomNumber);
+                  onClose();
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.3) 0%, rgba(37, 99, 235, 0.45) 100%)',
+                  color: '#38bdf8',
+                  border: '1px solid rgba(56, 189, 248, 0.6)',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 10px rgba(56, 189, 248, 0.25)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
+                }}
+                title="Open Upgraded Enterprise Master Folio (Sub-Folio Windows A/B, Dispute Escrow, Colleague Split & Caution Deposit)"
+              >
+                <Sparkles size={15} color="#38bdf8" /> 📑 Upgraded Master Folio
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -540,6 +569,34 @@ export default function FolioActionsModal({
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.35rem 0.5rem', fontWeight: 700 }}>
               Primary Folio Actions
             </div>
+
+            {onOpenMasterFolio && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenMasterFolio(room.roomNumber);
+                  onClose();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                  padding: '0.65rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(245, 158, 11, 0.6)',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35))',
+                  color: '#fbbf24',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  marginBottom: '0.4rem',
+                  textAlign: 'left'
+                }}
+                title="Switch to Upgraded Master Folio for Sub-Folios, Escrow, and Bill Splits"
+              >
+                <Sparkles size={16} /> 🚀 Master Folio (New Features)
+              </button>
+            )}
 
             {[
               { id: 'ledger', label: 'Folio Ledger & Voids', icon: Receipt, color: '#38bdf8' },

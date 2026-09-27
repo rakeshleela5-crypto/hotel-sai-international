@@ -262,6 +262,14 @@ export default function App() {
 
   // IDS Next Operational Modules State
   const [folioModalOpen, setFolioModalOpen] = useState(false);
+  const [selectedFolioRoomNumber, setSelectedFolioRoomNumber] = useState('402');
+
+  const handleOpenMasterFolio = (roomNumber) => {
+    if (roomNumber) {
+      setSelectedFolioRoomNumber(String(roomNumber));
+    }
+    setFolioModalOpen(true);
+  };
 
   const [posModalOpen, setPosModalOpen] = useState(false);
   const [accountsModalOpen, setAccountsModalOpen] = useState(false);
@@ -873,7 +881,7 @@ export default function App() {
         onOpenAiConcierge={() => setAiConciergeOpen(true)}
         onOpenBotFleet={() => setBotFleetOpen(true)}
         onOpenCorporate={() => setCorporateModalOpen(true)}
-        onOpenMasterFolio={() => setFolioModalOpen(true)}
+        onOpenMasterFolio={handleOpenMasterFolio}
         onOpenCannonKitchenPOS={() => setPosModalOpen(true)}
         onOpenAccountsLedger={() => setAccountsModalOpen(true)}
         onOpenNightAudit={() => setNightAuditModalOpen(true)}
@@ -941,7 +949,7 @@ export default function App() {
               }}
               onRunNightAudit={handleRunNightAudit}
               onExitPMS={() => setCurrentView('guest')}
-              onOpenMasterFolio={() => setFolioModalOpen(true)}
+              onOpenMasterFolio={handleOpenMasterFolio}
               onOpenRestaurantPOS={() => setPosModalOpen(true)}
               onOpenAccountsLedger={() => setAccountsModalOpen(true)}
               onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
@@ -1028,6 +1036,7 @@ export default function App() {
           <MasterFolioModal 
             isOpen={folioModalOpen}
             onClose={() => setFolioModalOpen(false)}
+            initialRoomNumber={selectedFolioRoomNumber}
             rooms={rooms}
             bookings={bookings}
             transactions={transactions}

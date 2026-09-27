@@ -2874,7 +2874,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             onFastCheckOut={handleFastCheckOutClick}
             onViewFolio={(item) => {
               const r = rooms.find(rm => rm.roomNumber === item.roomNumber) || item;
-              setSelectedFolioRoom(r);
+              if (onOpenMasterFolio) onOpenMasterFolio(r.roomNumber);
+              else setSelectedFolioRoom(r);
             }}
             onViewGrc={(booking) => {
               setSelectedReceiptBooking({
@@ -3241,21 +3242,39 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                 <>
                                   <button
                                     type="button"
-                                    onClick={() => setSelectedFolioRoom(room)}
+                                    onClick={() => onOpenMasterFolio ? onOpenMasterFolio(room.roomNumber) : setSelectedFolioRoom(room)}
                                     style={{
-                                      padding: '3px 7px',
+                                      padding: '3px 8px',
                                       fontSize: '0.7rem',
                                       fontWeight: 700,
                                       borderRadius: '4px',
                                       cursor: 'pointer',
-                                      background: 'rgba(56, 189, 248, 0.2)',
+                                      background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(96, 165, 250, 0.35))',
                                       color: '#38bdf8',
-                                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                                      border: '1px solid rgba(56, 189, 248, 0.5)',
                                       whiteSpace: 'nowrap'
                                     }}
-                                    title="Open Master Folio & Split Billing"
+                                    title="Open Upgraded Master Folio (Sub-Folio Windows, Dispute Escrow, Colleague Split, Caution Refund)"
                                   >
-                                    📄 Folio
+                                    📑 Master Folio
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedFolioRoom(room)}
+                                    style={{
+                                      padding: '3px 6px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600,
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      background: 'rgba(255, 255, 255, 0.05)',
+                                      color: 'var(--text-muted)',
+                                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Legacy 12 Room Operations (Shift Room, PAX, Paid Out)"
+                                  >
+                                    ⚙️ Ops
                                   </button>
                                   <button
                                     type="button"
@@ -3672,23 +3691,24 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedFolioRoom(room);
+                                        if (onOpenMasterFolio) onOpenMasterFolio(room.roomNumber);
+                                        else setSelectedFolioRoom(room);
                                       }}
-                                      title="Open 12 Folio Edit Options (hotel_documents.pdf Page 5)"
+                                      title="Open Upgraded Master Folio (Sub-Folio Windows, Dispute Escrow, Colleague Split, Caution Refund)"
                                       style={{
                                         padding: '3px 2px',
                                         fontSize: '0.62rem',
                                         fontWeight: 700,
-                                        background: 'rgba(56, 189, 248, 0.2)',
+                                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(96, 165, 250, 0.35))',
                                         color: '#38bdf8',
-                                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                                        border: '1px solid rgba(56, 189, 248, 0.5)',
                                         borderRadius: '3px',
                                         cursor: 'pointer',
                                         whiteSpace: 'nowrap',
                                         textAlign: 'center'
                                       }}
                                     >
-                                      ⚙️ Folio
+                                      📑 Folio
                                     </button>
                                     <button
                                       onClick={(e) => {
@@ -4087,21 +4107,21 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                 <div style={{ display: 'flex', gap: '4px' }}>
                                   <button
                                     type="button"
-                                    onClick={() => setSelectedFolioRoom(room)}
-                                    title="Open 12 Master Folio Options"
+                                    onClick={() => onOpenMasterFolio ? onOpenMasterFolio(room.roomNumber) : setSelectedFolioRoom(room)}
+                                    title="Open Upgraded Master Folio (Sub-Folio Windows, Dispute Escrow, Colleague Split, Caution Refund)"
                                     style={{
                                       flex: 1,
                                       padding: '0.35rem',
-                                      background: 'rgba(56, 189, 248, 0.2)',
+                                      background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(96, 165, 250, 0.35))',
                                       color: '#38bdf8',
-                                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                                      border: '1px solid rgba(56, 189, 248, 0.5)',
                                       borderRadius: '4px',
                                       fontSize: '0.72rem',
                                       fontWeight: 700,
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    ⚙️ Folio
+                                    📑 Folio
                                   </button>
                                   <button
                                     type="button"
@@ -6850,6 +6870,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           rooms={rooms}
           transactions={transactions}
           onAddTransaction={onAddTransaction}
+          onOpenMasterFolio={onOpenMasterFolio}
           onUpdateFolio={(roomNumber, updateData) => {
             console.log(`Updated Folio for Room ${roomNumber}:`, updateData);
           }}

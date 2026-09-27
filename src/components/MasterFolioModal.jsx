@@ -16,7 +16,8 @@ export default function MasterFolioModal({
   bookings = [],
   transactions = [],
   onAddTransaction,
-  onSettleFolio
+  onSettleFolio,
+  initialRoomNumber = '402'
 }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -27,8 +28,16 @@ export default function MasterFolioModal({
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-  // Active selected room folio (defaults to 402 for the iconic scenario)
-  const [selectedRoom, setSelectedRoom] = useState('402');
+
+  // Active selected room folio (defaults to initialRoomNumber or '402')
+  const [selectedRoom, setSelectedRoom] = useState(String(initialRoomNumber || '402'));
+
+  useEffect(() => {
+    if (initialRoomNumber) {
+      setSelectedRoom(String(initialRoomNumber));
+    }
+  }, [initialRoomNumber, isOpen]);
+
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger', 'sub-folios', 'split-bills', 'multi-settle'
 
   // Operational Notification Toast Banner
