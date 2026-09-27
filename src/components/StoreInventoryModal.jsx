@@ -1,17 +1,113 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Package, ShoppingCart, Plus, CheckCircle2, Clock, 
-  DollarSign, FileText, X, AlertTriangle, Truck
+  DollarSign, FileText, X, AlertTriangle, Truck,
+  UtensilsCrossed, Sparkles, Scale, RefreshCw, Layers, Check
 } from 'lucide-react';
 import { INITIAL_STORE_PURCHASES, INITIAL_KITCHEN_REQUISITIONS } from '../data/hotelData';
+
+// Kitchen Recipe Bill of Materials (BOM) & Food Costing Data (Inspired by InvenTree & ERPNext)
+const KITCHEN_RECIPE_BOM = [
+  {
+    dishCode: '215',
+    dishName: 'Paneer Butter Masala',
+    category: 'Food (Veg)',
+    sellingPrice: 240,
+    ingredients: [
+      { name: 'Fresh Milk Paneer', qty: '200 g', cost: 70 },
+      { name: 'Desi Ghee / Amul Butter', qty: '50 g', cost: 28 },
+      { name: 'Tomato Cashew Gravy', qty: '150 g', cost: 22 },
+      { name: 'Garam Masala & Kasuri Methi', qty: '10 g', cost: 8 }
+    ],
+    totalFoodCost: 128,
+    grossMarginPct: 46.7,
+    storeStockUnits: 32 // Can cook 32 portions with current store stock
+  },
+  {
+    dishCode: '102',
+    dishName: 'Chicken Dum Biryani (Chef Special)',
+    category: 'Food (Non-Veg)',
+    sellingPrice: 260,
+    ingredients: [
+      { name: 'Aged Basmati Rice', qty: '250 g', cost: 32 },
+      { name: 'Fresh Country Poultry', qty: '300 g', cost: 75 },
+      { name: 'Biryani Whole Spices & Saffron', qty: '25 g', cost: 25 },
+      { name: 'Curd & Fried Onions Raita', qty: '80 g', cost: 16 }
+    ],
+    totalFoodCost: 148,
+    grossMarginPct: 43.1,
+    storeStockUnits: 28
+  },
+  {
+    dishCode: '301',
+    dishName: 'Special Satvik Thali (Pure Veg)',
+    category: 'Satvik (No Onion/Garlic)',
+    sellingPrice: 220,
+    ingredients: [
+      { name: 'Steamed Rice', qty: '180 g', cost: 18 },
+      { name: 'Yellow Toor Dal Tadka', qty: '120 g', cost: 16 },
+      { name: 'Seasonal Green Veggies', qty: '180 g', cost: 24 },
+      { name: 'Desi Cow Ghee', qty: '25 g', cost: 18 },
+      { name: 'Whole Wheat Phulkas (3 pcs)', qty: '90 g', cost: 9 }
+    ],
+    totalFoodCost: 85,
+    grossMarginPct: 61.4,
+    storeStockUnits: 45
+  },
+  {
+    dishCode: '214',
+    dishName: 'Mushroom Masala (Code 214)',
+    category: 'Food (Veg)',
+    sellingPrice: 220,
+    ingredients: [
+      { name: 'Fresh Button Mushrooms', qty: '200 g', cost: 55 },
+      { name: 'Stone-Ground Mustard Gravy', qty: '140 g', cost: 20 },
+      { name: 'Refined Sunflower Oil', qty: '30 ml', cost: 6 },
+      { name: 'Ginger & Coriander', qty: '20 g', cost: 8 }
+    ],
+    totalFoodCost: 89,
+    grossMarginPct: 59.5,
+    storeStockUnits: 22
+  },
+  {
+    dishCode: '308',
+    dishName: 'Dal Fry (Yellow Lentils Tadka)',
+    category: 'Food (Rice & Breads)',
+    sellingPrice: 140,
+    ingredients: [
+      { name: 'Toor & Moong Dal', qty: '150 g', cost: 22 },
+      { name: 'Desi Ghee Tadka', qty: '25 g', cost: 16 },
+      { name: 'Tomatoes & Cumin Seeds', qty: '40 g', cost: 10 }
+    ],
+    totalFoodCost: 48,
+    grossMarginPct: 65.7,
+    storeStockUnits: 60
+  },
+  {
+    dishCode: '306',
+    dishName: 'Butter Tandoori Roti',
+    category: 'Food (Rice & Breads)',
+    sellingPrice: 30,
+    ingredients: [
+      { name: 'Chakki Fresh Atta', qty: '100 g', cost: 4.5 },
+      { name: 'Amul Butter Glaze', qty: '15 g', cost: 7.5 }
+    ],
+    totalFoodCost: 12,
+    grossMarginPct: 60.0,
+    storeStockUnits: 180
+  }
+];
 
 export default function StoreInventoryModal({
   isOpen,
   onClose
 }) {
-  const [activeTab, setActiveTab] = useState('purchases'); // 'purchases', 'requisitions', 'vendor-payables'
+  const [activeTab, setActiveTab] = useState('purchases'); // 'purchases', 'requisitions', 'vendor-payables', 'recipe-bom'
   const [purchases, setPurchases] = useState(INITIAL_STORE_PURCHASES);
   const [requisitions, setRequisitions] = useState(INITIAL_KITCHEN_REQUISITIONS);
+  const [selectedRecipeCode, setSelectedRecipeCode] = useState('215');
+  const [depletionSimulated, setDepletionSimulated] = useState(false);
+  const [voucherGenerated, setVoucherGenerated] = useState(false);
 
   // Sync live D1 store purchases and kitchen requisitions on open
   useEffect(() => {
@@ -107,21 +203,43 @@ export default function StoreInventoryModal({
           receivedBy: newP.receivedBy
         }
       })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.success) {
-          console.log(`✓ Store purchase ${newP.purchaseId} recorded in Cloudflare D1`);
-        }
-      })
-      .catch(err => console.warn('Offline store purchase fallback:', err));
+    }).catch(err => console.warn('Offline store purchase sync:', err));
 
     setNewPurchaseOpen(false);
     setItemsSummary('');
     setAmount('');
   };
 
+  const handleGenerateDepletionVoucher = () => {
+    const newVoucher = {
+      requisitionId: `REQ-202609-${Date.now().toString().slice(-3)}`,
+      issueDate: new Date().toISOString().split('T')[0],
+      targetOutlet: 'Cannon Kitchen & Satvik Dining',
+      itemName: 'Daily Recipe Depletion: Paneer (6.4kg), Basmati Rice (17.5kg), Desi Ghee (3.8kg), Poultry (11.4kg)',
+      quantityIssued: 39.1,
+      unit: 'kg (Aggregated)',
+      approxCost: 4890.00,
+      issuedTo: 'Head Chef Jagabandhu Sahu',
+      issuedBy: 'Storekeeper Lingaraj'
+    };
+
+    setRequisitions([newVoucher, ...requisitions]);
+    setVoucherGenerated(true);
+
+    const adminPin = localStorage.getItem('hsi_admin_pin') || '7650';
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminPin },
+      body: JSON.stringify({
+        action: 'record_kitchen_requisition',
+        payload: newVoucher
+      })
+    }).catch(err => console.warn('Offline requisition sync:', err));
+  };
+
   if (!isOpen) return null;
+
+  const currentRecipe = KITCHEN_RECIPE_BOM.find(r => r.dishCode === selectedRecipeCode) || KITCHEN_RECIPE_BOM[0];
 
   return (
     <div style={{
@@ -137,8 +255,8 @@ export default function StoreInventoryModal({
     }}>
       <div className="glass-panel" style={{
         width: '100%',
-        maxWidth: 1150,
-        height: '88vh',
+        maxWidth: 1180,
+        height: '90vh',
         display: 'flex',
         flexDirection: 'column',
         borderRadius: '16px',
@@ -161,11 +279,11 @@ export default function StoreInventoryModal({
                 FOOD COST CONTROL
               </span>
               <h2 style={{ fontSize: '1.3rem', color: '#fff', margin: 0, fontWeight: 700 }}>
-                Store Inventory & Mandi Raw Material Purchases
+                Store Inventory &amp; Mandi Raw Material Purchases
               </h2>
             </div>
             <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-              Daily local vegetable, dairy & poultry inward register • Kitchen consumption requisition vouchers
+              Daily local vegetable, dairy &amp; poultry inward register • Kitchen consumption requisition vouchers • Recipe BOM costing
             </p>
           </div>
 
@@ -194,7 +312,8 @@ export default function StoreInventoryModal({
           gap: '0.5rem',
           padding: '0.75rem 2rem',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(10, 14, 25, 0.5)'
+          background: 'rgba(10, 14, 25, 0.5)',
+          flexWrap: 'wrap'
         }}>
           <button
             onClick={() => setActiveTab('purchases')}
@@ -251,6 +370,25 @@ export default function StoreInventoryModal({
             }}
           >
             <DollarSign size={15} /> 🏪 Rayagada Vendor Credit Ledger (₹48,650)
+          </button>
+
+          <button
+            onClick={() => setActiveTab('recipe-bom')}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: activeTab === 'recipe-bom' ? 'rgba(168, 85, 247, 0.25)' : 'transparent',
+              color: activeTab === 'recipe-bom' ? '#c084fc' : 'var(--text-muted)',
+              border: activeTab === 'recipe-bom' ? '1px solid #c084fc' : '1px solid transparent'
+            }}
+          >
+            <UtensilsCrossed size={15} /> Recipe BOM &amp; Depletion Engine (InvenTree)
           </button>
         </div>
 
@@ -339,43 +477,24 @@ export default function StoreInventoryModal({
                   <button
                     onClick={() => alert('Printing Consolidated Vendor Payment Sheet for Managing Director Eswara')}
                     className="btn-outline"
-                    style={{ padding: '0.5rem 0.85rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderColor: '#fbbf24', color: '#fbbf24' }}
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                   >
-                    <FileText size={15} /> Print Vendor Sheet
+                    <FileText size={14} /> Print Payment Advice
                   </button>
                 </div>
               </div>
 
-              {/* Vendor KPI Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Inward Purchases (Sep 2026)</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#38bdf8' }}>₹1,38,050.00</div>
-                </div>
-
-                <div style={{ background: 'rgba(52, 211, 153, 0.08)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(52, 211, 153, 0.25)' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#34d399' }}>Total Paid to Vendors (Bank/Cash)</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#34d399' }}>₹89,400.00</div>
-                </div>
-
-                <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', border: '1px solid #fbbf24' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>Total Net Vendor Payables</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f87171' }}>₹48,650.00</div>
-                </div>
-              </div>
-
-              {/* Vendor Table */}
-              <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                      <th style={{ padding: '0.75rem' }}>Vendor Name</th>
-                      <th style={{ padding: '0.75rem' }}>Category</th>
-                      <th style={{ padding: '0.75rem' }}>Contact Person</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Total Supplies (₹)</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Paid Amount (₹)</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Outstanding Due (₹)</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Action</th>
+                      <th style={{ padding: '0.7rem 0.75rem' }}>Supplier / Mandi Dealer</th>
+                      <th style={{ padding: '0.7rem 0.75rem' }}>Supplies Category</th>
+                      <th style={{ padding: '0.7rem 0.75rem' }}>Key Contact</th>
+                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'right' }}>Total Supplies (₹)</th>
+                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'right' }}>Paid (₹)</th>
+                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'right' }}>Balance Due (₹)</th>
+                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'center' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -419,6 +538,7 @@ export default function StoreInventoryModal({
             </div>
           )}
 
+          {/* Tab 2: Requisitions */}
           {activeTab === 'requisitions' && (
             <div>
               <h3 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Cannon Kitchen Consumption Logs</h3>
@@ -441,19 +561,299 @@ export default function StoreInventoryModal({
                   {requisitions.map(r => (
                     <tr key={r.requisitionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fbbf24' }}>{r.requisitionId}</td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.date}</td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issueDate || r.date}</td>
                       <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fff' }}>{r.itemName}</td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'center', color: '#38bdf8', fontWeight: 600 }}>
-                        {r.quantity} {r.unit}
+                        {r.quantityIssued || r.quantity} {r.unit}
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>
-                        ₹{r.approxCost.toFixed(2)}
+                        ₹{Number(r.approxCost || 0).toFixed(2)}
                       </td>
                       <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issuedTo}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* TAB 4: KITCHEN RECIPE BOM & DEPLETION ENGINE (INVENTREE ARCHITECTURE) */}
+          {activeTab === 'recipe-bom' && (
+            <div>
+              {/* Top Analytical KPI Metrics */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '10px', padding: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#c084fc', fontWeight: 600 }}>ACTIVE RECIPE BOMS</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>6 Signature Dishes</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>100% ingredients mapped to dry store</div>
+                </div>
+
+                <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px', padding: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>AVERAGE FOOD COST</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399', marginTop: '4px' }}>44.2%</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Optimal threshold (&lt; 45% F&amp;B target)</div>
+                </div>
+
+                <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '10px', padding: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>AVERAGE GROSS MARGIN</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>55.8%</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Gross restaurant margin contribution</div>
+                </div>
+
+                <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', padding: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>REORDER THRESHOLD</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fbbf24', marginTop: '4px' }}>2 Low Stock Items</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Desi Ghee (&lt; 5kg) &amp; Mushrooms (&lt; 4kg)</div>
+                </div>
+              </div>
+
+              {/* Main Recipe BOM Interface: Left List + Right Detail */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                
+                {/* Left: Recipe Catalog Table */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0, color: '#fff', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Scale size={16} color="#c084fc" /> Cannon Kitchen Recipe Costing Matrix
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Click dish to inspect BOM</span>
+                  </div>
+
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                        <th style={{ padding: '0.65rem 0.75rem' }}>Dish &amp; Code</th>
+                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Menu Price</th>
+                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Raw Cost</th>
+                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Food Cost %</th>
+                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Stock Capacity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {KITCHEN_RECIPE_BOM.map(dish => (
+                        <tr 
+                          key={dish.dishCode}
+                          onClick={() => setSelectedRecipeCode(dish.dishCode)}
+                          style={{
+                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            background: selectedRecipeCode === dish.dishCode ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <td style={{ padding: '0.75rem' }}>
+                            <div style={{ fontWeight: 700, color: '#fff' }}>{dish.dishName}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Code {dish.dishCode} • {dish.category}</div>
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 700, color: '#fff' }}>
+                            ₹{dish.sellingPrice}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171', fontWeight: 600 }}>
+                            ₹{dish.totalFoodCost}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                            <span style={{
+                              background: (dish.totalFoodCost / dish.sellingPrice) < 0.45 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                              color: (dish.totalFoodCost / dish.sellingPrice) < 0.45 ? '#34d399' : '#fbbf24',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                              fontSize: '0.75rem'
+                            }}>
+                              {((dish.totalFoodCost / dish.sellingPrice) * 100).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                            <span style={{
+                              background: dish.storeStockUnits < 30 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.15)',
+                              color: dish.storeStockUnits < 30 ? '#f87171' : '#38bdf8',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontWeight: 700,
+                              fontSize: '0.75rem'
+                            }}>
+                              {dish.storeStockUnits} Portions
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Right: Selected Dish BOM Specification (InvenTree Style) */}
+                <div style={{
+                  background: 'linear-gradient(145deg, #120e24, #0b0716)',
+                  border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '0.85rem' }}>
+                    <div>
+                      <span style={{ background: '#7c3aed', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                        BOM Spec: Code {currentRecipe.dishCode}
+                      </span>
+                      <h4 style={{ margin: '4px 0 0 0', fontSize: '1.15rem', color: '#fff', fontWeight: 800 }}>
+                        {currentRecipe.dishName}
+                      </h4>
+                      <div style={{ fontSize: '0.72rem', color: '#a78bfa' }}>
+                        {currentRecipe.category}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Menu Selling Price</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--gold-glow)' }}>
+                        ₹{currentRecipe.sellingPrice}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ingredient Breakdown */}
+                  <div style={{ flex: 1, marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Layers size={13} color="#38bdf8" /> RAW MATERIAL INGREDIENTS CONSUMPTION PER PORTION
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      {currentRecipe.ingredients.map((ing, i) => (
+                        <div key={i} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: 'rgba(255,255,255,0.03)',
+                          padding: '0.45rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem'
+                        }}>
+                          <div>
+                            <span style={{ color: '#fff', fontWeight: 600 }}>{ing.name}</span>
+                            <span style={{ color: 'var(--text-muted)', marginLeft: '6px' }}>({ing.qty})</span>
+                          </div>
+                          <span style={{ color: '#34d399', fontWeight: 700 }}>₹{ing.cost.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Profitability Summary */}
+                  <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}>
+                      <span>Total Raw Material Cost:</span>
+                      <span style={{ color: '#f87171', fontWeight: 700 }}>₹{currentRecipe.totalFoodCost.toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}>
+                      <span>Gross Profit Contribution:</span>
+                      <span style={{ color: '#34d399', fontWeight: 700 }}>₹{(currentRecipe.sellingPrice - currentRecipe.totalFoodCost).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dotted rgba(255,255,255,0.1)', paddingTop: '4px', marginTop: '2px', fontWeight: 800 }}>
+                      <span style={{ color: '#fff' }}>Gross Profit Margin:</span>
+                      <span style={{ color: '#c084fc' }}>{currentRecipe.grossMarginPct}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Simulation: Automatic Kitchen Stock Depletion from Today's KDS Orders */}
+              <div style={{
+                background: 'linear-gradient(145deg, rgba(30, 27, 75, 0.4), rgba(15, 23, 42, 0.6))',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                borderRadius: '12px',
+                padding: '1.25rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#fff', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={16} color="#fbbf24" /> Live KDS Orders Depletion Engine (Simulated Today)
+                    </h4>
+                    <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.76rem' }}>
+                      Aggregates 38 Biryani, 32 Paneer, 26 Mushroom, 42 Dal Fry, 55 Steamed Rice from today's dining orders into exact store inventory depletion.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => setDepletionSimulated(prev => !prev)}
+                      style={{
+                        background: 'rgba(139, 92, 246, 0.2)',
+                        border: '1px solid #8b5cf6',
+                        color: '#c4b5fd',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <RefreshCw size={13} /> {depletionSimulated ? 'Reset Calculation' : 'Recalculate Today\'s Burn'}
+                    </button>
+
+                    <button
+                      onClick={handleGenerateDepletionVoucher}
+                      disabled={voucherGenerated}
+                      style={{
+                        background: voucherGenerated ? 'rgba(16, 185, 129, 0.2)' : '#10b981',
+                        border: voucherGenerated ? '1px solid #10b981' : 'none',
+                        color: voucherGenerated ? '#34d399' : '#000',
+                        padding: '0.4rem 0.9rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: voucherGenerated ? 'default' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {voucherGenerated ? <Check size={14} /> : <FileText size={14} />}
+                      {voucherGenerated ? 'Requisition Voucher Posted!' : 'Post Requisition Voucher to D1'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Depleted Ingredients Breakdown */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginTop: '0.75rem' }}>
+                  {[
+                    { name: 'Fresh Paneer', burned: '6.4 kg', remaining: '8.6 kg', status: 'Optimal', color: '#34d399' },
+                    { name: 'Aged Basmati Rice', burned: '17.5 kg', remaining: '32.5 kg', status: 'Optimal', color: '#34d399' },
+                    { name: 'Fresh Country Poultry', burned: '11.4 kg', remaining: '14.6 kg', status: 'Optimal', color: '#34d399' },
+                    { name: 'Desi Cow Ghee', burned: '3.8 kg', remaining: '4.2 kg', status: 'Low Stock', color: '#fbbf24' },
+                    { name: 'Yellow Toor Dal', burned: '6.3 kg', remaining: '18.7 kg', status: 'Optimal', color: '#34d399' }
+                  ].map((item, idx) => (
+                    <div key={idx} style={{
+                      background: 'rgba(0,0,0,0.35)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '8px',
+                      padding: '0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px'
+                    }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>{item.name}</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#38bdf8', marginTop: '2px' }}>
+                        {item.burned} <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>consumed</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Stock: {item.remaining}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: item.color }}>{item.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -496,15 +896,15 @@ export default function StoreInventoryModal({
                     onChange={(e) => setCategory(e.target.value)}
                     style={{ width: '100%', padding: '0.5rem', background: '#0d111d', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
                   >
-                    <option value="Vegetables">Vegetables & Mandi Produce</option>
-                    <option value="Poultry & Meat">Poultry & Fresh Country Chicken</option>
-                    <option value="Dairy & Paneer">Dairy, Milk & Fresh Paneer</option>
-                    <option value="Groceries & Rice">Groceries, Basmati Rice & Spices</option>
+                    <option value="Vegetables">Vegetables &amp; Fresh Mandi Produce</option>
+                    <option value="Poultry & Meat">Poultry &amp; Fresh Country Chicken</option>
+                    <option value="Dairy & Paneer">Dairy, Milk &amp; Fresh Paneer</option>
+                    <option value="Groceries & Rice">Groceries, Basmati Rice &amp; Spices</option>
                   </select>
                 </div>
 
                 <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Items Summary & Quantities</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Items Summary &amp; Quantities</label>
                   <textarea
                     required
                     rows={2}
