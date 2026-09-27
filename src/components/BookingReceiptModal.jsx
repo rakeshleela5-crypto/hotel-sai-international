@@ -45,8 +45,9 @@ export default function BookingReceiptModal({
 }) {
   // View modes: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'money-receipt' (Page 5), 'pos' (Thermal), 'keycard' (3D RFID)
   const [invoiceType, setInvoiceType] = useState(initialType || 'a4');
-  const [isNonGstBill, setIsNonGstBill] = useState(false);
-  const [isLiveEditMode, setIsLiveEditMode] = useState(true);
+  const [isNonGstBill, setIsNonGstBill] = useState(Boolean(booking?.isNonGstBill));
+  const [isLiveEditMode, setIsLiveEditMode] = useState(booking?.isLiveEditMode !== undefined ? Boolean(booking.isLiveEditMode) : true);
+  const [includeLetterhead, setIncludeLetterhead] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const receiptContainerRef = useRef(null);
 
@@ -102,6 +103,12 @@ export default function BookingReceiptModal({
   useEffect(() => {
     if (booking && isOpen) {
       setInvoiceType(initialType || 'a4');
+      if (booking.isNonGstBill !== undefined) {
+        setIsNonGstBill(Boolean(booking.isNonGstBill));
+      }
+      if (booking.isLiveEditMode !== undefined) {
+        setIsLiveEditMode(Boolean(booking.isLiveEditMode));
+      }
       const nights = Number(booking.nights || 4);
       const tariff = Number(booking.tariffPerNight || booking.tariff || 2999);
       const foodAmt = Number(booking.foodAmount || 900);
@@ -448,8 +455,19 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
               <FileText size={16} color="var(--gold-glow)" style={{ flexShrink: 0 }} />
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--gold-glow)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  Folio &amp; Documents Suite
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--gold-glow)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileText size={15} /> Universal Document Editor Engine
+                  <span style={{
+                    background: !isNonGstBill ? 'rgba(212, 175, 55, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                    color: !isNonGstBill ? 'var(--gold-glow)' : '#38bdf8',
+                    border: !isNonGstBill ? '1px solid rgba(212, 175, 55, 0.4)' : '1px solid rgba(56, 189, 248, 0.4)',
+                    fontSize: '0.66rem',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    fontWeight: 700
+                  }}>
+                    {!isNonGstBill ? '🏛️ Rule 46 GST' : '📜 Non-GST Cash Memo'}
+                  </span>
                 </span>
                 <span style={{ 
                   fontSize: '0.7rem', 
@@ -458,7 +476,14 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'
                 }}>
-                  Room {booking.roomNumber || '301'} • {booking.guestName || 'MR. P ASHOK'}
+                  Room {booking.roomNumber || '301'} • {booking.guestName || 'MR. P ASHOK'} • 
+                  {invoiceType === 'grc' ? 'Official GRC Registration Form' :
+                   invoiceType === 'room-split' ? 'Room Stay Tariff (Page 3)' :
+                   invoiceType === 'food-split' ? 'Cannon Kitchen Dining (Page 2)' :
+                   invoiceType === 'money-receipt' ? 'Money Receipt & Advance Voucher (Page 5)' :
+                   invoiceType === 'pos' ? '80mm Thermal Receipt' :
+                   invoiceType === 'keycard' ? '3D Smart RFID Pass' :
+                   'Consolidated Tax Invoice / Bill of Supply (A4)'}
                 </span>
               </div>
             </div>
@@ -520,6 +545,30 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                   }}
                 >
                   <Edit3 size={13} /> {isLiveEditMode ? '✏️ Live Edit: ON' : '👁️ Preview'}
+                </button>
+              )}
+
+              {invoiceType !== 'keycard' && (
+                <button
+                  type="button"
+                  onClick={() => setIncludeLetterhead(!includeLetterhead)}
+                  style={{
+                    background: includeLetterhead ? 'rgba(255,255,255,0.06)' : 'rgba(245, 158, 11, 0.2)',
+                    border: includeLetterhead ? '1px solid rgba(255,255,255,0.2)' : '1px solid #f59e0b',
+                    color: includeLetterhead ? '#cbd5e1' : '#fbbf24',
+                    borderRadius: '6px',
+                    padding: '5px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Toggle Header for Blank A4 Paper vs. Pre-Printed Hotel Letterhead Pads"
+                >
+                  <Building2 size={13} /> {includeLetterhead ? '🏢 Header: On (Blank A4)' : '📄 Header: Off (Pre-printed Pad)'}
                 </button>
               )}
 

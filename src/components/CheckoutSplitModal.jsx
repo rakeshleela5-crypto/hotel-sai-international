@@ -54,6 +54,7 @@ export default function CheckoutSplitModal({
   const [btcCompany, setBtcCompany] = useState('Linde India Ltd');
 
   const [openReceiptAfter, setOpenReceiptAfter] = useState(true);
+  const [isNonGstBill, setIsNonGstBill] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState('tenders'); // 'tenders' | 'split-invoices'
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -162,7 +163,9 @@ export default function CheckoutSplitModal({
       },
       tendersSummary,
       openReceiptAfter,
-      targetReceiptType: receiptTarget
+      isNonGstBill,
+      openEditor: receiptTarget === 'editor',
+      targetReceiptType: receiptTarget === 'editor' ? 'a4' : receiptTarget
     };
 
     onConfirmCheckout(settlementPayload);
@@ -1042,17 +1045,67 @@ export default function CheckoutSplitModal({
             </div>
           )}
 
-          {/* CHECKBOX: GENERATE & VIEW TAX INVOICE */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.03)', padding: '0.75rem', borderRadius: '8px' }}>
-            <input
-              type="checkbox"
-              id="openReceiptAfter"
-              checked={openReceiptAfter}
-              onChange={(e) => setOpenReceiptAfter(e.target.checked)}
-              style={{ cursor: 'pointer', width: 16, height: 16, accentColor: 'var(--gold-glow)' }}
-            />
-            <label htmlFor="openReceiptAfter" style={{ fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
-              Automatically generate &amp; open official <strong>Audited Split Tax Invoice / Folio Receipt</strong> for guest printing
+          {/* DOCUMENT ENGINE FORMAT & BILLING SERIES SELECTOR */}
+          <div style={{
+            background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02))',
+            border: '1px solid rgba(212, 175, 55, 0.25)',
+            borderRadius: '10px',
+            padding: '0.75rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: '#f3c64c', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Receipt size={15} /> Document Series:
+              </span>
+              <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.6)', padding: '2px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsNonGstBill(false)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    fontSize: '0.74rem',
+                    fontWeight: !isNonGstBill ? 800 : 500,
+                    background: !isNonGstBill ? 'linear-gradient(135deg, #d4af37, #f3c64c)' : 'transparent',
+                    color: !isNonGstBill ? '#060e1a' : '#cbd5e1',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🏛️ Rule 46 GST Bill (FMBIL)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsNonGstBill(true)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    fontSize: '0.74rem',
+                    fontWeight: isNonGstBill ? 800 : 500,
+                    background: isNonGstBill ? 'linear-gradient(135deg, #38bdf8, #0284c7)' : 'transparent',
+                    color: isNonGstBill ? '#ffffff' : '#cbd5e1',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  📜 Non-GST Cash Memo (NGST)
+                </button>
+              </div>
+            </div>
+
+            <label htmlFor="openReceiptAfter" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#94a3b8', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                id="openReceiptAfter"
+                checked={openReceiptAfter}
+                onChange={(e) => setOpenReceiptAfter(e.target.checked)}
+                style={{ cursor: 'pointer', width: 15, height: 15, accentColor: 'var(--gold-glow)' }}
+              />
+              <span>Auto-open Document Suite on Settle</span>
             </label>
           </div>
 
@@ -1106,6 +1159,31 @@ export default function CheckoutSplitModal({
               }}
             >
               <Receipt size={16} /> 🧾 Settle &amp; Print Money Receipt
+            </button>
+
+            {/* Settle & Open in Universal Document Editor */}
+            <button
+              type="button"
+              onClick={(e) => handleCheckoutSubmit(e, 'editor')}
+              disabled={!isBalanced}
+              title="Settle folio & open live Document Editor to customize remarks, GRC, or line items before printing"
+              style={{
+                padding: '0.6rem 1.25rem',
+                borderRadius: '8px',
+                background: isBalanced ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'rgba(255, 255, 255, 0.08)',
+                color: isBalanced ? '#ffffff' : '#64748b',
+                border: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: isBalanced ? 'pointer' : 'not-allowed',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                boxShadow: isBalanced ? '0 4px 15px rgba(124, 58, 237, 0.35)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Receipt size={16} /> ✏️ Settle &amp; Open Document Editor
             </button>
 
             {/* Consolidated Tax Invoice Button */}

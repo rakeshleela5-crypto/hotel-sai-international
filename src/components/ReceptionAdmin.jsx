@@ -892,7 +892,9 @@ export default function ReceptionAdmin({
         tenders: payload.tenders,
         tendersSummary: payload.tendersSummary,
         foodAmount: payload.billTotal > 1500 ? 962 : payload.billTotal,
-        grcNo: '684'
+        grcNo: '684',
+        isNonGstBill: payload.isNonGstBill || false,
+        isLiveEditMode: payload.openEditor || false
       };
       setReceiptModalType(payload.targetReceiptType || 'a4');
       setSelectedReceiptBooking(receiptBooking);
@@ -2438,6 +2440,42 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             }}
           >
             <Edit3 size={13} /> {isInlineEditActive ? '✏️ Inline Edit Mode: ON' : 'Inline Edit Mode: OFF'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const target = rooms.find(r => r.status === 'Occupied') || rooms[0];
+              const matchedBooking = bookings.find(b => b.roomNumber === target?.roomNumber) || {
+                roomNumber: target?.roomNumber || '301',
+                guestName: target?.currentGuestName || 'MR. P ASHOK',
+                billNo: `FMBIL2627-${target?.roomNumber || '301'}`,
+                tier: target?.tier || 'Executive AC',
+                tariff: target?.tariff || 2999,
+                totalAmount: target?.balanceDue || 2999,
+                grcNo: '684'
+              };
+              setSelectedReceiptBooking(matchedBooking);
+              setReceiptModalType('a4');
+              setIsReceiptModalOpen(true);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))',
+              border: '1px solid #10b981',
+              color: '#34d399',
+              borderRadius: '6px',
+              padding: '5px 12px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
+            }}
+            title="Launch Universal Document Editor Engine (GST Tax Invoices, Non-GST Bills, GRC, Food/Room Bills, Money Receipts)"
+          >
+            <FileText size={13} /> 📑 Document Editor Engine
           </button>
 
           <button
