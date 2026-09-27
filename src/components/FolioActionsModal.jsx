@@ -4,7 +4,7 @@ import {
   RefreshCw, MinusCircle, PlusCircle, FileText, UserCheck, 
   Split, Building2, Calendar, ShieldCheck, AlertCircle, 
   CreditCard, CheckCircle2, ChevronRight, Tag, RotateCcw, 
-  Receipt, Clock, Lock, CheckCheck, Sparkles
+  Receipt, Clock, Lock, CheckCheck, Sparkles, Layers, ShieldAlert, Printer, MessageCircle
 } from 'lucide-react';
 import { HOTEL_CONFIG, POST_CHARGE_CATEGORIES, CORPORATE_PARTNERS } from '../data/hotelData';
 
@@ -116,6 +116,166 @@ export default function FolioActionsModal({
   const [guestCompany, setGuestCompany] = useState('Linde India Ltd');
   const [guestGstin, setGuestGstin] = useState('21AAACB2528H1ZA');
   const [guestPhone, setGuestPhone] = useState('+91 6305202068');
+
+  // 14. Sub-Folio Windows State (Window A: Corporate BTC vs Window B: Personal Extras)
+  const [windowAssignments, setWindowAssignments] = useState({});
+  const [windowASettled, setWindowASettled] = useState(false);
+  const [windowBSettled, setWindowBSettled] = useState(false);
+
+  // 15. Disputed Item Escrow State
+  const [disputedTxns, setDisputedTxns] = useState({});
+  const [disputeModalOpen, setDisputeModalOpen] = useState(false);
+  const [disputeTargetTxn, setDisputeTargetTxn] = useState(null);
+  const [disputeReasonInput, setDisputeReasonInput] = useState('Guest questioned restaurant / service charge');
+
+  // 16. Colleague 50/50 & Custom % Split State
+  const [colleagueSplitRatio, setColleagueSplitRatio] = useState(50);
+  const [colleague1Name, setColleague1Name] = useState(guestName || 'MR. P ASHOK');
+  const [colleague1Company, setColleague1Company] = useState(guestCompany || 'Linde India Ltd');
+  const [colleague1Gstin, setColleague1Gstin] = useState(guestGstin || '21AAACB2528H1ZA');
+  const [colleague1Phone, setColleague1Phone] = useState(guestPhone || '+91 6305202068');
+
+  const [colleague2Name, setColleague2Name] = useState('MR. S PATNAIK');
+  const [colleague2Company, setColleague2Company] = useState('JK Paper Ltd');
+  const [colleague2Gstin, setColleague2Gstin] = useState('21AAACJ1234F1ZQ');
+  const [colleague2Phone, setColleague2Phone] = useState('+91 94371 44520');
+
+  // 17. Caution / Security Deposit State
+  const [cautionDeposit, setCautionDeposit] = useState(1000);
+  const [cautionDepositApplied, setCautionDepositApplied] = useState(false);
+
+  // Helper for Sub-Folio item window (Window A: Room Tariff SAC 996311 @ 12%, Window B: F&B/Extras SAC 996331 @ 5%)
+  const getItemWindow = (tx) => {
+    if (windowAssignments[tx.id]) return windowAssignments[tx.id];
+    const isFoodOrLaundry = tx.type === 'DINING' || tx.sac === '996331' || 
+      (tx.desc && (tx.desc.toLowerCase().includes('fenugreek') || tx.desc.toLowerCase().includes('restaurant') || tx.desc.toLowerCase().includes('kot') || tx.desc.toLowerCase().includes('laundry')));
+    return isFoodOrLaundry ? 'B' : 'A';
+  };
+
+  const windowATxns = folioTransactions.filter(t => getItemWindow(t) === 'A');
+  const windowBTxns = folioTransactions.filter(t => getItemWindow(t) === 'B');
+  const windowADebits = windowATxns.reduce((s, t) => s + (t.debit || 0), 0);
+  const windowACredits = windowATxns.reduce((s, t) => s + (t.credit || 0), 0);
+  const windowABalance = Math.max(0, windowADebits - windowACredits);
+  const windowBDebits = windowBTxns.reduce((s, t) => s + (t.debit || 0), 0);
+  const windowBCredits = windowBTxns.reduce((s, t) => s + (t.credit || 0), 0);
+  const windowBBalance = Math.max(0, windowBDebits - windowBCredits);
+
+  const handleToggleWindow = (txId) => {
+    const curr = getItemWindow(folioTransactions.find(t => t.id === txId) || { id: txId });
+    const target = curr === 'A' ? 'B' : 'A';
+    setWindowAssignments(prev => ({ ...prev, [txId]: target }));
+    showFeedback(`✓ Shifted line item to Window ${target}!`);
+  };
+
+  const handleSettleWindowA = () => {
+    setWindowASettled(true);
+    showFeedback(`✓ Window A (Corporate BTC) marked SETTLED for ${guestCompany || 'Company'}!`);
+  };
+
+  const handleSettleWindowB = () => {
+    setWindowBSettled(true);
+    showFeedback(`✓ Window B (Personal Extras) marked SETTLED via Guest Direct Tender!`);
+  };
+
+  // Disputed Items Handlers
+  const totalDisputed = Object.values(disputedTxns).reduce((sum, d) => sum + (d.amount || 0), 0);
+  const payableBalance = Math.max(0, netOutstanding - totalDisputed);
+  const effectivePayable = Math.max(0, payableBalance - (cautionDepositApplied ? cautionDeposit : 0));
+  const cautionRefundDue = cautionDepositApplied ? Math.max(0, cautionDeposit - payableBalance) : 0;
+
+  const handleOpenDisputeModal = (tx) => {
+    setDisputeTargetTxn(tx);
+    setDisputeModalOpen(true);
+  };
+
+  const handleConfirmDisputeAction = (e) => {
+    e.preventDefault();
+    if (!disputeTargetTxn) return;
+    setDisputedTxns(prev => ({
+      ...prev,
+      [disputeTargetTxn.id]: {
+        reason: disputeReasonInput,
+        heldAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        amount: disputeTargetTxn.debit
+      }
+    }));
+    setDisputeModalOpen(false);
+    setDisputeTargetTxn(null);
+    showFeedback(`🛡️ Placed in Dispute Escrow! ₹${(disputeTargetTxn.debit || 0).toFixed(2)} held out of checkout payable total.`);
+  };
+
+  const handleResolveDisputeAction = (txId, resolutionType) => {
+    const tx = folioTransactions.find(t => t.id === txId);
+    if (!tx) return;
+
+    if (resolutionType === 'release') {
+      setDisputedTxns(prev => {
+        const next = { ...prev };
+        delete next[txId];
+        return next;
+      });
+      showFeedback(`✓ Dispute resolved: Charge re-admitted to active folio upon verified guest voucher.`);
+    } else if (resolutionType === 'waive') {
+      setDisputedTxns(prev => {
+        const next = { ...prev };
+        delete next[txId];
+        return next;
+      });
+      const reversalMemo = {
+        id: `CN-${room.roomNumber}-${Date.now().toString().slice(-4)}`,
+        date: new Date().toLocaleDateString('en-IN'),
+        type: 'REVERSAL',
+        desc: `Credit Note / Dispute Waived: Reversal of ${tx.id} [${disputedTxns[txId]?.reason || 'Waived by Duty Mgr'}]`,
+        sac: tx.sac || '996331',
+        debit: 0,
+        credit: tx.debit,
+        operator: 'Duty Manager (Patnaik)'
+      };
+      setFolioTransactions([reversalMemo, ...folioTransactions]);
+      syncFolioTransactionToEdge(reversalMemo);
+      showFeedback(`✓ Disputed item waived! Credit note of ₹${tx.debit.toFixed(2)} posted to zero out balance.`);
+    }
+  };
+
+  // Colleague Split Handlers
+  const colleague1Share = (netOutstanding * colleagueSplitRatio) / 100;
+  const colleague2Share = netOutstanding - colleague1Share;
+
+  const handleSendColleagueWhatsApp = (colleagueNum) => {
+    const isC1 = colleagueNum === 1;
+    const cName = isC1 ? colleague1Name : colleague2Name;
+    const cComp = isC1 ? colleague1Company : colleague2Company;
+    const cGstin = isC1 ? colleague1Gstin : colleague2Gstin;
+    const cShare = isC1 ? colleague1Share : colleague2Share;
+    const cPhone = (isC1 ? colleague1Phone : colleague2Phone).replace(/\D/g, '');
+    const cleanPhone = cPhone.length === 10 ? `91${cPhone}` : cPhone;
+    const ratio = isC1 ? colleagueSplitRatio : (100 - colleagueSplitRatio);
+
+    const message = 
+`🏨 *HOTEL SAI INTERNATIONAL, RAYAGADA*
+📍 J.K. Road, Rayagada, Odisha - 765001
+📞 06856 225 555 | GSTIN: ${HOTEL_CONFIG.gstin}
+───────────────────────────────
+📋 *SPLIT TAX INVOICE (PART ${isC1 ? 'A' : 'B'} - ${ratio}%)*
+Room Number: *${room.roomNumber}*
+Executive: *${cName}*
+Company: *${cComp}*
+${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+───────────────────────────────
+💰 Total Room Outstanding: ₹${netOutstanding.toFixed(2)}
+📊 Agreed Split Share: *${ratio}%*
+💵 Taxable Base: ₹${(cShare / 1.12).toFixed(2)}
+⚖️ Applicable GST (CGST 6% + SGST 6%): ₹${(cShare - (cShare / 1.12)).toFixed(2)}
+🏷️ *Net Payable Share: ₹${cShare.toFixed(2)}*
+───────────────────────────────
+💳 Quick UPI Pay: ${HOTEL_CONFIG.upiId}
+🙏 *Thank you for staying at Hotel Sai International!*`;
+
+    const encoded = encodeURIComponent(message);
+    const targetUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    window.open(targetUrl, '_blank');
+  };
 
   // Available vacant rooms for shift
   const vacantRooms = rooms.filter(r => r.status === 'Available');
@@ -459,34 +619,6 @@ export default function FolioActionsModal({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
-            {onOpenMasterFolio && (
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenMasterFolio(room.roomNumber);
-                  onClose();
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.3) 0%, rgba(37, 99, 235, 0.45) 100%)',
-                  color: '#38bdf8',
-                  border: '1px solid rgba(56, 189, 248, 0.6)',
-                  borderRadius: '8px',
-                  padding: '6px 14px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 10px rgba(56, 189, 248, 0.25)',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0
-                }}
-                title="Open Upgraded Enterprise Master Folio (Sub-Folio Windows A/B, Dispute Escrow, Colleague Split & Caution Deposit)"
-              >
-                <Sparkles size={15} color="#38bdf8" /> 📑 Upgraded Master Folio
-              </button>
-            )}
             <button
               type="button"
               onClick={() => {
@@ -567,51 +699,27 @@ export default function FolioActionsModal({
             gap: '0.3rem'
           }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.35rem 0.5rem', fontWeight: 700 }}>
-              Primary Folio Actions
+              Primary Folio Actions (1 – 17)
             </div>
 
-            {onOpenMasterFolio && (
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenMasterFolio(room.roomNumber);
-                  onClose();
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.65rem',
-                  padding: '0.65rem 0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(245, 158, 11, 0.6)',
-                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35))',
-                  color: '#fbbf24',
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  marginBottom: '0.4rem',
-                  textAlign: 'left'
-                }}
-                title="Switch to Upgraded Master Folio for Sub-Folios, Escrow, and Bill Splits"
-              >
-                <Sparkles size={16} /> 🚀 Master Folio (New Features)
-              </button>
-            )}
-
             {[
-              { id: 'ledger', label: 'Folio Ledger & Voids', icon: Receipt, color: '#38bdf8' },
-              { id: 'charges', label: 'Post Charges (11 Types @ 1:27)', icon: PlusCircle, color: '#38bdf8' },
-              { id: 'late-checkout', label: 'Remove Tariff (Late Stay Waiver)', icon: Clock, color: '#fbbf24' },
-              { id: 'transfer-folio', label: 'Transfer Folio (Inter-Room Bill)', icon: ArrowRightLeft, color: '#a78bfa' },
-              { id: 'split-folio', label: 'Split Folio (Room vs F&B)', icon: Split, color: '#34d399' },
-              { id: 'link-room', label: 'Link Room (Multi-Room Billing)', icon: Link2, color: '#60a5fa' },
-              { id: 'change-room', label: 'Change Room (Room Shift)', icon: RefreshCw, color: '#fbbf24' },
-              { id: 'edit-guest', label: 'Edit Guest & GSTIN Details', icon: UserCheck, color: '#38bdf8' },
-              { id: 'split-settle', label: 'Split-Tender Settlement', icon: CheckCheck, color: '#34d399' },
-              { id: 'advance', label: 'Tag Advance (Deposit Receipt)', icon: DollarSign, color: '#34d399' },
-              { id: 'paid-out', label: 'Paid Out (Drawer Cash)', icon: MinusCircle, color: '#f87171' },
-              { id: 'allowance', label: 'Allowance & Courtesy Discount', icon: Tag, color: '#fb923c' },
-              { id: 'pax-change', label: 'Pax Change (Single ↔ Double)', icon: Users, color: '#a78bfa' }
+              { id: 'ledger', label: '1. Folio Ledger & Voids', icon: Receipt, color: '#38bdf8' },
+              { id: 'charges', label: '2. Post Charges (11 Types)', icon: PlusCircle, color: '#38bdf8' },
+              { id: 'late-checkout', label: '3. Remove Tariff (Late Waiver)', icon: Clock, color: '#fbbf24' },
+              { id: 'transfer-folio', label: '4. Transfer Folio (Inter-Room Bill)', icon: ArrowRightLeft, color: '#a78bfa' },
+              { id: 'split-folio', label: '5. Split Folio (Room vs F&B)', icon: Split, color: '#34d399' },
+              { id: 'link-room', label: '6. Link Room (Multi-Room)', icon: Link2, color: '#60a5fa' },
+              { id: 'change-room', label: '7. Change Room (Room Shift)', icon: RefreshCw, color: '#fbbf24' },
+              { id: 'edit-guest', label: '8. Edit Guest & GSTIN Details', icon: UserCheck, color: '#38bdf8' },
+              { id: 'split-settle', label: '9. Split-Tender Settlement', icon: CheckCheck, color: '#34d399' },
+              { id: 'advance', label: '10. Tag Advance (Deposit Receipt)', icon: DollarSign, color: '#34d399' },
+              { id: 'paid-out', label: '11. Paid Out (Drawer Cash)', icon: MinusCircle, color: '#f87171' },
+              { id: 'allowance', label: '12. Allowance & Courtesy Discount', icon: Tag, color: '#fb923c' },
+              { id: 'pax-change', label: '13. Pax Change (Single ↔ Double)', icon: Users, color: '#a78bfa' },
+              { id: 'sub-folio-windows', label: '14. Sub-Folio Windows (A: BTC / B: Extras)', icon: Layers, color: '#38bdf8' },
+              { id: 'dispute-escrow', label: '15. Disputed Item Escrow (Hold)', icon: ShieldAlert, color: '#fb923c' },
+              { id: 'colleague-split', label: '16. Colleague 50/50 & Custom % Split', icon: Split, color: '#34d399' },
+              { id: 'caution-deposit', label: '17. Caution / Security Deposit & Refund', icon: ShieldCheck, color: '#10b981' }
             ].map(act => {
               const Icon = act.icon;
               const isActive = selectedAction === act.id;
@@ -623,9 +731,9 @@ export default function FolioActionsModal({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.65rem',
-                    padding: '0.6rem 0.75rem',
+                    padding: '0.55rem 0.75rem',
                     borderRadius: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: '0.78rem',
                     fontWeight: 600,
                     textAlign: 'left',
                     cursor: 'pointer',
@@ -635,7 +743,7 @@ export default function FolioActionsModal({
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <Icon size={16} color={isActive ? 'var(--gold-glow)' : act.color} />
+                  <Icon size={15} color={isActive ? 'var(--gold-glow)' : act.color} />
                   <span>{act.label}</span>
                 </button>
               );
@@ -1879,8 +1987,814 @@ export default function FolioActionsModal({
                 </div>
               </div>
             )}
+
+            {/* ACTION 14: SUB-FOLIO WINDOWS (A: CORPORATE BTC vs B: PERSONAL EXTRAS) */}
+            {selectedAction === 'sub-folio-windows' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid #38bdf8', fontWeight: 700 }}>
+                        ACTION 14 • DUAL SUB-FOLIOS
+                      </span>
+                      <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+                        Sub-Folio Windows (Window A vs Window B)
+                      </h3>
+                    </div>
+                    <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                      Essential for Rayagada corporate visitors (JK Paper, GAIL, IMFA, Vedanta). Separates company-reimbursable room accommodation (SAC 996311 @ 12% ITC) from personal F&amp;B and laundry extras (SAC 996331 @ 5%).
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => alert(`Printing Window A Tax Invoice for ${guestCompany || 'Company'} (₹${windowABalance.toFixed(2)})`)}
+                      className="btn-outline"
+                      style={{ fontSize: '0.78rem', padding: '0.4rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <Printer size={14} /> Print Window A Bill
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => alert(`Printing Window B Extras Invoice for ${guestName || 'Guest'} (₹${windowBBalance.toFixed(2)})`)}
+                      className="btn-outline"
+                      style={{ fontSize: '0.78rem', padding: '0.4rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <Printer size={14} /> Print Window B Bill
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem' }}>
+                  {/* WINDOW A: CORPORATE MASTER BTC */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    borderRadius: '12px',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div>
+                        <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', fontWeight: 700, fontSize: '0.72rem' }}>
+                          WINDOW A • CORPORATE MASTER
+                        </span>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fff', marginTop: '0.2rem' }}>
+                          Company: {guestCompany || 'Linde India Ltd'}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          Billed To Company (BTC) • SAC 996311 (12% ITC)
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Window A Due</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: windowASettled ? '#34d399' : '#38bdf8' }}>
+                          {windowASettled ? '✓ SETTLED' : `₹${windowABalance.toFixed(2)}`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, minHeight: 180, display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', overflowY: 'auto', maxHeight: 300 }}>
+                      {windowATxns.length === 0 ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '2rem 0' }}>
+                          No charges routed to Window A.
+                        </div>
+                      ) : (
+                        windowATxns.map(tx => (
+                          <div key={tx.id} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'rgba(0,0,0,0.3)',
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            fontSize: '0.78rem'
+                          }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#fff' }}>{tx.desc}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{tx.id} • {tx.date}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontWeight: 700, color: '#38bdf8' }}>₹{(tx.debit || 0).toFixed(2)}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleWindow(tx.id)}
+                                title="Move this charge to Window B (Personal Extras)"
+                                style={{
+                                  padding: '2px 6px',
+                                  fontSize: '0.68rem',
+                                  borderRadius: '4px',
+                                  background: 'rgba(251, 146, 60, 0.2)',
+                                  color: '#fb923c',
+                                  border: '1px solid rgba(251, 146, 60, 0.4)',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Move to B ➡️
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={windowASettled || windowABalance === 0}
+                      onClick={handleSettleWindowA}
+                      style={{
+                        padding: '0.6rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        background: windowASettled ? 'rgba(52, 211, 153, 0.2)' : 'linear-gradient(135deg, #0284c7, #0369a1)',
+                        color: windowASettled ? '#34d399' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: (windowASettled || windowABalance === 0) ? 'not-allowed' : 'pointer',
+                        opacity: (windowASettled || windowABalance === 0) ? 0.6 : 1
+                      }}
+                    >
+                      {windowASettled ? '✓ Window A Settled to Company BTC' : `Settle Window A (BTC ₹${windowABalance.toFixed(2)})`}
+                    </button>
+                  </div>
+
+                  {/* WINDOW B: PERSONAL EXTRAS */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(251, 146, 60, 0.35)',
+                    borderRadius: '12px',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div>
+                        <span className="badge" style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', fontWeight: 700, fontSize: '0.72rem' }}>
+                          WINDOW B • PERSONAL EXTRAS
+                        </span>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fff', marginTop: '0.2rem' }}>
+                          Guest: {guestName || 'Direct Guest'}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          Direct Self-Pay (UPI/Cash/Card) • Dining, Laundry, Minibar
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Window B Due</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: windowBSettled ? '#34d399' : '#fb923c' }}>
+                          {windowBSettled ? '✓ SETTLED' : `₹${windowBBalance.toFixed(2)}`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, minHeight: 180, display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', overflowY: 'auto', maxHeight: 300 }}>
+                      {windowBTxns.length === 0 ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '2rem 0' }}>
+                          No charges routed to Window B.
+                        </div>
+                      ) : (
+                        windowBTxns.map(tx => (
+                          <div key={tx.id} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'rgba(0,0,0,0.3)',
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            fontSize: '0.78rem'
+                          }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#fff' }}>{tx.desc}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{tx.id} • {tx.date}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontWeight: 700, color: '#fb923c' }}>₹{(tx.debit || 0).toFixed(2)}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleWindow(tx.id)}
+                                title="Move this charge back to Window A (Corporate Master)"
+                                style={{
+                                  padding: '2px 6px',
+                                  fontSize: '0.68rem',
+                                  borderRadius: '4px',
+                                  background: 'rgba(56, 189, 248, 0.2)',
+                                  color: '#38bdf8',
+                                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ⬅️ Move to A
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={windowBSettled || windowBBalance === 0}
+                      onClick={handleSettleWindowB}
+                      style={{
+                        padding: '0.6rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        background: windowBSettled ? 'rgba(52, 211, 153, 0.2)' : 'linear-gradient(135deg, #ea580c, #c2410c)',
+                        color: windowBSettled ? '#34d399' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: (windowBSettled || windowBBalance === 0) ? 'not-allowed' : 'pointer',
+                        opacity: (windowBSettled || windowBBalance === 0) ? 0.6 : 1
+                      }}
+                    >
+                      {windowBSettled ? '✓ Window B Settled via Direct Pay' : `Settle Window B (Guest Pay ₹${windowBBalance.toFixed(2)})`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ACTION 15: DISPUTED ITEM ESCROW & FAST CHECK-OUT HOLD */}
+            {selectedAction === 'dispute-escrow' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                  <span className="badge" style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', border: '1px solid #fb923c', fontWeight: 700 }}>
+                    ACTION 15 • ESCROW MANAGEMENT
+                  </span>
+                  <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+                    Disputed Item Escrow &amp; Fast Checkout Hold
+                  </h3>
+                </div>
+                <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                  Morning Rush &amp; Rayagada Railway Station Protection: Place contested line items into escrow so they are immediately deducted from the payable balance. The guest settles uncontested items and departs on time; Duty Manager investigates later.
+                </p>
+
+                {/* Status Bar */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '1rem',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Total Billed Debits</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>₹{totalDebits.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: '#fb923c' }}>Held in Dispute Escrow</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fb923c' }}>
+                      {totalDisputed > 0 ? `₹${totalDisputed.toFixed(2)}` : '₹0.00 (None Held)'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: '#34d399' }}>Active Net Checkout Payable</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: payableBalance > 0 ? '#38bdf8' : '#34d399' }}>
+                      ₹{payableBalance.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items in Escrow */}
+                {Object.keys(disputedTxns).length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ color: '#fb923c', margin: '0 0 0.5rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldAlert size={16} /> Currently Held in Escrow ({Object.keys(disputedTxns).length} items)
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {Object.entries(disputedTxns).map(([txId, dispute]) => {
+                        const tx = folioTransactions.find(t => t.id === txId) || { desc: txId };
+                        return (
+                          <div key={txId} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'rgba(251, 146, 60, 0.08)',
+                            border: '1px solid rgba(251, 146, 60, 0.3)',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '8px',
+                            flexWrap: 'wrap',
+                            gap: '0.5rem'
+                          }}>
+                            <div>
+                              <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.85rem' }}>{tx.desc}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#fed7aa', marginTop: '0.2rem' }}>
+                                Reason: <strong>{dispute.reason}</strong> • Held at {dispute.heldAt}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fb923c' }}>
+                                ₹{(dispute.amount || 0).toFixed(2)}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleResolveDisputeAction(txId, 'release')}
+                                style={{
+                                  padding: '4px 10px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  background: 'rgba(56, 189, 248, 0.2)',
+                                  color: '#38bdf8',
+                                  border: '1px solid #38bdf8',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Release (Verified Slip)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleResolveDisputeAction(txId, 'waive')}
+                                style={{
+                                  padding: '4px 10px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  background: 'rgba(239, 68, 68, 0.2)',
+                                  color: '#f87171',
+                                  border: '1px solid #f87171',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Waive (GST Credit Note)
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Available Folio Charges to Put into Escrow */}
+                <h4 style={{ color: '#fff', margin: '0 0 0.5rem', fontSize: '0.95rem' }}>
+                  Billed Line Items (Click to Place in Escrow)
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {folioTransactions.filter(t => t.debit > 0 && !t.isReversed).map(tx => {
+                    const isHeld = !!disputedTxns[tx.id];
+                    return (
+                      <div key={tx.id} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: isHeld ? 'rgba(251, 146, 60, 0.05)' : 'rgba(0,0,0,0.3)',
+                        border: isHeld ? '1px dashed rgba(251, 146, 60, 0.4)' : '1px solid rgba(255,255,255,0.06)',
+                        padding: '0.65rem 1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem'
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: isHeld ? '#fed7aa' : '#fff' }}>{tx.desc}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{tx.id} • {tx.type} • {tx.date}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontWeight: 700, color: isHeld ? '#fb923c' : '#38bdf8' }}>₹{tx.debit.toFixed(2)}</span>
+                          {isHeld ? (
+                            <span className="badge" style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c' }}>
+                              In Escrow
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDisputeModal(tx)}
+                              style={{
+                                padding: '4px 10px',
+                                fontSize: '0.74rem',
+                                fontWeight: 600,
+                                background: 'rgba(251, 146, 60, 0.15)',
+                                color: '#fb923c',
+                                border: '1px solid rgba(251, 146, 60, 0.35)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <ShieldAlert size={13} /> Hold in Escrow
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ACTION 16: COLLEAGUE 50/50 & CUSTOM % SPLIT */}
+            {selectedAction === 'colleague-split' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                  <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #34d399', fontWeight: 700 }}>
+                    ACTION 16 • DUAL CORPORATE SPLIT
+                  </span>
+                  <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+                    Colleague 50/50 &amp; Custom % Bill Split (Dual Corporate GST Bills)
+                  </h3>
+                </div>
+                <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                  Solves the common corporate requirement when two company engineers or business delegates share a room and need separate GST invoices with distinct corporate GSTINs to claim company travel reimbursement.
+                </p>
+
+                {/* Ratio Slider */}
+                <div style={{
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
+                      Split Percentage: {colleagueSplitRatio}% (Part A) / {100 - colleagueSplitRatio}% (Part B)
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setColleagueSplitRatio(50)}
+                        className="btn-outline"
+                        style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                      >
+                        50 / 50
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setColleagueSplitRatio(60)}
+                        className="btn-outline"
+                        style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                      >
+                        60 / 40
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="99"
+                    value={colleagueSplitRatio}
+                    onChange={(e) => setColleagueSplitRatio(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--gold-glow)', cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    <span>Colleague 1 Share: ₹{colleague1Share.toFixed(2)}</span>
+                    <span>Colleague 2 Share: ₹{colleague2Share.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Dual Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                  {/* COLLEAGUE 1 */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    borderRadius: '12px',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+                      <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', fontWeight: 700 }}>
+                        COLLEAGUE 1 • SHARE ({colleagueSplitRatio}%)
+                      </span>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8' }}>
+                        ₹{colleague1Share.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Name</label>
+                        <input
+                          type="text"
+                          value={colleague1Name}
+                          onChange={(e) => setColleague1Name(e.target.value)}
+                          style={{ width: '100%', padding: '0.4rem', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem' }}
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Company</label>
+                          <input
+                            type="text"
+                            value={colleague1Company}
+                            onChange={(e) => setColleague1Company(e.target.value)}
+                            style={{ width: '100%', padding: '0.4rem', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Corporate GSTIN</label>
+                          <input
+                            type="text"
+                            value={colleague1Gstin}
+                            onChange={(e) => setColleague1Gstin(e.target.value.toUpperCase())}
+                            style={{ width: '100%', padding: '0.4rem', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '1rem', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span>Taxable Share ({colleagueSplitRatio}%):</span>
+                        <span>₹{(colleague1Share / 1.12).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        <span>Applicable GST (12%):</span>
+                        <span>₹{(colleague1Share - (colleague1Share / 1.12)).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#fff', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.3rem', marginTop: '0.3rem' }}>
+                        <span>Invoice Part A Total:</span>
+                        <span style={{ color: '#38bdf8' }}>₹{colleague1Share.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSendColleagueWhatsApp(1)}
+                        style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem', fontWeight: 700, background: '#25D366', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                      >
+                        <MessageCircle size={14} /> WhatsApp Invoice A
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => alert(`Printing Tax Invoice Part A for ${colleague1Name} (Share: ₹${colleague1Share.toFixed(2)})`)}
+                        className="btn-outline"
+                        style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Printer size={14} /> Print Bill
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* COLLEAGUE 2 */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(52, 211, 153, 0.35)',
+                    borderRadius: '12px',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+                      <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', fontWeight: 700 }}>
+                        COLLEAGUE 2 • SHARE ({100 - colleagueSplitRatio}%)
+                      </span>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>
+                        ₹{colleague2Share.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Name</label>
+                        <input
+                          type="text"
+                          value={colleague2Name}
+                          onChange={(e) => setColleague2Name(e.target.value)}
+                          style={{ width: '100%', padding: '0.4rem', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem' }}
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Company</label>
+                          <input
+                            type="text"
+                            value={colleague2Company}
+                            onChange={(e) => setColleague2Company(e.target.value)}
+                            style={{ width: '100%', padding: '0.4rem', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>Corporate GSTIN</label>
+                          <input
+                            type="text"
+                            value={colleague2Gstin}
+                            onChange={(e) => setColleague2Gstin(e.target.value.toUpperCase())}
+                            style={{ width: '100%', padding: '0.4rem', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '1rem', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span>Taxable Share ({100 - colleagueSplitRatio}%):</span>
+                        <span>₹{(colleague2Share / 1.12).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        <span>Applicable GST (12%):</span>
+                        <span>₹{(colleague2Share - (colleague2Share / 1.12)).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#fff', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.3rem', marginTop: '0.3rem' }}>
+                        <span>Invoice Part B Total:</span>
+                        <span style={{ color: '#34d399' }}>₹{colleague2Share.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSendColleagueWhatsApp(2)}
+                        style={{ flex: 1, padding: '0.45rem', fontSize: '0.75rem', fontWeight: 700, background: '#25D366', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                      >
+                        <MessageCircle size={14} /> WhatsApp Invoice B
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => alert(`Printing Tax Invoice Part B for ${colleague2Name} (Share: ₹${colleague2Share.toFixed(2)})`)}
+                        className="btn-outline"
+                        style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Printer size={14} /> Print Bill
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ACTION 17: CAUTION / SECURITY DEPOSIT RECONCILIATION & REFUND */}
+            {selectedAction === 'caution-deposit' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: '1px solid #34d399', fontWeight: 700 }}>
+                    ACTION 17 • SECURITY DEPOSIT
+                  </span>
+                  <h3 style={{ color: '#fff', margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+                    Caution / Security Deposit Reconciliation &amp; Refund
+                  </h3>
+                </div>
+                <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                  Reconcile security deposit collected during guest check-in against final room damages, minibar, or outstanding tariff. Automatically calculates exact cash refund voucher due to guest upon key card return.
+                </p>
+
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <ShieldCheck size={18} /> Apply Security Deposit Against Folio
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        Toggle this on to deduct check-in caution money directly from the net payable folio balance.
+                      </div>
+                    </div>
+
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: 'rgba(0,0,0,0.3)', padding: '0.45rem 0.9rem', borderRadius: '6px', border: '1px solid rgba(52,211,153,0.4)' }}>
+                      <input
+                        type="checkbox"
+                        checked={cautionDepositApplied}
+                        onChange={(e) => {
+                          setCautionDepositApplied(e.target.checked);
+                          showFeedback(e.target.checked ? `✓ Applied ₹${cautionDeposit} Caution Deposit against Room ${room.roomNumber} folio!` : 'Caution deposit removed from folio.');
+                        }}
+                        style={{ cursor: 'pointer', accentColor: '#34d399' }}
+                      />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#34d399' }}>
+                        {cautionDepositApplied ? '✓ Deposit Applied' : 'Apply Deposit'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Deposit Amount Held (₹)</label>
+                      <input
+                        type="number"
+                        value={cautionDeposit}
+                        onChange={(e) => setCautionDeposit(Number(e.target.value) || 0)}
+                        style={{ padding: '0.5rem', width: '100%', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 700 }}
+                      />
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Net Folio Balance</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+                        ₹{netOutstanding.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Payable After Deposit</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: effectivePayable > 0 ? '#f87171' : '#34d399' }}>
+                        ₹{effectivePayable.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Refund Due to Guest</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: cautionRefundDue > 0 ? '#34d399' : 'var(--text-muted)' }}>
+                        {cautionRefundDue > 0 ? `₹${cautionRefundDue.toFixed(2)}` : 'None (Fully Absorbed)'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {cautionDepositApplied && cautionRefundDue > 0 && (
+                    <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#34d399' }}>
+                        ✓ Guest returned key card intact. Cashier drawer refund slip ready.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => alert(`🖨️ CASHIER CAUTION REFUND SLIP\nHotel Sai International, Rayagada\nRoom: ${room.roomNumber}\nGuest: ${guestName}\nRefund Due: ₹${cautionRefundDue.toFixed(2)}\nTender: Front Desk Cash Drawer\nKey Return: Verified`)}
+                        style={{
+                          padding: '6px 14px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          background: 'rgba(52, 211, 153, 0.25)',
+                          color: '#34d399',
+                          border: '1px solid #34d399',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Printer size={15} /> Print Refund Slip
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Sub-Modal: Dispute Escrow Hold Dialog */}
+        {disputeModalOpen && disputeTargetTxn && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2300
+          }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: 460, padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(251, 146, 60, 0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ color: '#fb923c', margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '1rem' }}>
+                  <ShieldAlert size={18} /> Place Item in Dispute Escrow
+                </h4>
+                <button onClick={() => setDisputeModalOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmDisputeAction}>
+                <div style={{ background: 'rgba(251, 146, 60, 0.08)', border: '1px solid rgba(251, 146, 60, 0.25)', borderRadius: '8px', padding: '0.85rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>{disputeTargetTxn.desc}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    <span>Ref: {disputeTargetTxn.id}</span>
+                    <span style={{ fontWeight: 700, color: '#fb923c' }}>Amount: ₹{(disputeTargetTxn.debit || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#fed7aa', marginTop: '0.4rem', borderTop: '1px solid rgba(251, 146, 60, 0.15)', paddingTop: '0.4rem' }}>
+                    Fast Checkout Hold: This line item will be subtracted from the checkout payable balance immediately.
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Dispute Reason / Front Desk Notes
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={disputeReasonInput}
+                    onChange={(e) => setDisputeReasonInput(e.target.value)}
+                    placeholder="e.g. Guest denies mini-bar/service charge; F&B Captain to audit KOT slip"
+                    style={{ width: '100%', padding: '0.55rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setDisputeModalOpen(false)} className="btn-outline" style={{ padding: '0.45rem 0.9rem' }}>
+                    Cancel
+                  </button>
+                  <button type="submit" style={{ padding: '0.45rem 1.1rem', background: '#ea580c', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <ShieldAlert size={15} /> Hold in Escrow
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

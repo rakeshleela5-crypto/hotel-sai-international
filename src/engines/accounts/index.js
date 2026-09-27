@@ -4,7 +4,7 @@
 // 12:00 AM midnight night audit lock, day book journal, store mandi purchases & kitchen requisitions
 // ============================================================================
 
-export { default as MasterFolioModal } from '../../components/MasterFolioModal';
+export { default as MasterFolioModal } from '../../components/FolioActionsModal';
 export { default as FolioActionsModal } from '../../components/FolioActionsModal';
 export { default as CheckoutSplitModal } from '../../components/CheckoutSplitModal';
 export { default as AccountsLedgerModal } from '../../components/AccountsLedgerModal';

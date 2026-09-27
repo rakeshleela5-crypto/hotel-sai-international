@@ -262,7 +262,7 @@ export default function Navbar({
               gap: '0.3rem'
             }}
           >
-            📑 Master Folio (Split Bill ₹13,588)
+            📄 Primary Folio (1-17 Actions)
           </button>
 
           <button

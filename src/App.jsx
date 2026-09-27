@@ -36,7 +36,7 @@ const FoodOrderModal = lazyWithRetry(() => import('./components/FoodOrderModal')
 const DarshanAdvisorModal = lazyWithRetry(() => import('./components/DarshanAdvisorModal'));
 const AiConciergeModal = lazyWithRetry(() => import('./components/AiConciergeModal'));
 const CorporatePortalModal = lazyWithRetry(() => import('./components/CorporatePortalModal'));
-const MasterFolioModal = lazyWithRetry(() => import('./components/MasterFolioModal'));
+const FolioActionsModal = lazyWithRetry(() => import('./components/FolioActionsModal'));
 const CannonKitchenPOS = lazyWithRetry(() => import('./components/CannonKitchenPOS'));
 const AccountsLedgerModal = lazyWithRetry(() => import('./components/AccountsLedgerModal'));
 const NightAuditModal = lazyWithRetry(() => import('./components/NightAuditModal'));
@@ -1031,17 +1031,24 @@ export default function App() {
           onClose={() => setCorporateModalOpen(false)}
         />
 
-        {/* IDS Next Enterprise Operational Modals */}
+        {/* IDS Next Enterprise Operational Modals - Unified Primary Folio (1-17 Actions) */}
         {folioModalOpen && (
-          <MasterFolioModal 
+          <FolioActionsModal 
             isOpen={folioModalOpen}
             onClose={() => setFolioModalOpen(false)}
-            initialRoomNumber={selectedFolioRoomNumber}
+            room={rooms.find(r => String(r.roomNumber) === String(selectedFolioRoomNumber)) || rooms.find(r => r.status === 'Occupied') || rooms[0]}
             rooms={rooms}
-            bookings={bookings}
             transactions={transactions}
             onAddTransaction={handleAddTransaction}
-            onSettleFolio={handleSettleFolio}
+            onShiftRoom={(fromRoom, toRoom) => {
+              handleUpdateRoomStatus(fromRoom, 'Available', null, null);
+              handleUpdateRoomStatus(toRoom, 'Occupied', 'Guest', null);
+              setFolioModalOpen(false);
+            }}
+            onCheckoutRoom={(roomNumber) => {
+              handleUpdateRoomStatus(roomNumber, 'Cleaning', null, null);
+              setFolioModalOpen(false);
+            }}
           />
         )}
 

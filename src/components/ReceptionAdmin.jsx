@@ -202,7 +202,8 @@ export default function ReceptionAdmin({
         if (onOpenAccountsLedger) onOpenAccountsLedger();
       } else if (e.key === 'F4') {
         e.preventDefault();
-        if (onOpenMasterFolio) onOpenMasterFolio();
+        const targetRoom = rooms.find(r => r.status === 'Occupied') || rooms[0];
+        if (targetRoom) setSelectedFolioRoom(targetRoom);
       } else if (e.key === 'F5') {
         e.preventDefault();
         if (onOpenStoreInventory) onOpenStoreInventory();
@@ -1974,7 +1975,10 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             { key: 'F1', label: 'Front Desk', color: '#38bdf8', onClick: () => { setActiveDepartment('reception'); setActiveTab('tape-chart'); } },
             { key: 'F2', label: 'Fenugreek POS', color: '#fbbf24', onClick: onOpenRestaurantPOS },
             { key: 'F3', label: 'Day Book & Tax', color: '#34d399', onClick: onOpenAccountsLedger },
-            { key: 'F4', label: 'Master Folio', color: '#60a5fa', onClick: onOpenMasterFolio },
+            { key: 'F4', label: 'Primary Folio (1-17)', color: '#60a5fa', onClick: () => {
+              const targetRoom = rooms.find(r => r.status === 'Occupied') || rooms[0];
+              if (targetRoom) setSelectedFolioRoom(targetRoom);
+            } },
             { key: 'F5', label: 'Mandi Store', color: '#a78bfa', onClick: onOpenStoreInventory },
             { key: 'F6', label: 'G3 RMS Rates', color: '#f59e0b', onClick: onOpenRevenueManagement },
             { key: 'F7', label: 'Night Audit', color: '#c084fc', onClick: onOpenNightAuditModal || (() => setActiveTab('cashier-audit')) },
@@ -2874,8 +2878,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             onFastCheckOut={handleFastCheckOutClick}
             onViewFolio={(item) => {
               const r = rooms.find(rm => rm.roomNumber === item.roomNumber) || item;
-              if (onOpenMasterFolio) onOpenMasterFolio(r.roomNumber);
-              else setSelectedFolioRoom(r);
+              setSelectedFolioRoom(r);
             }}
             onViewGrc={(booking) => {
               setSelectedReceiptBooking({
@@ -3242,7 +3245,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                 <>
                                   <button
                                     type="button"
-                                    onClick={() => onOpenMasterFolio ? onOpenMasterFolio(room.roomNumber) : setSelectedFolioRoom(room)}
+                                    onClick={() => setSelectedFolioRoom(room)}
                                     style={{
                                       padding: '3px 8px',
                                       fontSize: '0.7rem',
@@ -3254,27 +3257,9 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                       border: '1px solid rgba(56, 189, 248, 0.5)',
                                       whiteSpace: 'nowrap'
                                     }}
-                                    title="Open Upgraded Master Folio (Sub-Folio Windows, Dispute Escrow, Colleague Split, Caution Refund)"
+                                    title="Open Unified Primary Folio (All 17 Operations: Ledger, Charges, Transfers, Sub-Folio Windows, Dispute Hold, 50/50 Split, Caution Deposit)"
                                   >
-                                    📑 Master Folio
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedFolioRoom(room)}
-                                    style={{
-                                      padding: '3px 6px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600,
-                                      borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      background: 'rgba(255, 255, 255, 0.05)',
-                                      color: 'var(--text-muted)',
-                                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                    title="Legacy 12 Room Operations (Shift Room, PAX, Paid Out)"
-                                  >
-                                    ⚙️ Ops
+                                    📄 Folio (1-17)
                                   </button>
                                   <button
                                     type="button"
@@ -3691,8 +3676,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (onOpenMasterFolio) onOpenMasterFolio(room.roomNumber);
-                                        else setSelectedFolioRoom(room);
+                                        setSelectedFolioRoom(room);
                                       }}
                                       title="Open Upgraded Master Folio (Sub-Folio Windows, Dispute Escrow, Colleague Split, Caution Refund)"
                                       style={{
@@ -4107,7 +4091,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                 <div style={{ display: 'flex', gap: '4px' }}>
                                   <button
                                     type="button"
-                                    onClick={() => onOpenMasterFolio ? onOpenMasterFolio(room.roomNumber) : setSelectedFolioRoom(room)}
+                                    onClick={() => setSelectedFolioRoom(room)}
                                     title="Open Upgraded Master Folio (Sub-Folio Windows, Dispute Escrow, Colleague Split, Caution Refund)"
                                     style={{
                                       flex: 1,
