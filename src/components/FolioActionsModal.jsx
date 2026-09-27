@@ -11,7 +11,7 @@ import { HOTEL_CONFIG, POST_CHARGE_CATEGORIES, CORPORATE_PARTNERS } from '../dat
 export default function FolioActionsModal({
   isOpen,
   onClose,
-  room,
+  room: propRoom,
   rooms = [],
   transactions = [],
   onAddTransaction,
@@ -21,7 +21,78 @@ export default function FolioActionsModal({
   onOpenSplitInvoice,
   onOpenMasterFolio
 }) {
-  if (!isOpen || !room) return null;
+  if (!isOpen || !propRoom) return null;
+
+  // Active Room State (Enables Universal Room & Guest Switcher without closing modal)
+  const [activeRoomState, setActiveRoomState] = useState(propRoom);
+  React.useEffect(() => {
+    setActiveRoomState(propRoom);
+  }, [propRoom]);
+  const room = activeRoomState || propRoom;
+
+  // Search Bar 1: Room & Guest Switcher State
+  const [roomSearchTerm, setRoomSearchTerm] = useState('');
+  const [roomSearchDropdownOpen, setRoomSearchDropdownOpen] = useState(false);
+
+  // Search Bar 2: 17 Actions Quick-Finder State
+  const [actionSearchTerm, setActionSearchTerm] = useState('');
+
+  // Search Bar 3: Line-Item Ledger & Voucher Filter State
+  const [ledgerSearchTerm, setLedgerSearchTerm] = useState('');
+  const [ledgerCategoryFilter, setLedgerCategoryFilter] = useState('ALL');
+
+  // Room Switcher Handler
+  const handleSwitchRoom = (targetRoom) => {
+    setActiveRoomState(targetRoom);
+    setRoomSearchDropdownOpen(false);
+    setRoomSearchTerm('');
+
+    const matched = (transactions || []).filter(t => t.roomNumber === targetRoom.roomNumber);
+    if (matched.length > 0) {
+      setFolioTransactions(matched.map(t => ({
+        id: t.transactionId || t.id,
+        date: t.createdAt ? t.createdAt.slice(0, 10) : '22/09/2026',
+        type: t.transactionType === 'Food & Beverage' ? 'DINING' : t.transactionType === 'Payment' ? 'ADVANCE' : 'TARIFF',
+        desc: t.description || `${t.outlet || 'PMS'} - ${t.itemCode || ''}`,
+        sac: t.sacCode || (t.transactionType === 'Food & Beverage' ? '996331' : '996311'),
+        debit: Number(t.debitAmount) || 0,
+        credit: Number(t.creditAmount) || 0,
+        operator: t.createdBy || 'Front Desk'
+      })));
+    } else {
+      setFolioTransactions([
+        { id: `TX-${targetRoom.roomNumber}-1`, date: '22/09/2026', type: 'TARIFF', desc: `Room Tariff - ${targetRoom.tier || 'Executive AC'} (Day 1)`, sac: '996311', debit: Number(targetRoom.tariff || 2199), credit: 0, operator: 'Front Desk' },
+        { id: `TX-${targetRoom.roomNumber}-2`, date: '22/09/2026', type: 'DINING', desc: 'Fenugreek Restaurant - KOT #18412 (Executive Thali)', sac: '996331', debit: 350.00, credit: 0, operator: 'Sadananda' },
+        { id: `TX-${targetRoom.roomNumber}-3`, date: '22/09/2026', type: 'ADVANCE', desc: 'Check-In Advance (UPI PhonePe)', sac: '-', debit: 0, credit: 1500.00, operator: 'Front Desk' }
+      ]);
+    }
+    showFeedback(`✓ Switched to Room ${targetRoom.roomNumber} • ${targetRoom.currentGuestName || 'Guest'}`);
+  };
+
+  // Sync Guest Details when active room changes
+  React.useEffect(() => {
+    if (room) {
+      setGuestName(room.currentGuestName || (room.status === 'Occupied' ? 'In-House Guest' : 'Walk-In Guest'));
+      setAdultPax(room.pax ? parseInt(room.pax) || 1 : 1);
+      if (room.currentGuestName?.includes('ASHOK') || room.roomNumber === '301') {
+        setGuestCompany('Linde India Ltd');
+        setGuestGstin('21AAACB2528H1ZA');
+        setGuestPhone('+91 6305202068');
+      } else if (room.currentGuestName?.includes('BALARAM') || room.roomNumber === '302') {
+        setGuestCompany('Vedanta Alumina Ltd');
+        setGuestGstin('21AABCV4912J1ZX');
+        setGuestPhone('+91 94372 10982');
+      } else if (room.currentGuestName?.includes('MURTHY') || room.roomNumber === '204') {
+        setGuestCompany('JK Paper Mills Ltd');
+        setGuestGstin('21AAACJ1024L1Z2');
+        setGuestPhone('+91 98480 33119');
+      } else {
+        setGuestCompany(room.company || 'Direct Walk-In');
+        setGuestGstin(room.corporateGstin || '');
+        setGuestPhone(room.phone || '+91 94370 22555');
+      }
+    }
+  }, [room?.roomNumber]);
 
   // Selected Action Tab (Enhanced with Reversals, Multi-Tender Split Settlement, and Late Checkout)
   const [selectedAction, setSelectedAction] = useState('ledger'); // 'ledger', 'charges', 'advance', 'split-settle', 'late-checkout', 'change-room', 'pax-change', 'link-room', 'swap-room', 'paid-out', 'allowance', 'edit-guest', 'split-folio'
