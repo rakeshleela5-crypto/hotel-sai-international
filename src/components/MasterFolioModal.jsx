@@ -3,7 +3,9 @@ import {
   FileText, Split, CreditCard, DollarSign, CheckCircle2, 
   Printer, Download, ShieldCheck, Clock, User, Bed, 
   UtensilsCrossed, AlertTriangle, Plus, X, ChevronRight, Lock,
-  MessageCircle, Edit2, Trash2, Tag, Percent
+  MessageCircle, Edit2, Trash2, Tag, Percent, ArrowRightLeft,
+  ArrowRight, ShieldAlert, Check, HelpCircle, Layers, CheckCheck,
+  Landmark, ReceiptText, RefreshCw, Building2
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS } from '../data/hotelData';
 
@@ -27,7 +29,46 @@ export default function MasterFolioModal({
   }, [isOpen, onClose]);
   // Active selected room folio (defaults to 402 for the iconic scenario)
   const [selectedRoom, setSelectedRoom] = useState('402');
-  const [activeTab, setActiveTab] = useState('ledger'); // 'ledger', 'split-bills', 'multi-settle'
+  const [activeTab, setActiveTab] = useState('ledger'); // 'ledger', 'sub-folios', 'split-bills', 'multi-settle'
+
+  // Operational Notification Toast Banner
+  const [toastMessage, setToastMessage] = useState('');
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 4500);
+  };
+
+  // Sub-Folio Windows State (Window A: Corporate BTC vs Window B: Personal Extras)
+  const [windowAssignments, setWindowAssignments] = useState({});
+  const [windowASettled, setWindowASettled] = useState(false);
+  const [windowBSettled, setWindowBSettled] = useState(false);
+
+  // Inter-Room Charge Transfer Modal State
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferTargetTxn, setTransferTargetTxn] = useState(null);
+  const [transferDestRoom, setTransferDestRoom] = useState('301');
+  const [transferReason, setTransferReason] = useState('Senior Manager company food allowance covers junior officer dining');
+
+  // Disputed Item Escrow State
+  const [disputedTxns, setDisputedTxns] = useState({});
+  const [disputeModalOpen, setDisputeModalOpen] = useState(false);
+  const [disputeTargetTxn, setDisputeTargetTxn] = useState(null);
+  const [disputeReasonInput, setDisputeReasonInput] = useState('Guest disputes unverified midnight dining KOT; F&B slip audit pending');
+
+  // Colleague 50/50 & Custom Split Invoicing State
+  const [splitSubTab, setSplitSubTab] = useState('tax-split'); // 'tax-split' | 'colleague-split'
+  const [colleagueSplitRatio, setColleagueSplitRatio] = useState(50); // % for colleague 1
+  const [colleague1Name, setColleague1Name] = useState('Anil Sharma (GAIL Regional)');
+  const [colleague1Company, setColleague1Company] = useState('GAIL (India) Limited');
+  const [colleague1Gstin, setColleague1Gstin] = useState('07AAACG1509J1ZQ');
+  const [colleague2Name, setColleague2Name] = useState('Rajesh Verma (GAIL Project)');
+  const [colleague2Company, setColleague2Company] = useState('GAIL (India) Limited');
+  const [colleague2Gstin, setColleague2Gstin] = useState('07AAACG1509J1ZQ');
+
+  // Security / Caution Deposit State
+  const [cautionDeposit, setCautionDeposit] = useState(3000);
+  const [cautionDepositApplied, setCautionDepositApplied] = useState(false);
+  const [cautionVoucherPrinted, setCautionVoucherPrinted] = useState(false);
 
   // Split Invoice view state
   const [activeSplitView, setActiveSplitView] = useState('split'); // 'split', 'invoice-a', 'invoice-b'
@@ -83,6 +124,49 @@ export default function MasterFolioModal({
   const totalCredits = currentTxns.reduce((sum, t) => sum + (t.creditAmount || 0), 0);
   const balanceDue = Math.max(0, totalDebits - totalCredits);
 
+  // Escrow & Disputed Items calculation (deducted from active checkout payable balance)
+  const totalDisputed = currentTxns.filter(t => disputedTxns[t.transactionId]).reduce((sum, t) => sum + (t.debitAmount || 0), 0);
+  const payableBalance = Math.max(0, balanceDue - totalDisputed);
+  const effectivePayable = cautionDepositApplied ? Math.max(0, payableBalance - cautionDeposit) : payableBalance;
+  const cautionRefundDue = (cautionDepositApplied && cautionDeposit > payableBalance) ? (cautionDeposit - payableBalance) : 0;
+
+  // Sub-Folio Window Assignment helper
+  const getItemWindow = (t) => {
+    if (windowAssignments[t.transactionId]) {
+      return windowAssignments[t.transactionId];
+    }
+    const isPersonal = t.invoiceCategory === 'Food' || 
+                       t.sacCode === '996331' || 
+                       t.outlet === 'Cannon Kitchen' ||
+                       t.outlet === 'Room Service' ||
+                       (t.description && (
+                         t.description.toLowerCase().includes('dining') || 
+                         t.description.toLowerCase().includes('kitchen') || 
+                         t.description.toLowerCase().includes('restaurant') || 
+                         t.description.toLowerCase().includes('laundry')
+                       ));
+    return isPersonal ? 'B' : 'A';
+  };
+
+  const handleToggleWindow = (txnId) => {
+    const targetTxn = currentTxns.find(t => t.transactionId === txnId);
+    const current = windowAssignments[txnId] || getItemWindow(targetTxn || {});
+    const next = current === 'A' ? 'B' : 'A';
+    setWindowAssignments(prev => ({ ...prev, [txnId]: next }));
+    showToast(`✓ Shifted charge to Folio Window ${next} (${next === 'A' ? 'Corporate BTC Master' : 'Personal Guest Extras'})`);
+  };
+
+  const windowATxns = currentTxns.filter(t => getItemWindow(t) === 'A');
+  const windowBTxns = currentTxns.filter(t => getItemWindow(t) === 'B');
+
+  const windowADebits = windowATxns.reduce((sum, t) => sum + (t.debitAmount || 0), 0);
+  const windowACredits = windowATxns.reduce((sum, t) => sum + (t.creditAmount || 0), 0);
+  const windowABalance = Math.max(0, windowADebits - windowACredits);
+
+  const windowBDebits = windowBTxns.reduce((sum, t) => sum + (t.debitAmount || 0), 0);
+  const windowBCredits = windowBTxns.reduce((sum, t) => sum + (t.creditAmount || 0), 0);
+  const windowBBalance = Math.max(0, windowBDebits - windowBCredits);
+
   // Split calculations
   // Invoice A: Accommodation & Laundry (SAC 996311 / 999799 - 12% / 18%)
   const roomTxns = currentTxns.filter(t => t.invoiceCategory === 'Room');
@@ -92,8 +176,12 @@ export default function MasterFolioModal({
   const foodTxns = currentTxns.filter(t => t.invoiceCategory === 'Food');
   const invoiceBTotal = foodTxns.reduce((sum, t) => sum + t.debitAmount, 0);
 
+  // Colleague Split Shares
+  const colleague1Share = Math.round((balanceDue * (colleagueSplitRatio / 100)) * 100) / 100;
+  const colleague2Share = Math.round((balanceDue - colleague1Share) * 100) / 100;
+
   const totalTendered = tenderRows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-  const tenderVariance = balanceDue - totalTendered;
+  const tenderVariance = effectivePayable - totalTendered;
 
   const handleAddTenderRow = () => {
     setTenderRows([
@@ -322,6 +410,202 @@ Divine blessings of sacred Maa Majhighariani.`;
     }
   };
 
+  // 1. Inter-Room Charge Transfer Handlers
+  const handleOpenTransfer = (txn) => {
+    setTransferTargetTxn(txn);
+    const otherRooms = rooms.filter(r => r.roomNumber !== selectedRoom);
+    if (otherRooms.length > 0 && !otherRooms.some(r => r.roomNumber === transferDestRoom)) {
+      setTransferDestRoom(otherRooms[0].roomNumber);
+    }
+    setTransferModalOpen(true);
+  };
+
+  const handleExecuteTransfer = (e) => {
+    e.preventDefault();
+    if (!transferTargetTxn) return;
+
+    const amt = transferTargetTxn.debitAmount || 0;
+    const destRoom = transferDestRoom;
+
+    // A. Transfer-Out Balancing Credit Memo on Source Room
+    const transferOutTxn = {
+      transactionId: `XFER-OUT-${selectedRoom}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${selectedRoom}`,
+      bookingId: roomBooking.bookingId || `BOOK-${selectedRoom}`,
+      roomNumber: selectedRoom,
+      transactionType: 'Transfer Out',
+      outlet: transferTargetTxn.outlet || 'Front Desk',
+      itemCode: 'XFER-OUT',
+      description: `➡️ TRANSFERRED OUT to Room ${destRoom}: [${transferTargetTxn.transactionId}] ${transferTargetTxn.description} (${transferReason})`,
+      debitAmount: 0,
+      creditAmount: amt,
+      taxableBase: transferTargetTxn.taxableBase || 0,
+      gstRate: transferTargetTxn.gstRate || 0,
+      cgst: transferTargetTxn.cgst || 0,
+      sgst: transferTargetTxn.sgst || 0,
+      sacCode: transferTargetTxn.sacCode || '996331',
+      invoiceCategory: transferTargetTxn.invoiceCategory || 'Food',
+      isLocked: 0,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+
+    // B. Transfer-In Debit Charge on Target Room
+    const transferInTxn = {
+      transactionId: `XFER-IN-${destRoom}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${destRoom}`,
+      bookingId: `BOOK-${destRoom}`,
+      roomNumber: destRoom,
+      transactionType: 'Transfer In',
+      outlet: transferTargetTxn.outlet || 'Front Desk',
+      itemCode: 'XFER-IN',
+      description: `⬅️ TRANSFERRED IN from Room ${selectedRoom}: [${transferTargetTxn.transactionId}] ${transferTargetTxn.description} (${transferReason})`,
+      debitAmount: amt,
+      creditAmount: 0,
+      taxableBase: transferTargetTxn.taxableBase || 0,
+      gstRate: transferTargetTxn.gstRate || 0,
+      cgst: transferTargetTxn.cgst || 0,
+      sgst: transferTargetTxn.sgst || 0,
+      sacCode: transferTargetTxn.sacCode || '996331',
+      invoiceCategory: transferTargetTxn.invoiceCategory || 'Food',
+      isLocked: 0,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+
+    if (onAddTransaction) {
+      onAddTransaction(transferOutTxn);
+      onAddTransaction(transferInTxn);
+    }
+
+    setTransferModalOpen(false);
+    setTransferTargetTxn(null);
+    showToast(`✓ Shifted ₹${amt.toFixed(2)} to Room ${destRoom} successfully! Balancing credit memo logged.`);
+  };
+
+  // 2. Disputed Item Escrow Handlers
+  const handleOpenDispute = (txn) => {
+    setDisputeTargetTxn(txn);
+    setDisputeModalOpen(true);
+  };
+
+  const handleConfirmDispute = (e) => {
+    e.preventDefault();
+    if (!disputeTargetTxn) return;
+    setDisputedTxns(prev => ({
+      ...prev,
+      [disputeTargetTxn.transactionId]: {
+        reason: disputeReasonInput,
+        heldAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        amount: disputeTargetTxn.debitAmount
+      }
+    }));
+    setDisputeModalOpen(false);
+    setDisputeTargetTxn(null);
+    showToast(`🛡️ Placed in Dispute Escrow! ₹${(disputeTargetTxn.debitAmount || 0).toFixed(2)} excluded from payable checkout total.`);
+  };
+
+  const handleResolveDispute = (txnId, resolutionType) => {
+    const txn = currentTxns.find(t => t.transactionId === txnId);
+    if (!txn) return;
+
+    if (resolutionType === 'release') {
+      setDisputedTxns(prev => {
+        const next = { ...prev };
+        delete next[txnId];
+        return next;
+      });
+      showToast(`✓ Dispute resolved: Charge re-admitted to active folio upon signed voucher verification.`);
+    } else if (resolutionType === 'waive') {
+      setDisputedTxns(prev => {
+        const next = { ...prev };
+        delete next[txnId];
+        return next;
+      });
+      handleOpenVoid(txn);
+    }
+  };
+
+  // 3. Sub-Folio Settlements
+  const handleSettleWindowA = () => {
+    const settleTx = {
+      transactionId: `BTC-${selectedRoom}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${selectedRoom}`,
+      bookingId: roomBooking.bookingId || `BOOK-${selectedRoom}`,
+      roomNumber: selectedRoom,
+      transactionType: 'Settlement BTC',
+      outlet: 'Front Desk',
+      itemCode: 'BTC-SETTLE',
+      description: `Corporate BTC Settlement: ${roomBooking.companyName || 'Corporate Partner'} (SAC 996311 Ledger)`,
+      debitAmount: 0,
+      creditAmount: windowABalance,
+      taxableBase: 0,
+      gstRate: 0,
+      cgst: 0,
+      sgst: 0,
+      sacCode: '996311',
+      invoiceCategory: 'Room',
+      isLocked: 1,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+    if (onAddTransaction) onAddTransaction(settleTx);
+    setWindowASettled(true);
+    showToast(`✓ Window A (Corporate BTC: ₹${windowABalance.toFixed(2)}) settled to Company Ledger!`);
+  };
+
+  const handleSettleWindowB = () => {
+    const settleTx = {
+      transactionId: `DIR-${selectedRoom}-${Date.now().toString().slice(-4)}`,
+      folioId: `FOLIO-${selectedRoom}`,
+      bookingId: roomBooking.bookingId || `BOOK-${selectedRoom}`,
+      roomNumber: selectedRoom,
+      transactionType: 'Settlement Guest',
+      outlet: 'Front Desk',
+      itemCode: 'GUEST-SETTLE',
+      description: `Personal Extras Settlement: ${roomBooking.guestName} (UPI / Cash / Card)`,
+      debitAmount: 0,
+      creditAmount: windowBBalance,
+      taxableBase: 0,
+      gstRate: 0,
+      cgst: 0,
+      sgst: 0,
+      sacCode: '996331',
+      invoiceCategory: 'Food',
+      isLocked: 1,
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    };
+    if (onAddTransaction) onAddTransaction(settleTx);
+    setWindowBSettled(true);
+    showToast(`✓ Window B (Personal Extras: ₹${windowBBalance.toFixed(2)}) settled directly by guest!`);
+  };
+
+  // 4. Colleague Split WhatsApp
+  const handleSendColleagueWhatsApp = (colleagueNum) => {
+    const isFirst = colleagueNum === 1;
+    const name = isFirst ? colleague1Name : colleague2Name;
+    const comp = isFirst ? colleague1Company : colleague2Company;
+    const gstin = isFirst ? colleague1Gstin : colleague2Gstin;
+    const share = isFirst ? colleague1Share : colleague2Share;
+    const pct = isFirst ? colleagueSplitRatio : (100 - colleagueSplitRatio);
+
+    const msg = `🏨 *HOTEL SAI INTERNATIONAL, RAYAGADA*
+📍 J.K. Road, Rayagada, Odisha - 765001
+📞 06856 225 555 | GSTIN: ${HOTEL_CONFIG.gstin}
+───────────────────────────────
+👥 *SHARED ROOM TAX INVOICE (COLLEAGUE SPLIT - ${pct}%)*
+Room: *${selectedRoom}* | Invoice Part: *${isFirst ? 'A' : 'B'}*
+Billed To: *${name}*
+Company: ${comp}
+${gstin ? `Corporate GSTIN: ${gstin}\n` : ''}Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+───────────────────────────────
+💰 Total Room Ledger: ₹${balanceDue.toFixed(2)}
+⚖️ *Your Share (${pct}%): ₹${share.toFixed(2)}*
+Includes 12% GST on Room & 5% GST on Restaurant dining.
+───────────────────────────────
+💳 Quick UPI Payment: ${HOTEL_CONFIG.upiId}
+🙏 Thank you for choosing Hotel Sai International!`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -455,13 +739,30 @@ Divine blessings of sacred Maa Majhighariani.`;
           </div>
         </div>
 
+        {/* Action Feedback Banner */}
+        {toastMessage && (
+          <div style={{
+            background: 'rgba(52, 211, 153, 0.15)',
+            borderBottom: '1px solid rgba(52, 211, 153, 0.4)',
+            color: '#34d399',
+            padding: '0.65rem 2rem',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <CheckCircle2 size={16} /> {toastMessage}
+          </div>
+        )}
+
         {/* Guest Folio Summary Card */}
         <div style={{
           padding: '1.25rem 2rem',
           background: 'rgba(212, 175, 55, 0.04)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '1.25rem'
         }}>
           <div>
@@ -504,13 +805,40 @@ Divine blessings of sacred Maa Majhighariani.`;
             <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#34d399' }}>₹{totalCredits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Verified Bank / UPI Receipts</div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Net Balance Due</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: balanceDue > 0 ? '#f87171' : '#34d399' }}>
-              ₹{balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+
+          {totalDisputed > 0 && (
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#fbbf24', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <ShieldAlert size={12} /> Disputed in Escrow
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fbbf24' }}>
+                -₹{totalDisputed.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#fbbf24' }}>Excluded from checkout</div>
             </div>
-            <div style={{ fontSize: '0.75rem', color: balanceDue === 0 ? '#34d399' : '#f87171' }}>
-              {balanceDue === 0 ? '✓ Folio Fully Cleared' : 'Pending Multi-Mode Settlement'}
+          )}
+
+          {cautionDepositApplied && (
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <ShieldCheck size={12} /> Caution Deposit
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#34d399' }}>
+                -₹{cautionDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#34d399' }}>Applied against folio</div>
+            </div>
+          )}
+
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              {cautionRefundDue > 0 ? 'Refund Due to Guest' : 'Payable at Checkout'}
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: cautionRefundDue > 0 ? '#34d399' : (effectivePayable > 0 ? '#f87171' : '#34d399') }}>
+              ₹{(cautionRefundDue > 0 ? cautionRefundDue : effectivePayable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: cautionRefundDue > 0 ? '#34d399' : (effectivePayable === 0 ? '#34d399' : '#f87171') }}>
+              {cautionRefundDue > 0 ? '✓ Key Return Cash Refund' : (effectivePayable === 0 ? '✓ Folio Fully Cleared' : 'Pending Multi-Mode Settlement')}
             </div>
           </div>
         </div>
@@ -521,7 +849,8 @@ Divine blessings of sacred Maa Majhighariani.`;
           gap: '0.5rem',
           padding: '0.75rem 2rem',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(10, 14, 25, 0.5)'
+          background: 'rgba(10, 14, 25, 0.5)',
+          flexWrap: 'wrap'
         }}>
           <button
             onClick={() => setActiveTab('ledger')}
@@ -543,6 +872,25 @@ Divine blessings of sacred Maa Majhighariani.`;
           </button>
 
           <button
+            onClick={() => setActiveTab('sub-folios')}
+            style={{
+              padding: '0.6rem 1.25rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: activeTab === 'sub-folios' ? 'rgba(167, 139, 250, 0.2)' : 'transparent',
+              color: activeTab === 'sub-folios' ? '#c084fc' : 'var(--text-muted)',
+              border: activeTab === 'sub-folios' ? '1px solid #c084fc' : '1px solid transparent'
+            }}
+          >
+            <Layers size={16} /> Sub-Folio Windows (Window A: Corporate BTC | Window B: Personal)
+          </button>
+
+          <button
             onClick={() => setActiveTab('split-bills')}
             style={{
               padding: '0.6rem 1.25rem',
@@ -558,7 +906,7 @@ Divine blessings of sacred Maa Majhighariani.`;
               border: activeTab === 'split-bills' ? '1px solid #60a5fa' : '1px solid transparent'
             }}
           >
-            <Split size={16} /> Split Invoicing (Room 12% vs Food 5%)
+            <Split size={16} /> Split Invoicing (Room vs Food &amp; Colleague 50/50)
           </button>
 
           <button
@@ -577,13 +925,38 @@ Divine blessings of sacred Maa Majhighariani.`;
               border: activeTab === 'multi-settle' ? '1px solid #34d399' : '1px solid transparent'
             }}
           >
-            <CreditCard size={16} /> Multi-Tender Settlement Dialog
+            <CreditCard size={16} /> Multi-Tender &amp; Caution Money Settlement
           </button>
         </div>
 
         {/* Tab 1: Master Folio Ledger */}
         {activeTab === 'ledger' && (
           <div style={{ padding: '1.5rem 2rem' }}>
+            {totalDisputed > 0 && (
+              <div style={{
+                background: 'rgba(251, 191, 36, 0.12)',
+                border: '1px solid rgba(251, 191, 36, 0.35)',
+                borderRadius: '8px',
+                padding: '0.75rem 1.25rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#fbbf24', fontSize: '0.85rem' }}>
+                  <ShieldAlert size={18} />
+                  <span>
+                    <strong>Dispute Escrow Active:</strong> ₹{totalDisputed.toFixed(2)} held under review. Guest can settle remaining ₹{effectivePayable.toFixed(2)} and depart without cashier blockage.
+                  </span>
+                </div>
+                <span className="badge" style={{ background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', border: '1px solid #fbbf24' }}>
+                  Duty Manager Investigation Pending
+                </span>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>Master Folio Account Entries</h3>
@@ -655,87 +1028,185 @@ Divine blessings of sacred Maa Majhighariani.`;
                   </tr>
                 </thead>
                 <tbody>
-                  {currentTxns.map((txn, idx) => (
-                    <tr 
-                      key={txn.transactionId}
-                      style={{ 
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
-                        background: idx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent'
-                      }}
-                    >
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>{txn.transactionId}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{txn.createdAt}</div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <span className="badge" style={{
-                          background: txn.outlet === 'Cannon Kitchen' ? 'rgba(245, 158, 11, 0.2)' : (txn.transactionType === 'Payment' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(96, 165, 250, 0.2)'),
-                          color: txn.outlet === 'Cannon Kitchen' ? '#fbbf24' : (txn.transactionType === 'Payment' ? '#34d399' : '#60a5fa'),
-                          fontSize: '0.75rem'
-                        }}>
-                          {txn.outlet}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-primary)' }}>
-                        <div style={{ fontWeight: 500 }}>{txn.description}</div>
-                        {txn.itemCode && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Code: {txn.itemCode}</div>}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                        {txn.sacCode}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        {txn.gstRate > 0 ? (
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                            {txn.gstRate}% (C:{txn.cgst.toFixed(1)} S:{txn.sgst.toFixed(1)})
+                  {currentTxns.map((txn, idx) => {
+                    const isDisputed = !!disputedTxns[txn.transactionId];
+                    return (
+                      <tr 
+                        key={txn.transactionId}
+                        style={{ 
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                          background: isDisputed ? 'rgba(251, 191, 36, 0.08)' : (idx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent'),
+                          borderLeft: isDisputed ? '3px solid #fbbf24' : 'none'
+                        }}
+                      >
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <div style={{ fontWeight: 600, color: '#fff' }}>{txn.transactionId}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{txn.createdAt}</div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span className="badge" style={{
+                            background: txn.outlet === 'Cannon Kitchen' ? 'rgba(245, 158, 11, 0.2)' : (txn.transactionType === 'Payment' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(96, 165, 250, 0.2)'),
+                            color: txn.outlet === 'Cannon Kitchen' ? '#fbbf24' : (txn.transactionType === 'Payment' ? '#34d399' : '#60a5fa'),
+                            fontSize: '0.75rem'
+                          }}>
+                            {txn.outlet}
                           </span>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: txn.debitAmount > 0 ? '#f87171' : 'var(--text-muted)' }}>
-                        {txn.debitAmount > 0 ? `₹${txn.debitAmount.toFixed(2)}` : '-'}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: txn.creditAmount > 0 ? '#34d399' : 'var(--text-muted)' }}>
-                        {txn.creditAmount > 0 ? `₹${txn.creditAmount.toFixed(2)}` : '-'}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                        {txn.isLocked ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#94a3b8', fontSize: '0.75rem' }}>
-                            <Lock size={12} /> 12 AM Locked
-                          </span>
-                        ) : (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#34d399', fontSize: '0.75rem' }}>
-                            <CheckCircle2 size={12} /> Open Folio
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                        {txn.debitAmount > 0 && !txn.isLocked ? (
-                          <button
-                            onClick={() => handleOpenVoid(txn)}
-                            title="Issue Credit Note Reversal (Sec 34 CGST Act)"
-                            style={{
-                              background: 'rgba(239, 68, 68, 0.15)',
-                              color: '#f87171',
-                              border: '1px solid rgba(239, 68, 68, 0.35)',
-                              padding: '3px 8px',
-                              borderRadius: '5px',
-                              fontSize: '0.72rem',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontWeight: 600
-                            }}
-                          >
-                            <Trash2 size={12} /> Void / Credit Note
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-primary)' }}>
+                          <div style={{ fontWeight: 500 }}>{txn.description}</div>
+                          {txn.itemCode && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Code: {txn.itemCode}</div>}
+                          {isDisputed && (
+                            <div style={{ marginTop: '0.3rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.4)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.7rem', fontWeight: 600 }}>
+                              <ShieldAlert size={11} /> ESCROW HOLD: {disputedTxns[txn.transactionId].reason} ({disputedTxns[txn.transactionId].heldAt})
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                          {txn.sacCode}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          {txn.gstRate > 0 ? (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                              {txn.gstRate}% (C:{txn.cgst.toFixed(1)} S:{txn.sgst.toFixed(1)})
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: txn.debitAmount > 0 ? '#f87171' : 'var(--text-muted)' }}>
+                          {txn.debitAmount > 0 ? `₹${txn.debitAmount.toFixed(2)}` : '-'}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: txn.creditAmount > 0 ? '#34d399' : 'var(--text-muted)' }}>
+                          {txn.creditAmount > 0 ? `₹${txn.creditAmount.toFixed(2)}` : '-'}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                          {isDisputed ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#fbbf24', fontSize: '0.75rem', fontWeight: 700 }}>
+                              <ShieldAlert size={12} /> Under Escrow
+                            </span>
+                          ) : txn.isLocked ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#94a3b8', fontSize: '0.75rem' }}>
+                              <Lock size={12} /> 12 AM Locked
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#34d399', fontSize: '0.75rem' }}>
+                              <CheckCircle2 size={12} /> Open Folio
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', flexWrap: 'nowrap' }}>
+                            {txn.debitAmount > 0 && !txn.isLocked && (
+                              <>
+                                {/* Void / Credit Note */}
+                                <button
+                                  onClick={() => handleOpenVoid(txn)}
+                                  title="Issue Credit Note Reversal (Sec 34 CGST Act)"
+                                  style={{
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                                    padding: '3px 7px',
+                                    borderRadius: '5px',
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    fontWeight: 600,
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  <Trash2 size={11} /> Void
+                                </button>
+
+                                {/* Inter-Room Transfer */}
+                                <button
+                                  onClick={() => handleOpenTransfer(txn)}
+                                  title="Transfer this charge to another room folio"
+                                  style={{
+                                    background: 'rgba(167, 139, 250, 0.15)',
+                                    color: '#c084fc',
+                                    border: '1px solid rgba(167, 139, 250, 0.35)',
+                                    padding: '3px 7px',
+                                    borderRadius: '5px',
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    fontWeight: 600,
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  <ArrowRightLeft size={11} /> Transfer
+                                </button>
+
+                                {/* Dispute / Escrow Hold */}
+                                {!isDisputed ? (
+                                  <button
+                                    onClick={() => handleOpenDispute(txn)}
+                                    title="Place charge into Dispute Escrow (excludes from checkout payable total)"
+                                    style={{
+                                      background: 'rgba(251, 191, 36, 0.15)',
+                                      color: '#fbbf24',
+                                      border: '1px solid rgba(251, 191, 36, 0.35)',
+                                      padding: '3px 7px',
+                                      borderRadius: '5px',
+                                      fontSize: '0.72rem',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    <ShieldAlert size={11} /> Escrow
+                                  </button>
+                                ) : (
+                                  <div style={{ display: 'inline-flex', gap: '3px' }}>
+                                    <button
+                                      onClick={() => handleResolveDispute(txn.transactionId, 'release')}
+                                      title="Dispute Resolved: Re-admit to payable bill"
+                                      style={{
+                                        background: 'rgba(52, 211, 153, 0.2)',
+                                        color: '#34d399',
+                                        border: '1px solid #34d399',
+                                        padding: '3px 6px',
+                                        borderRadius: '5px',
+                                        fontSize: '0.7rem',
+                                        cursor: 'pointer',
+                                        fontWeight: 700
+                                      }}
+                                    >
+                                      ✓ Release
+                                    </button>
+                                    <button
+                                      onClick={() => handleResolveDispute(txn.transactionId, 'waive')}
+                                      title="Dispute Upheld: Waive & Write Off"
+                                      style={{
+                                        background: 'rgba(239, 68, 68, 0.2)',
+                                        color: '#f87171',
+                                        border: '1px solid #f87171',
+                                        padding: '3px 6px',
+                                        borderRadius: '5px',
+                                        fontSize: '0.7rem',
+                                        cursor: 'pointer',
+                                        fontWeight: 700
+                                      }}
+                                    >
+                                      ✕ Waive
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr style={{ background: 'rgba(212, 175, 55, 0.08)', fontWeight: 700 }}>
@@ -748,8 +1219,8 @@ Divine blessings of sacred Maa Majhighariani.`;
                     <td style={{ padding: '1rem', textAlign: 'right', color: '#34d399' }}>
                       ₹{totalCredits.toFixed(2)}
                     </td>
-                    <td style={{ padding: '1rem', textAlign: 'center', color: balanceDue > 0 ? '#f87171' : '#34d399' }}>
-                      Bal: ₹{balanceDue.toFixed(2)}
+                    <td style={{ padding: '1rem', textAlign: 'center', color: effectivePayable > 0 ? '#f87171' : '#34d399' }}>
+                      Payable: ₹{effectivePayable.toFixed(2)}
                     </td>
                     <td></td>
                   </tr>
@@ -759,12 +1230,12 @@ Divine blessings of sacred Maa Majhighariani.`;
           </div>
         )}
 
-        {/* Tab 2: Split Invoicing (The Room 402 / ₹13,588 Scenario) */}
-        {activeTab === 'split-bills' && (
+        {/* Tab: Sub-Folio Windows (Window A: Corporate Master BTC | Window B: Personal Extras) */}
+        {activeTab === 'sub-folios' && (
           <div style={{ padding: '1.5rem 2rem' }}>
             <div style={{
-              background: 'linear-gradient(135deg, rgba(96,165,250,0.1), rgba(16,185,129,0.08))',
-              border: '1px solid rgba(96,165,250,0.3)',
+              background: 'linear-gradient(135deg, rgba(167,139,250,0.12), rgba(56,189,248,0.08))',
+              border: '1px solid rgba(167,139,250,0.3)',
               borderRadius: '12px',
               padding: '1.25rem',
               marginBottom: '1.5rem',
@@ -775,191 +1246,855 @@ Divine blessings of sacred Maa Majhighariani.`;
               gap: '1rem'
             }}>
               <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#60a5fa', fontWeight: 600, fontSize: '0.85rem' }}>
-                  <Split size={16} /> THE CORPORATE SPLIT-INVOICING ENGINE (ROOM 402 CASE)
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#c084fc', fontWeight: 700, fontSize: '0.85rem' }}>
+                  <Layers size={16} /> ENTERPRISE SUB-FOLIO ARCHITECTURE (OPERA / IDS NEXT PROTOCOL)
                 </div>
                 <h4 style={{ color: '#fff', margin: '0.25rem 0', fontSize: '1.1rem' }}>
-                  Total Folio: ₹{totalDebits.toFixed(2)} Split into Two GST-Compliant Tax Invoices
+                  Dual-Window Billing Routing • Room {selectedRoom}
                 </h4>
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  Corporate clients (GAIL, JK Paper) reject combined bills due to distinct food per-diem limits and differing GST rates (12% vs 5%).
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: 750 }}>
+                  Separates company-reimbursable accommodation charges (Window A → BTC Invoice with Corporate GSTIN) from personal dining, mini-bar, and personal incidentals (Window B → Guest UPI/Cash Receipt).
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => setActiveSplitView('split')}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: activeSplitView === 'split' ? '#60a5fa' : 'rgba(255,255,255,0.08)',
-                    color: activeSplitView === 'split' ? '#000' : '#fff',
-                    border: 'none'
+                  type="button"
+                  onClick={() => {
+                    setWindowAssignments({});
+                    showToast('✓ Reset routing rules: Tariff to Window A (Corporate), F&B to Window B (Personal)');
                   }}
+                  className="btn-outline"
+                  style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 >
-                  Side-by-Side Split View
-                </button>
-                <button
-                  onClick={() => setActiveSplitView('invoice-a')}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: activeSplitView === 'invoice-a' ? '#38bdf8' : 'rgba(255,255,255,0.08)',
-                    color: activeSplitView === 'invoice-a' ? '#000' : '#fff',
-                    border: 'none'
-                  }}
-                >
-                  Invoice A (Room 12%)
-                </button>
-                <button
-                  onClick={() => setActiveSplitView('invoice-b')}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: activeSplitView === 'invoice-b' ? '#34d399' : 'rgba(255,255,255,0.08)',
-                    color: activeSplitView === 'invoice-b' ? '#000' : '#fff',
-                    border: 'none'
-                  }}
-                >
-                  Invoice B (Food 5%)
+                  <RefreshCw size={13} /> Reset Auto-Routing
                 </button>
               </div>
             </div>
 
-            {/* Side-by-side Cards */}
+            {/* Dual Sub-Folio Windows Side-by-Side */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '1.5rem' }}>
-              {/* INVOICE A: ROOM TARIFF & ACCOMMODATION */}
+              {/* WINDOW A: CORPORATE MASTER / BILL-TO-COMPANY */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.7)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
+                background: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(167, 139, 250, 0.35)',
                 borderRadius: '12px',
                 padding: '1.5rem',
                 display: 'flex',
                 flexDirection: 'column'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
                   <div>
-                    <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>INVOICE A: ACCOMMODATION</span>
-                    <h4 style={{ color: '#fff', margin: '0.4rem 0 0', fontSize: '1.05rem' }}>Tax Invoice #INV-ROOM-202609-0402</h4>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SAC Code: 996311 • GST 12% (CGST 6% + SGST 6%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span className="badge" style={{ background: 'rgba(167, 139, 250, 0.25)', color: '#c084fc', border: '1px solid #c084fc', fontWeight: 700 }}>
+                        WINDOW A • CORPORATE MASTER (BTC)
+                      </span>
+                      {windowASettled && (
+                        <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #34d399' }}>
+                          ✓ BTC Settled
+                        </span>
+                      )}
+                    </div>
+                    <h4 style={{ color: '#fff', margin: '0.4rem 0 0', fontSize: '1.1rem', fontWeight: 700 }}>
+                      {roomBooking.companyName || 'Corporate Partner Account'}
+                    </h4>
+                    <div style={{ fontSize: '0.75rem', color: '#c084fc', fontFamily: 'monospace', marginTop: '0.2rem' }}>
+                      GSTIN: {roomBooking.corporateGstin || '21AAACB2528H1ZA'} • Direct Company Ledger
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => alert("Printing Official Tax Invoice A (Room Tariff) for Corporate Reimbursement")}
-                    className="btn-outline" 
-                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                  >
-                    <Printer size={14} /> Print Bill A
-                  </button>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Window A Balance</div>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: windowABalance > 0 ? '#c084fc' : '#34d399' }}>
+                      ₹{windowABalance.toFixed(2)}
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ flex: 1 }}>
+                {/* Items in Window A */}
+                <div style={{ flex: 1, overflowX: 'auto', marginBottom: '1rem' }}>
                   <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <th style={{ padding: '0.5rem 0' }}>Item / Service</th>
-                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Taxable Base</th>
-                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>GST (12%/18%)</th>
-                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Total (₹)</th>
+                      <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <th style={{ padding: '0.5rem 0' }}>Item / Description</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'center' }}>SAC</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Amount (₹)</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'center' }}>Routing</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {roomTxns.map(t => (
-                        <tr key={t.transactionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding: '0.6rem 0', color: '#fff' }}>{t.description}</td>
-                          <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{t.taxableBase.toFixed(2)}</td>
-                          <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{(t.cgst + t.sgst).toFixed(2)}</td>
-                          <td style={{ padding: '0.6rem 0', textAlign: 'right', fontWeight: 600, color: '#38bdf8' }}>₹{t.debitAmount.toFixed(2)}</td>
+                      {windowATxns.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No charges in Window A. Click "→ Personal (B)" from Window B to shift.
+                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        windowATxns.map(t => (
+                          <tr key={t.transactionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td style={{ padding: '0.55rem 0', color: '#fff' }}>
+                              <div style={{ fontWeight: 600 }}>{t.description}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.transactionId}</div>
+                            </td>
+                            <td style={{ padding: '0.55rem 0', textAlign: 'center', fontFamily: 'monospace', color: '#fbbf24' }}>
+                              {t.sacCode}
+                            </td>
+                            <td style={{ padding: '0.55rem 0', textAlign: 'right', fontWeight: 600, color: '#c084fc' }}>
+                              ₹{t.debitAmount.toFixed(2)}
+                            </td>
+                            <td style={{ padding: '0.55rem 0', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleWindow(t.transactionId)}
+                                title="Move this line item to Personal Folio (Window B)"
+                                style={{
+                                  background: 'rgba(56, 189, 248, 0.15)',
+                                  color: '#38bdf8',
+                                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                                  borderRadius: '4px',
+                                  padding: '2px 7px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                → Personal (B)
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
 
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.75rem', marginTop: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
-                    <span>Invoice A Net Total:</span>
-                    <span style={{ color: '#38bdf8' }}>₹{invoiceATotal.toFixed(2)}</span>
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#34d399', marginTop: '0.25rem' }}>
-                    ✓ Eligible for Corporate Input Tax Credit (ITC) under GSTR-2B
-                  </div>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => alert(`Printing Official Corporate BTC Tax Invoice for ${roomBooking.companyName || 'Corporate Partner'} (SAC 996311 • ₹${windowABalance.toFixed(2)})`)}
+                    className="btn-outline"
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Printer size={13} /> Print Corporate Invoice A
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSettleWindowA}
+                    disabled={windowASettled || windowABalance === 0}
+                    style={{
+                      background: windowASettled ? 'rgba(52, 211, 153, 0.2)' : 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                      color: windowASettled ? '#34d399' : '#fff',
+                      border: windowASettled ? '1px solid #34d399' : 'none',
+                      borderRadius: '6px',
+                      padding: '0.45rem 1rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: (windowASettled || windowABalance === 0) ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    <CheckCheck size={14} /> {windowASettled ? '✓ Settle to BTC Complete' : `Settle Window A (₹${windowABalance.toFixed(2)}) to BTC`}
+                  </button>
                 </div>
               </div>
 
-              {/* INVOICE B: FOOD & BEVERAGE */}
+              {/* WINDOW B: PERSONAL GUEST EXTRAS */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.7)',
-                border: '1px solid rgba(52, 211, 153, 0.3)',
+                background: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
                 borderRadius: '12px',
                 padding: '1.5rem',
                 display: 'flex',
                 flexDirection: 'column'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
                   <div>
-                    <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399' }}>INVOICE B: RESTAURANT & DINING</span>
-                    <h4 style={{ color: '#fff', margin: '0.4rem 0 0', fontSize: '1.05rem' }}>Tax Invoice #INV-FOOD-202609-0402</h4>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SAC Code: 996331 • GST 5% (CGST 2.5% + SGST 2.5%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', border: '1px solid #38bdf8', fontWeight: 700 }}>
+                        WINDOW B • PERSONAL EXTRAS
+                      </span>
+                      {windowBSettled && (
+                        <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #34d399' }}>
+                          ✓ Guest Paid
+                        </span>
+                      )}
+                    </div>
+                    <h4 style={{ color: '#fff', margin: '0.4rem 0 0', fontSize: '1.1rem', fontWeight: 700 }}>
+                      {roomBooking.guestName || 'In-House Guest'}
+                    </h4>
+                    <div style={{ fontSize: '0.75rem', color: '#38bdf8', marginTop: '0.2rem' }}>
+                      Phone: {roomBooking.guestPhone || '+91 98210 44556'} • Direct UPI / Cash / Card
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => alert("Printing Official Tax Invoice B (Cannon Kitchen Food Bill) for Corporate Per-Diem Reimbursement")}
-                    className="btn-outline" 
-                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                  >
-                    <Printer size={14} /> Print Bill B
-                  </button>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Window B Balance</div>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: windowBBalance > 0 ? '#38bdf8' : '#34d399' }}>
+                      ₹{windowBBalance.toFixed(2)}
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ flex: 1 }}>
+                {/* Items in Window B */}
+                <div style={{ flex: 1, overflowX: 'auto', marginBottom: '1rem' }}>
                   <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <th style={{ padding: '0.5rem 0' }}>Item / Outlet</th>
-                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Taxable Base</th>
-                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>GST (5%)</th>
-                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Total (₹)</th>
+                      <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <th style={{ padding: '0.5rem 0' }}>Item / Description</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'center' }}>SAC</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Amount (₹)</th>
+                        <th style={{ padding: '0.5rem 0', textAlign: 'center' }}>Routing</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {foodTxns.map(t => (
-                        <tr key={t.transactionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding: '0.6rem 0', color: '#fff' }}>{t.description}</td>
-                          <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{t.taxableBase.toFixed(2)}</td>
-                          <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{(t.cgst + t.sgst).toFixed(2)}</td>
-                          <td style={{ padding: '0.6rem 0', textAlign: 'right', fontWeight: 600, color: '#34d399' }}>₹{t.debitAmount.toFixed(2)}</td>
+                      {windowBTxns.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No personal extras in Window B.
+                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        windowBTxns.map(t => (
+                          <tr key={t.transactionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td style={{ padding: '0.55rem 0', color: '#fff' }}>
+                              <div style={{ fontWeight: 600 }}>{t.description}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.transactionId}</div>
+                            </td>
+                            <td style={{ padding: '0.55rem 0', textAlign: 'center', fontFamily: 'monospace', color: '#fbbf24' }}>
+                              {t.sacCode}
+                            </td>
+                            <td style={{ padding: '0.55rem 0', textAlign: 'right', fontWeight: 600, color: '#38bdf8' }}>
+                              ₹{t.debitAmount.toFixed(2)}
+                            </td>
+                            <td style={{ padding: '0.55rem 0', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleWindow(t.transactionId)}
+                                title="Move this line item to Corporate Master (Window A)"
+                                style={{
+                                  background: 'rgba(167, 139, 250, 0.15)',
+                                  color: '#c084fc',
+                                  border: '1px solid rgba(167, 139, 250, 0.35)',
+                                  borderRadius: '4px',
+                                  padding: '2px 7px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                ← Corporate (A)
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
 
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.75rem', marginTop: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
-                    <span>Invoice B Net Total:</span>
-                    <span style={{ color: '#34d399' }}>₹{invoiceBTotal.toFixed(2)}</span>
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    Food expenses billed cleanly without ITC as per statutory GST restaurant rules
-                  </div>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => alert(`Printing Personal Extras Bill for ${roomBooking.guestName || 'Guest'} (SAC 996331 • ₹${windowBBalance.toFixed(2)})`)}
+                    className="btn-outline"
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Printer size={13} /> Print Guest Bill B
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSettleWindowB}
+                    disabled={windowBSettled || windowBBalance === 0}
+                    style={{
+                      background: windowBSettled ? 'rgba(52, 211, 153, 0.2)' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: windowBSettled ? '#34d399' : '#fff',
+                      border: windowBSettled ? '1px solid #34d399' : 'none',
+                      borderRadius: '6px',
+                      padding: '0.45rem 1rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: (windowBSettled || windowBBalance === 0) ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    <CheckCheck size={14} /> {windowBSettled ? '✓ Personal Settle Complete' : `Settle Window B (₹${windowBBalance.toFixed(2)}) via UPI/Card`}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab 3: Multi-Tender Payment Settlement Dialog */}
+        {/* Tab 2: Split Invoicing (Tax Split & Colleague 50/50 Split) */}
+        {activeTab === 'split-bills' && (
+          <div style={{ padding: '1.5rem 2rem' }}>
+            {/* Split Sub-Tabs Navigation */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setSplitSubTab('tax-split')}
+                style={{
+                  padding: '0.45rem 1rem',
+                  borderRadius: '6px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: splitSubTab === 'tax-split' ? 'rgba(96, 165, 250, 0.2)' : 'transparent',
+                  color: splitSubTab === 'tax-split' ? '#60a5fa' : 'var(--text-muted)',
+                  border: splitSubTab === 'tax-split' ? '1px solid #60a5fa' : '1px solid transparent'
+                }}
+              >
+                📋 Statutory Tax Split (Room 12% vs Food 5%)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSplitSubTab('colleague-split')}
+                style={{
+                  padding: '0.45rem 1rem',
+                  borderRadius: '6px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: splitSubTab === 'colleague-split' ? 'rgba(52, 211, 153, 0.2)' : 'transparent',
+                  color: splitSubTab === 'colleague-split' ? '#34d399' : 'var(--text-muted)',
+                  border: splitSubTab === 'colleague-split' ? '1px solid #34d399' : '1px solid transparent'
+                }}
+              >
+                👥 Colleague 50/50 &amp; Custom % Bill Split
+              </button>
+            </div>
+
+            {/* SUB-VIEW A: STATUTORY TAX CATEGORY SPLIT (ROOM 12% VS FOOD 5%) */}
+            {splitSubTab === 'tax-split' && (
+              <div>
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(96,165,250,0.1), rgba(16,185,129,0.08))',
+                  border: '1px solid rgba(96,165,250,0.3)',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '1rem'
+                }}>
+                  <div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#60a5fa', fontWeight: 600, fontSize: '0.85rem' }}>
+                      <Split size={16} /> THE CORPORATE SPLIT-INVOICING ENGINE (ROOM 402 CASE)
+                    </div>
+                    <h4 style={{ color: '#fff', margin: '0.25rem 0', fontSize: '1.1rem' }}>
+                      Total Folio: ₹{totalDebits.toFixed(2)} Split into Two GST-Compliant Tax Invoices
+                    </h4>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      Corporate clients (GAIL, JK Paper) reject combined bills due to distinct food per-diem limits and differing GST rates (12% vs 5%).
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => setActiveSplitView('split')}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: activeSplitView === 'split' ? '#60a5fa' : 'rgba(255,255,255,0.08)',
+                        color: activeSplitView === 'split' ? '#000' : '#fff',
+                        border: 'none'
+                      }}
+                    >
+                      Side-by-Side Split View
+                    </button>
+                    <button
+                      onClick={() => setActiveSplitView('invoice-a')}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: activeSplitView === 'invoice-a' ? '#38bdf8' : 'rgba(255,255,255,0.08)',
+                        color: activeSplitView === 'invoice-a' ? '#000' : '#fff',
+                        border: 'none'
+                      }}
+                    >
+                      Invoice A (Room 12%)
+                    </button>
+                    <button
+                      onClick={() => setActiveSplitView('invoice-b')}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: activeSplitView === 'invoice-b' ? '#34d399' : 'rgba(255,255,255,0.08)',
+                        color: activeSplitView === 'invoice-b' ? '#000' : '#fff',
+                        border: 'none'
+                      }}
+                    >
+                      Invoice B (Food 5%)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Side-by-side Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '1.5rem' }}>
+                  {/* INVOICE A: ROOM TARIFF & ACCOMMODATION */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.7)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                      <div>
+                        <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>INVOICE A: ACCOMMODATION</span>
+                        <h4 style={{ color: '#fff', margin: '0.4rem 0 0', fontSize: '1.05rem' }}>Tax Invoice #INV-ROOM-202609-0402</h4>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SAC Code: 996311 • GST 12% (CGST 6% + SGST 6%)</div>
+                      </div>
+                      <button 
+                        onClick={() => alert("Printing Official Tax Invoice A (Room Tariff) for Corporate Reimbursement")}
+                        className="btn-outline" 
+                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                      >
+                        <Printer size={14} /> Print Bill A
+                      </button>
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <th style={{ padding: '0.5rem 0' }}>Item / Service</th>
+                            <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Taxable Base</th>
+                            <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>GST (12%/18%)</th>
+                            <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Total (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {roomTxns.map(t => (
+                            <tr key={t.transactionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                              <td style={{ padding: '0.6rem 0', color: '#fff' }}>{t.description}</td>
+                              <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{t.taxableBase.toFixed(2)}</td>
+                              <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{(t.cgst + t.sgst).toFixed(2)}</td>
+                              <td style={{ padding: '0.6rem 0', textAlign: 'right', fontWeight: 600, color: '#38bdf8' }}>₹{t.debitAmount.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.75rem', marginTop: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
+                        <span>Invoice A Net Total:</span>
+                        <span style={{ color: '#38bdf8' }}>₹{invoiceATotal.toFixed(2)}</span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#34d399', marginTop: '0.25rem' }}>
+                        ✓ Eligible for Corporate Input Tax Credit (ITC) under GSTR-2B
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* INVOICE B: FOOD & BEVERAGE */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.7)',
+                    border: '1px solid rgba(52, 211, 153, 0.3)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                      <div>
+                        <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399' }}>INVOICE B: RESTAURANT &amp; DINING</span>
+                        <h4 style={{ color: '#fff', margin: '0.4rem 0 0', fontSize: '1.05rem' }}>Tax Invoice #INV-FOOD-202609-0402</h4>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SAC Code: 996331 • GST 5% (CGST 2.5% + SGST 2.5%)</div>
+                      </div>
+                      <button 
+                        onClick={() => alert("Printing Official Tax Invoice B (Cannon Kitchen Food Bill) for Corporate Per-Diem Reimbursement")}
+                        className="btn-outline" 
+                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                      >
+                        <Printer size={14} /> Print Bill B
+                      </button>
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <th style={{ padding: '0.5rem 0' }}>Item / Outlet</th>
+                            <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Taxable Base</th>
+                            <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>GST (5%)</th>
+                            <th style={{ padding: '0.5rem 0', textAlign: 'right' }}>Total (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {foodTxns.map(t => (
+                            <tr key={t.transactionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                              <td style={{ padding: '0.6rem 0', color: '#fff' }}>{t.description}</td>
+                              <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{t.taxableBase.toFixed(2)}</td>
+                              <td style={{ padding: '0.6rem 0', textAlign: 'right', color: 'var(--text-muted)' }}>₹{(t.cgst + t.sgst).toFixed(2)}</td>
+                              <td style={{ padding: '0.6rem 0', textAlign: 'right', fontWeight: 600, color: '#34d399' }}>₹{t.debitAmount.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.75rem', marginTop: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
+                        <span>Invoice B Net Total:</span>
+                        <span style={{ color: '#34d399' }}>₹{invoiceBTotal.toFixed(2)}</span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                        Food expenses billed cleanly without ITC as per statutory GST restaurant rules
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-VIEW B: COLLEAGUE 50/50 & CUSTOM % SPLIT */}
+            {splitSubTab === 'colleague-split' && (
+              <div>
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(52,211,153,0.1), rgba(56,189,248,0.08))',
+                  border: '1px solid rgba(52,211,153,0.3)',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '1rem'
+                }}>
+                  <div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#34d399', fontWeight: 700, fontSize: '0.85rem' }}>
+                      <Users size={16} /> SHARED ROOM COLLEAGUE BILL SPLIT
+                    </div>
+                    <h4 style={{ color: '#fff', margin: '0.25rem 0', fontSize: '1.1rem' }}>
+                      Total Folio ₹{balanceDue.toFixed(2)} Divided between Two In-House Guests
+                    </h4>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                      Generates two independent tax invoices with separate GSTINs and names for company travel claims.
+                    </p>
+                  </div>
+
+                  {/* Ratio Selector Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Split Ratio:</span>
+                    {[
+                      { label: '50% / 50% (Equal)', val: 50 },
+                      { label: '60% / 40%', val: 60 },
+                      { label: '70% / 30%', val: 70 },
+                      { label: '80% / 20%', val: 80 }
+                    ].map(r => (
+                      <button
+                        key={r.val}
+                        type="button"
+                        onClick={() => setColleagueSplitRatio(r.val)}
+                        style={{
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: colleagueSplitRatio === r.val ? 'var(--gold-primary)' : 'rgba(255,255,255,0.06)',
+                          color: colleagueSplitRatio === r.val ? '#000' : 'var(--text-primary)',
+                          border: colleagueSplitRatio === r.val ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)'
+                        }}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Colleague 1 & Colleague 2 Split Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '1.5rem' }}>
+                  {/* COLLEAGUE 1 CARD */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(96, 165, 250, 0.35)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                      <span className="badge" style={{ background: 'rgba(96, 165, 250, 0.2)', color: '#60a5fa', fontWeight: 700 }}>
+                        COLLEAGUE 1 • SHARE ({colleagueSplitRatio}%)
+                      </span>
+                      <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#60a5fa' }}>
+                        ₹{colleague1Share.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Guest Name</label>
+                        <input
+                          type="text"
+                          value={colleague1Name}
+                          onChange={(e) => setColleague1Name(e.target.value)}
+                          className="form-input"
+                          style={{ padding: '0.45rem', fontSize: '0.82rem' }}
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Company Name</label>
+                          <input
+                            type="text"
+                            value={colleague1Company}
+                            onChange={(e) => setColleague1Company(e.target.value)}
+                            className="form-input"
+                            style={{ padding: '0.45rem', fontSize: '0.82rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Corporate GSTIN</label>
+                          <input
+                            type="text"
+                            value={colleague1Gstin}
+                            onChange={(e) => setColleague1Gstin(e.target.value)}
+                            className="form-input"
+                            style={{ padding: '0.45rem', fontSize: '0.82rem', fontFamily: 'monospace' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.85rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '1rem', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                        <span>Taxable Share ({colleagueSplitRatio}%):</span>
+                        <span>₹{(colleague1Share / 1.12).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                        <span>Applicable GST (CGST 6% + SGST 6%):</span>
+                        <span>₹{(colleague1Share - (colleague1Share / 1.12)).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, color: '#fff', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.35rem' }}>
+                        <span>Invoice Part A Total:</span>
+                        <span style={{ color: '#60a5fa' }}>₹{colleague1Share.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSendColleagueWhatsApp(1)}
+                        style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, background: '#25D366', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <MessageCircle size={14} /> WhatsApp Invoice A
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => alert(`Printing Tax Invoice Part A for ${colleague1Name} (Share: ₹${colleague1Share.toFixed(2)})`)}
+                        className="btn-outline"
+                        style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <Printer size={14} /> Print Bill A
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* COLLEAGUE 2 CARD */}
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1px solid rgba(52, 211, 153, 0.35)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                      <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', fontWeight: 700 }}>
+                        COLLEAGUE 2 • SHARE ({100 - colleagueSplitRatio}%)
+                      </span>
+                      <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#34d399' }}>
+                        ₹{colleague2Share.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Guest Name</label>
+                        <input
+                          type="text"
+                          value={colleague2Name}
+                          onChange={(e) => setColleague2Name(e.target.value)}
+                          className="form-input"
+                          style={{ padding: '0.45rem', fontSize: '0.82rem' }}
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Company Name</label>
+                          <input
+                            type="text"
+                            value={colleague2Company}
+                            onChange={(e) => setColleague2Company(e.target.value)}
+                            className="form-input"
+                            style={{ padding: '0.45rem', fontSize: '0.82rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Corporate GSTIN</label>
+                          <input
+                            type="text"
+                            value={colleague2Gstin}
+                            onChange={(e) => setColleague2Gstin(e.target.value)}
+                            className="form-input"
+                            style={{ padding: '0.45rem', fontSize: '0.82rem', fontFamily: 'monospace' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.85rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '1rem', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                        <span>Taxable Share ({100 - colleagueSplitRatio}%):</span>
+                        <span>₹{(colleague2Share / 1.12).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                        <span>Applicable GST (CGST 6% + SGST 6%):</span>
+                        <span>₹{(colleague2Share - (colleague2Share / 1.12)).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, color: '#fff', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.35rem' }}>
+                        <span>Invoice Part B Total:</span>
+                        <span style={{ color: '#34d399' }}>₹{colleague2Share.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSendColleagueWhatsApp(2)}
+                        style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, background: '#25D366', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <MessageCircle size={14} /> WhatsApp Invoice B
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => alert(`Printing Tax Invoice Part B for ${colleague2Name} (Share: ₹${colleague2Share.toFixed(2)})`)}
+                        className="btn-outline"
+                        style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <Printer size={14} /> Print Bill B
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: Multi-Tender & Caution Money Payment Settlement Dialog */}
         {activeTab === 'multi-settle' && (
           <div style={{ padding: '1.5rem 2rem' }}>
-            <div style={{ maxWidth: 800, margin: '0 auto' }}>
+            <div style={{ maxWidth: 840, margin: '0 auto' }}>
+              {/* Caution / Security Deposit Reconciliation Card */}
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#34d399', fontWeight: 700, fontSize: '0.85rem' }}>
+                      <ShieldCheck size={16} /> CAUTION / SECURITY DEPOSIT RECONCILIATION
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      Security deposit paid at check-in can be applied directly to clear the folio, with auto-calculation of refund on key return.
+                    </div>
+                  </div>
+
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid rgba(52,211,153,0.4)' }}>
+                    <input
+                      type="checkbox"
+                      checked={cautionDepositApplied}
+                      onChange={(e) => {
+                        setCautionDepositApplied(e.target.checked);
+                        showToast(e.target.checked ? `✓ Applied ₹${cautionDeposit} Caution Deposit against Room ${selectedRoom} folio!` : 'Caution deposit removed from folio.');
+                      }}
+                      style={{ cursor: 'pointer', accentColor: '#34d399' }}
+                    />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#34d399' }}>
+                      Apply Security Deposit
+                    </span>
+                  </label>
+                </div>
+
+                {cautionDepositApplied && (
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Deposit Amount Held (₹)</label>
+                      <input
+                        type="number"
+                        value={cautionDeposit}
+                        onChange={(e) => setCautionDeposit(Number(e.target.value) || 0)}
+                        style={{ padding: '0.45rem', width: '100%', background: '#0b0f19', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600 }}
+                      />
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Net Folio Payable</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: effectivePayable > 0 ? '#f87171' : '#34d399' }}>
+                        ₹{effectivePayable.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Cash Refund Due to Guest</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: cautionRefundDue > 0 ? '#34d399' : 'var(--text-muted)' }}>
+                        {cautionRefundDue > 0 ? `₹${cautionRefundDue.toFixed(2)}` : 'None (Fully Absorbed)'}
+                      </div>
+                      {cautionRefundDue > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => alert(`🖨️ Printing Cashier Caution Refund Slip for Room ${selectedRoom}:\nGuest: ${roomBooking.guestName}\nRefund Amount: ₹${cautionRefundDue.toFixed(2)}\nTender: Cash Drawer\nKey Card: Verified Returned`)}
+                          style={{
+                            marginTop: '0.35rem',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            background: 'rgba(52, 211, 153, 0.2)',
+                            color: '#34d399',
+                            border: '1px solid #34d399',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Printer size={12} /> Print Refund Slip
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Main Multi-Tender Box */}
               <div style={{
                 background: 'rgba(255,255,255,0.02)',
                 border: '1px solid rgba(255,255,255,0.1)',
@@ -984,8 +2119,10 @@ Divine blessings of sacred Maa Majhighariani.`;
                   margin: '1.25rem 0'
                 }}>
                   <div>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Folio Outstanding Balance:</span>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f87171' }}>₹{balanceDue.toFixed(2)}</div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Net Payable Balance:</span>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 800, color: effectivePayable > 0 ? '#f87171' : '#34d399' }}>
+                      ₹{effectivePayable.toFixed(2)}
+                    </div>
                   </div>
                   <div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Tendered:</span>
@@ -1134,9 +2271,9 @@ Divine blessings of sacred Maa Majhighariani.`;
                   }}>
                     <CheckCircle2 size={22} />
                     <div>
-                      <div style={{ fontWeight: 700 }}>Settlement Successful & Audit Locked!</div>
+                      <div style={{ fontWeight: 700 }}>Settlement Successful &amp; Audit Locked!</div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                        All 2 tender records logged to Cashier Shift Handover. Room 402 marked as 'Cleaning'.
+                        All tender records logged to Cashier Shift Handover. Room {selectedRoom} released to 'Cleaning'.
                       </div>
                     </div>
                   </div>
@@ -1461,6 +2598,149 @@ Divine blessings of sacred Maa Majhighariani.`;
                   </button>
                   <button type="submit" style={{ padding: '0.4rem 1rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>
                     Confirm Credit Note
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sub-Modal: Inter-Room Charge Transfer */}
+        {transferModalOpen && transferTargetTxn && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2200
+          }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: 480, padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ color: '#38bdf8', margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '1rem' }}>
+                  <ArrowRightLeft size={18} /> Transfer Charge to Another Room
+                </h4>
+                <button onClick={() => setTransferModalOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleExecuteTransfer}>
+                <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '8px', padding: '0.85rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>{transferTargetTxn.description}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    <span>Ref: {transferTargetTxn.transactionId}</span>
+                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>Amount: ₹{(transferTargetTxn.debitAmount || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#7dd3fc', marginTop: '0.4rem', borderTop: '1px solid rgba(56, 189, 248, 0.15)', paddingTop: '0.4rem' }}>
+                    Double-Entry Protocol: Room {selectedRoom} receives an offsetting credit memo; the destination room is immediately debited.
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Destination Room
+                  </label>
+                  <select
+                    value={transferDestRoom}
+                    onChange={(e) => setTransferDestRoom(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.85rem' }}
+                  >
+                    {rooms
+                      .filter(r => r.roomNumber !== selectedRoom)
+                      .map(r => (
+                        <option key={r.roomNumber} value={r.roomNumber}>
+                          Room {r.roomNumber} ({r.type || 'Standard'} {r.guestName ? `- ${r.guestName}` : ''})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Transfer Authorization Reason
+                  </label>
+                  <select
+                    value={transferReason}
+                    onChange={(e) => setTransferReason(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.85rem' }}
+                  >
+                    <option value="Guest requested bill moved to host/colleague room">Guest requested bill moved to host/colleague room</option>
+                    <option value="Group corporate leader paying for delegates">Group corporate leader paying for delegates</option>
+                    <option value="Cannon Kitchen KOT wrongly billed to this room">Cannon Kitchen KOT wrongly billed to this room</option>
+                    <option value="Family booking multi-room consolidated settlement">Family booking multi-room consolidated settlement</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setTransferModalOpen(false)} className="btn-outline" style={{ padding: '0.45rem 0.9rem' }}>
+                    Cancel
+                  </button>
+                  <button type="submit" style={{ padding: '0.45rem 1.1rem', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <ArrowRightLeft size={15} /> Transfer Charge
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sub-Modal: Dispute Escrow & Hold */}
+        {disputeModalOpen && disputeTargetTxn && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2200
+          }}>
+            <div className="glass-panel" style={{ width: '100%', maxWidth: 480, padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(251, 146, 60, 0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ color: '#fb923c', margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '1rem' }}>
+                  <ShieldAlert size={18} /> Place Item in Dispute Escrow
+                </h4>
+                <button onClick={() => setDisputeModalOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmDispute}>
+                <div style={{ background: 'rgba(251, 146, 60, 0.08)', border: '1px solid rgba(251, 146, 60, 0.25)', borderRadius: '8px', padding: '0.85rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>{disputeTargetTxn.description}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    <span>Txn: {disputeTargetTxn.transactionId}</span>
+                    <span style={{ fontWeight: 700, color: '#fb923c' }}>Amount: ₹{(disputeTargetTxn.debitAmount || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#fed7aa', marginTop: '0.4rem', borderTop: '1px solid rgba(251, 146, 60, 0.15)', paddingTop: '0.4rem' }}>
+                    Airport &amp; Morning Rush Protection: Placing this line item into escrow immediately subtracts ₹{(disputeTargetTxn.debitAmount || 0).toFixed(2)} from the checkout payable balance, letting the guest check out smoothly without blocking the desk.
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Dispute Reason / Front Desk Notes
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={disputeReasonInput}
+                    onChange={(e) => setDisputeReasonInput(e.target.value)}
+                    placeholder="e.g. Guest denies mini-bar usage; F&B Captain to audit KOT slip"
+                    style={{ width: '100%', padding: '0.55rem', background: '#0b0f19', color: '#fff', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setDisputeModalOpen(false)} className="btn-outline" style={{ padding: '0.45rem 0.9rem' }}>
+                    Cancel
+                  </button>
+                  <button type="submit" style={{ padding: '0.45rem 1.1rem', background: '#ea580c', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <ShieldAlert size={15} /> Hold in Escrow
                   </button>
                 </div>
               </form>
