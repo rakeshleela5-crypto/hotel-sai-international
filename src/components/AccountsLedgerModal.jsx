@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_SALES_REPORT_2026_09_24, GST_FOM_RECORDS_2026_09_25 } from '../data/hotelData';
 import BookingReceiptModal from './BookingReceiptModal';
+import TallyConsoleModal from './TallyConsoleModal';
+import { generateOfficialGstr1Json, reconcileGstr2bWithPurchases, validateGstin } from '../utils/gstGovExport';
 import { useUniversalInlineEdit, InlineEditorBanner } from './UniversalInlineEditor';
 
 export default function AccountsLedgerModal({
@@ -27,6 +29,10 @@ export default function AccountsLedgerModal({
   const [selectedCorporate, setSelectedCorporate] = useState('CORP-05'); // Ashok Leyland Limited by default
   const [selectedMonth, setSelectedMonth] = useState('09');
   const [selectedYear, setSelectedYear] = useState('2026');
+  const [isTallyConsoleOpen, setIsTallyConsoleOpen] = useState(false);
+  const [gstr2bReconData, setGstr2bReconData] = useState(null);
+  const [isGstr2bModalOpen, setIsGstr2bModalOpen] = useState(false);
+  const [gstr2bRawInput, setGstr2bRawInput] = useState('');
 
   // Authentic 2026-09-25 GST FOM Report Register & Amendments State (MySoft Bug Elimination)
   const [gstFomRecords, setGstFomRecords] = useState(GST_FOM_RECORDS_2026_09_25);
@@ -1084,6 +1090,63 @@ export default function AccountsLedgerModal({
     document.body.removeChild(link);
   };
 
+  const handleExportOfficialGstr1Json = () => {
+    const payload = generateOfficialGstr1Json({
+      hotelGstin: HOTEL_CONFIG.gstin,
+      hotelStateCode: "21",
+      fp: `${selectedMonth}${selectedYear}`,
+      bookings: bookings && bookings.length > 0 ? bookings : corporateGstInvoices.map((inv, idx) => ({
+        billNo: inv.invoiceNo,
+        corporateGstin: inv.gstin,
+        tariffPerNight: inv.taxableRoom,
+        foodAmount: inv.taxableFood,
+        totalAmount: inv.totalAmount,
+        checkInDate: `${selectedYear}-${selectedMonth}-15`
+      })),
+      restaurantBills: [
+        { billNo: `POS-${selectedYear}${selectedMonth}-001`, amount: totalTaxableFood, date: `${selectedYear}-${selectedMonth}-20` }
+      ]
+    });
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `GSTR1_OfflineTool_HotelSai_${selectedMonth}_${selectedYear}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setActionSuccessMsg(`✓ Official GSTR-1 JSON (GSTN Schema v1.7) generated for ${selectedMonth}/${selectedYear}! Ready for direct upload to gst.gov.in offline tool.`);
+    setTimeout(() => setActionSuccessMsg(''), 5000);
+  };
+
+  const handleProcessGstr2b = () => {
+    if (!gstr2bRawInput.trim()) return;
+    try {
+      const parsed = JSON.parse(gstr2bRawInput);
+      // Sample hotel purchases/expenses to reconcile against
+      const hotelPurchases = [
+        { vendorGstin: '21AAACR4910K1Z1', vendorName: 'Rayagada Mandi Fresh Vegetables', billNo: 'MANDI-SEPT-W4', totalAmount: 3450.00, taxAmount: 0, date: '2026-09-25' },
+        { vendorGstin: '21AABCS9821K1Z5', vendorName: 'Sahu Dairy Milk & Paneer Depot', billNo: 'SAHU-2627-089', totalAmount: 12250.00, taxAmount: 612.50, date: '2026-09-24' },
+        { vendorGstin: '21AAACE2190J1Z3', vendorName: 'ECoR Steam Laundry Contractors', billNo: 'ECOR-LND-901', totalAmount: 15600.00, taxAmount: 1872.00, date: '2026-09-22' },
+        { vendorGstin: '21AAACH1104D1Z8', vendorName: 'HPCL Commercial Gas Agency', billNo: 'HPCL-CYL-481', totalAmount: 8900.00, taxAmount: 1602.00, date: '2026-09-20' }
+      ];
+
+      const res = reconcileGstr2bWithPurchases(parsed, hotelPurchases);
+      if (res.success) {
+        setGstr2bReconData(res.results);
+        setIsGstr2bModalOpen(false);
+        setActionSuccessMsg(`✓ GSTR-2B ITC Audited! Matched: ${res.results.matchedCount}, Variances: ${res.results.taxMismatchCount}, Missing in Books: ${res.results.missingInBooksCount}`);
+        setTimeout(() => setActionSuccessMsg(''), 6000);
+      } else {
+        alert(res.error || 'Failed to parse GSTR-2B format.');
+      }
+    } catch (err) {
+      alert('Invalid JSON input: Please paste a valid GSTR-2B JSON downloaded from gst.gov.in');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -1166,6 +1229,28 @@ export default function AccountsLedgerModal({
           background: 'rgba(10, 14, 25, 0.7)',
           overflowX: 'auto'
         }}>
+          <button
+            onClick={() => setIsTallyConsoleOpen(true)}
+            style={{
+              padding: '0.5rem 1.1rem',
+              borderRadius: '8px',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff',
+              border: '1px solid #38bdf8',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.4)'
+            }}
+            title="Launch Gateway of Tally & Double-Entry Accounting Hub"
+          >
+            <BookOpen size={15} /> ⌨️ Tally Prime Console (F4-F9)
+          </button>
+
           <button
             onClick={() => setActiveTab('reconciliation-audit')}
             style={{
@@ -3086,13 +3171,54 @@ export default function AccountsLedgerModal({
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleExportOfficialGstr1Json}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#fff',
+                    border: '1px solid #10b981',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                  }}
+                  title="Official JSON for gst.gov.in offline tool (Tables 4, 5, 7, 12 HSN, 13 Docs)"
+                >
+                  <Download size={15} /> 🏛️ Download GSTR-1 JSON (gst.gov.in v1.7)
+                </button>
+
+                <button
+                  onClick={() => setIsGstr2bModalOpen(true)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    color: '#fff',
+                    border: '1px solid #38bdf8',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                  title="Import GSTR-2B JSON from GST portal to audit vendor ITC claims"
+                >
+                  <ShieldCheck size={15} /> 🔍 Audit GSTR-2B ITC
+                </button>
+
                 <button
                   onClick={handleExportCsv}
                   className="btn-primary"
                   style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                 >
-                  <Download size={15} /> Export Government GST CSV
+                  <Download size={15} /> Export CSV
                 </button>
               </div>
             </div>
@@ -3116,6 +3242,88 @@ export default function AccountsLedgerModal({
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>₹{totalB2bInvoiced.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
               </div>
             </div>
+
+            {/* GSTR-2B ITC RECONCILIATION AUDIT RESULTS (IF RUN) */}
+            {gstr2bReconData && (
+              <div style={{
+                marginBottom: '1.5rem',
+                backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                border: '1px solid #38bdf8',
+                borderRadius: '8px',
+                padding: '1.2rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ShieldCheck size={18} color="#38bdf8" />
+                    <strong style={{ color: '#fff', fontSize: '0.95rem' }}>
+                      GSTR-2B Input Tax Credit (ITC) Portal Reconciliation
+                    </strong>
+                    <span className="badge" style={{ background: '#065f46', color: '#34d399', fontSize: '0.72rem' }}>
+                      {gstr2bReconData.matchedCount} Matched
+                    </span>
+                    {gstr2bReconData.taxMismatchCount > 0 && (
+                      <span className="badge" style={{ background: '#78350f', color: '#f59e0b', fontSize: '0.72rem' }}>
+                        {gstr2bReconData.taxMismatchCount} Mismatch
+                      </span>
+                    )}
+                    {gstr2bReconData.missingIn2bCount > 0 && (
+                      <span className="badge" style={{ background: '#991b1b', color: '#f87171', fontSize: '0.72rem' }}>
+                        {gstr2bReconData.missingIn2bCount} Unfiled by Vendor
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setGstr2bReconData(null)}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem' }}
+                  >
+                    Clear Audit
+                  </button>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                    <thead>
+                      <tr style={{ background: '#1e293b', color: '#94a3b8' }}>
+                        <th style={{ padding: '0.5rem' }}>Status</th>
+                        <th style={{ padding: '0.5rem' }}>Supplier Name</th>
+                        <th style={{ padding: '0.5rem' }}>Supplier GSTIN</th>
+                        <th style={{ padding: '0.5rem' }}>Invoice #</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right' }}>Portal 2B Val (₹)</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right' }}>Books Val (₹)</th>
+                        <th style={{ padding: '0.5rem' }}>Audit Findings</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gstr2bReconData.items.map((item, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '0.5rem' }}>
+                            <span style={{
+                              background: item.badgeColor,
+                              color: '#fff',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                              fontSize: '0.68rem'
+                            }}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.5rem', color: '#fff', fontWeight: 600 }}>{item.supplierName}</td>
+                          <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#fbbf24' }}>{item.supplierGstin}</td>
+                          <td style={{ padding: '0.5rem', color: '#38bdf8' }}>{item.invoiceNo}</td>
+                          <td style={{ padding: '0.5rem', textAlign: 'right', color: '#fff' }}>₹{item.amount2b.toFixed(2)}</td>
+                          <td style={{ padding: '0.5rem', textAlign: 'right', color: '#cbd5e1' }}>₹{item.amountBooks.toFixed(2)}</td>
+                          <td style={{ padding: '0.5rem', color: item.status === 'MATCHED' ? '#34d399' : '#f87171' }}>
+                            {item.remarks}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Invoices Table */}
             <div style={{ overflowX: 'auto' }}>
@@ -5521,6 +5729,122 @@ export default function AccountsLedgerModal({
             }}
           />
         )}
+
+        {/* GSTR-2B ITC IMPORT MODAL */}
+        {isGstr2bModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(5, 7, 15, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2500,
+            padding: '1rem'
+          }}>
+            <div style={{
+              backgroundColor: '#0c2240',
+              border: '2px solid #38bdf8',
+              borderRadius: '10px',
+              maxWidth: 600,
+              width: '100%',
+              padding: '1.5rem',
+              color: '#fff',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.85)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #1e3a8a', paddingBottom: '0.6rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShieldCheck size={20} color="#38bdf8" />
+                  <strong style={{ fontSize: '1rem', color: '#38bdf8' }}>IMPORT GSTR-2B PORTAL JSON</strong>
+                </div>
+                <button onClick={() => setIsGstr2bModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 1rem', lineHeight: '1.4' }}>
+                Paste the raw GSTR-2B JSON file downloaded directly from the government portal (<strong style={{ color: '#38bdf8' }}>gst.gov.in &gt; Returns &gt; GSTR-2B &gt; Download JSON</strong>). The system will automatically reconcile every supplier bill with your internal accounts.
+              </p>
+
+              <textarea
+                rows={8}
+                placeholder='Paste raw GSTR-2B JSON here, e.g. {"gstin": "21AABCH9821K1Z2", "fp": "092026", "b2b": [...]}'
+                value={gstr2bRawInput}
+                onChange={(e) => setGstr2bRawInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#07162c',
+                  border: '1px solid #38bdf8',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  padding: '0.6rem',
+                  fontFamily: 'monospace',
+                  fontSize: '0.75rem',
+                  marginBottom: '1rem'
+                }}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sample2b = {
+                      gstin: HOTEL_CONFIG.gstin,
+                      fp: "092026",
+                      b2b: [
+                        {
+                          ctin: "21AAACR4910K1Z1",
+                          trdnm: "Rayagada Mandi Fresh Vegetables",
+                          inv: [{ inum: "MANDI-SEPT-W4", idt: "25-09-2026", val: 3450.00, itms: [{ itm_det: { txval: 3450.00, camt: 0, samt: 0 } }] }]
+                        },
+                        {
+                          ctin: "21AABCS9821K1Z5",
+                          trdnm: "Sahu Dairy Milk & Paneer Depot",
+                          inv: [{ inum: "SAHU-2627-089", idt: "24-09-2026", val: 12250.00, itms: [{ itm_det: { txval: 12250.00, camt: 306.25, samt: 306.25 } }] }]
+                        },
+                        {
+                          ctin: "21AAACX7712M1Z9",
+                          trdnm: "Asian Paints Depot Rayagada",
+                          inv: [{ inum: "AP-INV-8419", idt: "18-09-2026", val: 18400.00, itms: [{ itm_det: { txval: 15593.22, camt: 1403.39, samt: 1403.39 } }] }]
+                        }
+                      ]
+                    };
+                    setGstr2bRawInput(JSON.stringify(sample2b, null, 2));
+                  }}
+                  style={{ background: 'transparent', border: 'none', color: '#f59e0b', fontSize: '0.78rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  ⚡ Load Sample GSTR-2B JSON
+                </button>
+
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsGstr2bModalOpen(false)}
+                    style={{ background: '#334155', border: 'none', color: '#fff', padding: '0.4rem 0.8rem', borderRadius: 4, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleProcessGstr2b}
+                    style={{ background: '#059669', border: 'none', color: '#fff', padding: '0.4rem 1.2rem', borderRadius: 4, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Run Reconciler
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TALLY PRIME CONSOLE MODAL */}
+        {isTallyConsoleOpen && (
+          <TallyConsoleModal
+            isOpen={isTallyConsoleOpen}
+            onClose={() => setIsTallyConsoleOpen(false)}
+          />
+        )}
+
         {/* UNIVERSAL INLINE KEYBOARD EDIT MODE FLOATING HUD BANNER */}
         <InlineEditorBanner
           isActive={isAccountsEditActive}

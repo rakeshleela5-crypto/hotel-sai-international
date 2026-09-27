@@ -48,6 +48,7 @@ export default function BookingReceiptModal({
   const [isNonGstBill, setIsNonGstBill] = useState(Boolean(booking?.isNonGstBill));
   const [isLiveEditMode, setIsLiveEditMode] = useState(booking?.isLiveEditMode !== undefined ? Boolean(booking.isLiveEditMode) : true);
   const [includeLetterhead, setIncludeLetterhead] = useState(true);
+  const [rule48Copy, setRule48Copy] = useState('ORIGINAL FOR RECIPIENT');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const receiptContainerRef = useRef(null);
 
@@ -572,6 +573,43 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                 </button>
               )}
 
+              {['a4', 'room-split', 'food-split'].includes(invoiceType) && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'rgba(0,0,0,0.3)',
+                  padding: '2px 4px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  gap: '3px'
+                }}>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', padding: '0 4px', fontWeight: 600 }}>Rule 48:</span>
+                  {[
+                    { id: 'ORIGINAL FOR RECIPIENT', label: 'Original' },
+                    { id: 'DUPLICATE FOR TRANSPORTER', label: 'Duplicate' },
+                    { id: 'TRIPLICATE FOR SUPPLIER', label: 'Triplicate' }
+                  ].map(cp => (
+                    <button
+                      key={cp.id}
+                      type="button"
+                      onClick={() => setRule48Copy(cp.id)}
+                      style={{
+                        background: rule48Copy === cp.id ? '#0284c7' : 'transparent',
+                        border: 'none',
+                        color: rule48Copy === cp.id ? '#fff' : '#94a3b8',
+                        fontSize: '0.68rem',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontWeight: rule48Copy === cp.id ? 700 : 500,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {cp.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {invoiceType !== 'keycard' && isLiveEditMode && (
                 <button
                   type="button"
@@ -958,8 +996,8 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
           <div className={`tax-invoice-sheet ${!includeLetterhead ? 'preprinted-pad-mode' : ''}`}>
             <div className="sheet-header">
               <div className="header-left">
-                <span className="page-mark">
-                  {isNonGstBill ? 'ORIGINAL FOR RECIPIENT / NON-GST BILL' : 'ORIGINAL FOR RECIPIENT / GUEST COPY'}
+                <span className="page-mark" style={{ fontWeight: 800, letterSpacing: '0.5px' }}>
+                  {isNonGstBill ? `${rule48Copy} / NON-GST BILL` : `${rule48Copy} / RULE 48`}
                 </span>
                 <h1 className="tax-invoice-title" style={{ letterSpacing: '1px' }}>
                   {isNonGstBill ? 'NON-GST BILL / BILL OF SUPPLY' : 'TAX INVOICE / GUEST FOLIO'}
@@ -1578,7 +1616,9 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
           <div className={`tax-invoice-sheet ${!includeLetterhead ? 'preprinted-pad-mode' : ''}`}>
             <div className="sheet-header">
               <div className="header-left">
-                <span className="page-mark" style={{ background: '#0284c7' }}>CORPORATE LODGING REIMBURSEMENT COPY</span>
+                <span className="page-mark" style={{ background: '#0284c7', fontWeight: 800 }}>
+                  {rule48Copy} • SAC 996311 LODGING
+                </span>
                 <h1 className="tax-invoice-title" style={{ letterSpacing: '1px' }}>ROOM TARIFF TAX INVOICE</h1>
                 <div className="copy-type">SAC 996311 (Hotel Accommodation Services)</div>
               </div>
