@@ -689,6 +689,149 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
             </p>
           </div>
 
+          {/* SEARCH BAR 1: Universal Room & Guest Quick-Switcher */}
+          <div style={{ position: 'relative', width: 280, minWidth: 230, zIndex: 1100 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(0, 0, 0, 0.45)',
+              border: roomSearchDropdownOpen ? '1px solid var(--gold-glow)' : '1px solid rgba(212, 175, 55, 0.35)',
+              borderRadius: '8px',
+              padding: '5px 10px',
+              boxShadow: roomSearchDropdownOpen ? '0 0 12px rgba(212, 175, 55, 0.25)' : 'none',
+              transition: 'all 0.2s ease'
+            }}>
+              <Search size={14} style={{ color: 'var(--gold-glow)', marginRight: '8px', flexShrink: 0 }} />
+              <input 
+                type="text"
+                value={roomSearchTerm}
+                onChange={(e) => {
+                  setRoomSearchTerm(e.target.value);
+                  if (!roomSearchDropdownOpen) setRoomSearchDropdownOpen(true);
+                }}
+                onFocus={() => setRoomSearchDropdownOpen(true)}
+                placeholder={`Switch Room (Active: ${room.roomNumber})...`}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#fff',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  width: '100%'
+                }}
+              />
+              {roomSearchTerm ? (
+                <button
+                  type="button"
+                  onClick={() => setRoomSearchTerm('')}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                >
+                  <X size={13} />
+                </button>
+              ) : (
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.08)', padding: '2px 5px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                  40 Rooms
+                </span>
+              )}
+            </div>
+
+            {/* Floating Dropdown for Room Switcher */}
+            {roomSearchDropdownOpen && (
+              <>
+                <div 
+                  onClick={() => setRoomSearchDropdownOpen(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 1099 }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  left: 0,
+                  right: 0,
+                  maxHeight: 280,
+                  background: 'rgba(11, 15, 28, 0.98)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(212, 175, 55, 0.4)',
+                  borderRadius: '10px',
+                  boxShadow: '0 15px 35px rgba(0,0,0,0.85)',
+                  zIndex: 1100,
+                  overflowY: 'auto',
+                  padding: '6px'
+                }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>SWITCH ACTIVE FOLIO</span>
+                    <span style={{ color: 'var(--gold-glow)' }}>{filteredRooms.length} rooms</span>
+                  </div>
+                  {filteredRooms.map(r => {
+                    const isCurrent = r.roomNumber === room.roomNumber;
+                    const isOcc = r.status === 'Occupied';
+                    return (
+                      <div
+                        key={r.roomNumber}
+                        onClick={() => handleSwitchRoom(r)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          background: isCurrent ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+                          border: isCurrent ? '1px solid rgba(212, 175, 55, 0.3)' : '1px solid transparent',
+                          marginBottom: '2px',
+                          transition: 'background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isCurrent) e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isCurrent) e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontWeight: 800,
+                            fontSize: '0.85rem',
+                            color: isCurrent ? 'var(--gold-glow)' : '#fff',
+                            fontFamily: 'monospace'
+                          }}>
+                            {r.roomNumber}
+                          </span>
+                          <div>
+                            <div style={{ fontSize: '0.76rem', color: '#fff', fontWeight: 600 }}>
+                              {r.currentGuestName || (isOcc ? 'Occupied Guest' : 'Vacant Room')}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                              {r.tier || 'Executive'}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '10px',
+                            background: isOcc ? 'rgba(56, 189, 248, 0.2)' : 'rgba(52, 211, 153, 0.2)',
+                            color: isOcc ? '#38bdf8' : '#34d399',
+                            border: isOcc ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(52, 211, 153, 0.4)'
+                          }}>
+                            {isOcc ? 'Occupied' : 'Available'}
+                          </span>
+                          {isCurrent && (
+                            <div style={{ fontSize: '0.65rem', color: 'var(--gold-glow)', fontWeight: 700, marginTop: '2px' }}>
+                              Active ✓
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
             <button
               type="button"
@@ -769,56 +912,96 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
             flexDirection: 'column',
             gap: '0.3rem'
           }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.35rem 0.5rem', fontWeight: 700 }}>
-              Primary Folio Actions (1 – 17)
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.2rem 0.5rem', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Primary Folio Actions</span>
+              <span style={{ fontSize: '0.65rem', background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>
+                {filteredActions.length} of 17
+              </span>
             </div>
 
-            {[
-              { id: 'ledger', label: '1. Folio Ledger & Voids', icon: Receipt, color: '#38bdf8' },
-              { id: 'charges', label: '2. Post Charges (11 Types)', icon: PlusCircle, color: '#38bdf8' },
-              { id: 'late-checkout', label: '3. Remove Tariff (Late Waiver)', icon: Clock, color: '#fbbf24' },
-              { id: 'transfer-folio', label: '4. Transfer Folio (Inter-Room Bill)', icon: ArrowRightLeft, color: '#a78bfa' },
-              { id: 'split-folio', label: '5. Split Folio (Room vs F&B)', icon: Split, color: '#34d399' },
-              { id: 'link-room', label: '6. Link Room (Multi-Room)', icon: Link2, color: '#60a5fa' },
-              { id: 'change-room', label: '7. Change Room (Room Shift)', icon: RefreshCw, color: '#fbbf24' },
-              { id: 'edit-guest', label: '8. Edit Guest & GSTIN Details', icon: UserCheck, color: '#38bdf8' },
-              { id: 'split-settle', label: '9. Split-Tender Settlement', icon: CheckCheck, color: '#34d399' },
-              { id: 'advance', label: '10. Tag Advance (Deposit Receipt)', icon: DollarSign, color: '#34d399' },
-              { id: 'paid-out', label: '11. Paid Out (Drawer Cash)', icon: MinusCircle, color: '#f87171' },
-              { id: 'allowance', label: '12. Allowance & Courtesy Discount', icon: Tag, color: '#fb923c' },
-              { id: 'pax-change', label: '13. Pax Change (Single ↔ Double)', icon: Users, color: '#a78bfa' },
-              { id: 'sub-folio-windows', label: '14. Sub-Folio Windows (A: BTC / B: Extras)', icon: Layers, color: '#38bdf8' },
-              { id: 'dispute-escrow', label: '15. Disputed Item Escrow (Hold)', icon: ShieldAlert, color: '#fb923c' },
-              { id: 'colleague-split', label: '16. Colleague 50/50 & Custom % Split', icon: Split, color: '#34d399' },
-              { id: 'caution-deposit', label: '17. Caution / Security Deposit & Refund', icon: ShieldCheck, color: '#10b981' }
-            ].map(act => {
-              const Icon = act.icon;
-              const isActive = selectedAction === act.id;
-              return (
-                <button
-                  key={act.id}
-                  onClick={() => setSelectedAction(act.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem',
-                    padding: '0.55rem 0.75rem',
-                    borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    background: isActive ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
-                    color: isActive ? 'var(--gold-glow)' : '#cbd5e1',
-                    border: isActive ? '1px solid var(--gold-glow)' : '1px solid transparent',
-                    transition: 'all 0.15s ease'
+            {/* SEARCH BAR 2: 17 Actions Quick-Finder */}
+            <div style={{ position: 'relative', marginBottom: '0.4rem', padding: '0 0.2rem' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: actionSearchTerm ? '1px solid var(--gold-glow)' : '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '6px',
+                padding: '4px 8px'
+              }}>
+                <Search size={13} style={{ color: actionSearchTerm ? 'var(--gold-glow)' : 'var(--text-muted)', marginRight: '6px', flexShrink: 0 }} />
+                <input 
+                  type="text"
+                  value={actionSearchTerm}
+                  onChange={(e) => setActionSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && filteredActions.length > 0) {
+                      setSelectedAction(filteredActions[0].id);
+                    }
                   }}
+                  placeholder="Filter 17 actions (split, pax...)"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#fff',
+                    fontSize: '0.74rem',
+                    width: '100%'
+                  }}
+                />
+                {actionSearchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setActionSearchTerm('')}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {filteredActions.length === 0 ? (
+              <div style={{ padding: '1rem 0.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                No action found matching "{actionSearchTerm}".
+                <button
+                  type="button"
+                  onClick={() => setActionSearchTerm('')}
+                  style={{ display: 'block', margin: '0.4rem auto 0', background: 'transparent', border: 'none', color: 'var(--gold-glow)', cursor: 'pointer', fontSize: '0.72rem', textDecoration: 'underline' }}
                 >
-                  <Icon size={15} color={isActive ? 'var(--gold-glow)' : act.color} />
-                  <span>{act.label}</span>
+                  Reset filter
                 </button>
-              );
-            })}
+              </div>
+            ) : (
+              filteredActions.map(act => {
+                const Icon = act.icon;
+                const isActive = selectedAction === act.id;
+                return (
+                  <button
+                    key={act.id}
+                    onClick={() => setSelectedAction(act.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      padding: '0.55rem 0.75rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      background: isActive ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
+                      color: isActive ? 'var(--gold-glow)' : '#cbd5e1',
+                      border: isActive ? '1px solid var(--gold-glow)' : '1px solid transparent',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Icon size={15} color={isActive ? 'var(--gold-glow)' : act.color} />
+                    <span>{act.label}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {/* Right Workspace: Selected Action Details */}
@@ -844,6 +1027,99 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
                   </button>
                 </div>
 
+                {/* SEARCH BAR 3: Line-Item Ledger Filter with Search Box & Category Quick Chips */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  marginBottom: '1rem',
+                  flexWrap: 'wrap',
+                  background: 'rgba(255,255,255,0.03)',
+                  padding: '0.6rem 0.9rem',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.08)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 260, position: 'relative' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      type="text"
+                      value={ledgerSearchTerm}
+                      onChange={(e) => setLedgerSearchTerm(e.target.value)}
+                      placeholder="Search description, KOT #, SAC, operator, date..."
+                      style={{
+                        width: '100%',
+                        padding: '0.4rem 2rem 0.4rem 2rem',
+                        background: 'rgba(0,0,0,0.3)',
+                        border: ledgerSearchTerm ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '6px',
+                        color: '#fff',
+                        fontSize: '0.78rem'
+                      }}
+                    />
+                    {ledgerSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setLedgerSearchTerm('')}
+                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Category Filter Chips */}
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {[
+                      { id: 'ALL', label: `All (${folioTransactions.length})` },
+                      { id: 'TARIFF', label: 'Tariff' },
+                      { id: 'DINING', label: 'Dining / KOT' },
+                      { id: 'ADVANCE', label: 'Payments' },
+                      { id: 'REVERSAL', label: 'Disputes & Voids' }
+                    ].map(cat => {
+                      const isSel = ledgerCategoryFilter === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setLedgerCategoryFilter(cat.id)}
+                          style={{
+                            padding: '3px 9px',
+                            borderRadius: '12px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            background: isSel ? 'rgba(212, 175, 55, 0.25)' : 'rgba(255,255,255,0.05)',
+                            color: isSel ? 'var(--gold-glow)' : 'var(--text-muted)',
+                            border: isSel ? '1px solid var(--gold-glow)' : '1px solid rgba(255,255,255,0.1)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {cat.label}
+                        </button>
+                      );
+                    })}
+                    {(ledgerSearchTerm || ledgerCategoryFilter !== 'ALL') && (
+                      <button
+                        type="button"
+                        onClick={() => { setLedgerSearchTerm(''); setLedgerCategoryFilter('ALL'); }}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#f87171',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Ledger Table */}
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
                   <thead>
@@ -857,7 +1133,32 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
                     </tr>
                   </thead>
                   <tbody>
-                    {folioTransactions.map(tx => {
+                    {visibleLedgerTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                          <div style={{ fontSize: '0.95rem', color: '#fff', marginBottom: '0.35rem', fontWeight: 600 }}>No ledger items match your search</div>
+                          <div style={{ fontSize: '0.78rem' }}>Try clearing the search term or category chip to show all {folioTransactions.length} entries.</div>
+                          <button
+                            type="button"
+                            onClick={() => { setLedgerSearchTerm(''); setLedgerCategoryFilter('ALL'); }}
+                            style={{
+                              marginTop: '0.75rem',
+                              padding: '4px 12px',
+                              borderRadius: '6px',
+                              background: 'rgba(212, 175, 55, 0.2)',
+                              color: 'var(--gold-glow)',
+                              border: '1px solid var(--gold-glow)',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            Reset Search Filter
+                          </button>
+                        </td>
+                      </tr>
+                    ) : (
+                    visibleLedgerTransactions.map(tx => {
                       const isReversal = tx.type === 'REVERSAL';
                       const isAdvance = tx.type === 'ADVANCE' || tx.type === 'SETTLEMENT';
                       return (
@@ -958,7 +1259,7 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
                           </td>
                         </tr>
                       );
-                    })}
+                    }))}
                   </tbody>
                   <tfoot>
                     <tr style={{ background: 'rgba(212, 175, 55, 0.08)', fontWeight: 800 }}>
