@@ -8,7 +8,7 @@ import {
   ArrowRightLeft, Edit3, MessageCircle, TrendingUp, QrCode, Database,
   BellRing, Car, Globe, Radio, Bell, Sliders, LogOut, Coffee, Briefcase
 } from 'lucide-react';
-import { HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
+import { HOTEL_CONFIG, ROOM_TIERS, GST_FOM_RECORDS_2026_09_25 } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
 import { calculateRoomTax } from '../utils/taxUtils';
 import FolioActionsModal from './FolioActionsModal';
@@ -27,6 +27,7 @@ import StayDurationAnalytics from './StayDurationAnalytics';
 import OperationsSettingsTab from './OperationsSettingsTab';
 import D1LiveDatabaseExplorer from './D1LiveDatabaseExplorer';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
+import DateRangeSelectionModal from './DateRangeSelectionModal';
 import { useUniversalInlineEdit, InlineEditorBanner, InlineText } from './UniversalInlineEditor';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
@@ -1649,27 +1650,153 @@ export default function ReceptionAdmin({
     showToast(`✓ Work order ${newTkt.ticketId} created. Room ${mntForm.roomNumber} blocked as ${mntForm.blockType}.`);
   };
 
-  // Counts for the 39 physical inventory across 5-stage lifecycle
-  const totalCount = rooms.length;
-  const vacantCleanCount = rooms.filter(r => r.status === 'Available').length;
-  const vacantDirtyCount = rooms.filter(r => r.status === 'Vacant Dirty' || r.status === 'Cleaning').length;
-  const occupiedCleanCount = rooms.filter(r => r.status === 'Occupied Clean').length;
-  const occupiedDirtyCount = rooms.filter(r => r.status === 'Occupied').length;
-  const oooCount = rooms.filter(r => r.status === 'Maintenance' || r.status === 'VIP Hold').length;
+  // Helper to normalize any date string to standard YYYY-MM-DD format
+  const parseDateToYMD = (str) => {
+    if (!str) return '';
+    const trimmed = String(str).trim().split(' ')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+      const [d, m, y] = trimmed.split('/');
+      return `${y}-${m}-${d}`;
+    }
+    if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+      const [d, m, y] = trimmed.split('-');
+      return `${y}-${m}-${d}`;
+    }
+    if (/^\d{1,2}-[A-Za-z]{3}-\d{4}$/.test(trimmed)) {
+      try {
+        const d = new Date(trimmed);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      } catch {}
+    }
+    return trimmed;
+  };
 
-  // Filtered rooms for Tape Chart
-  const filteredRooms = rooms.filter(r => {
+  // Compile all known bookings: props bookings + authentic GST FOM records
+  const allKnownBookings = useMemo(() => {
+    const list = [...(bookings || [])];
+    
+    // Add FOM records from 25/09/2026
+    (GST_FOM_RECORDS_2026_09_25 || []).forEach(fom => {
+      const rNo = String(fom.roomNo);
+      const inDate = parseDateToYMD(fom.checkIn) || '2026-09-24';
+      const outDate = parseDateToYMD(fom.checkOut) || '2026-09-25';
+      list.push({
+        bookingId: fom.billNo,
+        billNo: fom.billNo,
+        roomNumber: rNo,
+        room_number: rNo,
+        guestName: fom.guestName,
+        guestPhone: '+91 94370 ' + String(10000 + (fom.slNo || 1) * 73).slice(-5),
+        company: fom.company || (fom.isB2B ? 'CORPORATE' : 'INDIVIDUAL'),
+        corporateGstin: fom.gstin || '',
+        tier: rNo.startsWith('2') ? 'Deluxe Room' : (rNo === '303' || rNo === '314' || rNo === '403' || rNo === '414' ? 'Premium Suite' : 'Executive Room'),
+        tariff: fom.taxable0 || 2199,
+        totalAmount: fom.totalAmount || 2199,
+        balanceDue: fom.paymentMode?.includes('BTC') ? fom.totalAmount : 0,
+        checkInDate: inDate,
+        checkOutDate: outDate,
+        nights: 1,
+        source: 'FOM-Ledger'
+      });
+    });
+
+    return list;
+  }, [bookings]);
+
+  // Projected Room States for Selected Date Window [filterFromDate, filterToDate]
+  const projectedRooms = useMemo(() => {
+    const fromYMD = parseDateToYMD(filterFromDate) || todayStr;
+    const toYMD = parseDateToYMD(filterToDate) || fromYMD;
+
+    // Check if current today is included in the window
+    const includesToday = (fromYMD <= todayStr && toYMD >= todayStr);
+
+    return rooms.map(room => {
+      const rNo = String(room.roomNumber);
+
+      // Find booking overlapping [fromYMD, toYMD]
+      const matchedBooking = allKnownBookings.find(b => {
+        const bRoom = String(b.roomNumber || b.room_number);
+        if (bRoom !== rNo) return false;
+        const bIn = parseDateToYMD(b.checkInDate || b.checkIn || b.check_in_date);
+        const bOut = parseDateToYMD(b.checkOutDate || b.checkOut || b.check_out_date || bIn);
+        if (!bIn) return false;
+        return bIn <= toYMD && bOut >= fromYMD;
+      });
+
+      // Default in-house occupancy if today is within window or room has active guest
+      const hasCurrentInHouse = (room.status === 'Occupied' || room.status === 'Occupied Clean');
+      const isBookedInPeriod = Boolean(matchedBooking) || (includesToday && hasCurrentInHouse);
+
+      let effectiveStatus = room.status;
+      let effectiveGuestName = room.currentGuestName || '—';
+      let effectivePhone = room.guestPhone || '—';
+      let effectiveCompany = room.company || '—';
+      let effectiveStayPeriod = '—';
+      let effectiveTariff = room.tariff || 2199;
+      let effectiveBalanceDue = room.balanceDue || 0;
+
+      if (room.status === 'Maintenance') {
+        effectiveStatus = 'Maintenance';
+        effectiveGuestName = 'OOO / MAINTENANCE';
+        effectiveStayPeriod = 'Blocked';
+      } else if (isBookedInPeriod) {
+        effectiveStatus = room.status === 'Occupied Clean' ? 'Occupied Clean' : 'Occupied';
+        effectiveGuestName = matchedBooking?.guestName || room.currentGuestName || 'In-House Guest';
+        effectivePhone = matchedBooking?.guestPhone || room.guestPhone || '+91 94370 22555';
+        effectiveCompany = matchedBooking?.company || room.company || (matchedBooking?.isB2B ? 'CORPORATE' : 'INDIVIDUAL');
+        const inFormatted = matchedBooking?.checkInDate || (includesToday ? 'Today' : fromYMD);
+        const outFormatted = matchedBooking?.checkOutDate || (includesToday ? 'Tomorrow' : toYMD);
+        effectiveStayPeriod = `${inFormatted} → ${outFormatted}`;
+        effectiveTariff = matchedBooking?.tariff || matchedBooking?.tariffPerNight || room.tariff || 2199;
+        effectiveBalanceDue = matchedBooking?.balanceDue !== undefined ? matchedBooking.balanceDue : (room.balanceDue || 0);
+      } else {
+        effectiveStatus = 'Available';
+        effectiveGuestName = '—';
+        effectivePhone = '—';
+        effectiveCompany = '—';
+        effectiveStayPeriod = 'Vacant Clean';
+        effectiveTariff = room.tariff || 2199;
+        effectiveBalanceDue = 0;
+      }
+
+      return {
+        ...room,
+        effectiveStatus,
+        effectiveGuestName,
+        effectivePhone,
+        effectiveCompany,
+        effectiveStayPeriod,
+        effectiveTariff,
+        effectiveBalanceDue,
+        matchedBooking
+      };
+    });
+  }, [rooms, allKnownBookings, filterFromDate, filterToDate, todayStr]);
+
+  // Counts based on projected room state for selected date window
+  const totalCount = projectedRooms.length;
+  const vacantCleanCount = projectedRooms.filter(r => r.effectiveStatus === 'Available').length;
+  const vacantDirtyCount = projectedRooms.filter(r => r.effectiveStatus === 'Vacant Dirty' || r.effectiveStatus === 'Cleaning').length;
+  const occupiedCleanCount = projectedRooms.filter(r => r.effectiveStatus === 'Occupied Clean').length;
+  const occupiedDirtyCount = projectedRooms.filter(r => r.effectiveStatus === 'Occupied').length;
+  const oooCount = projectedRooms.filter(r => r.effectiveStatus === 'Maintenance' || r.effectiveStatus === 'VIP Hold').length;
+
+  // Filtered rooms for Tape Chart / Master Tabular Room Ledger
+  const filteredRooms = projectedRooms.filter(r => {
     let matchesFilter = true;
     if (statusFilter === 'all') matchesFilter = true;
-    else if (statusFilter === 'Available') matchesFilter = r.status === 'Available';
-    else if (statusFilter === 'Vacant Dirty') matchesFilter = r.status === 'Vacant Dirty' || r.status === 'Cleaning';
-    else if (statusFilter === 'Occupied') matchesFilter = r.status === 'Occupied' || r.status === 'Occupied Clean';
-    else if (statusFilter === 'Occupied Clean') matchesFilter = r.status === 'Occupied Clean';
-    else if (statusFilter === 'Maintenance') matchesFilter = r.status === 'Maintenance' || r.status === 'VIP Hold';
-    else matchesFilter = r.status === statusFilter;
+    else if (statusFilter === 'Available') matchesFilter = r.effectiveStatus === 'Available';
+    else if (statusFilter === 'Vacant Dirty') matchesFilter = r.effectiveStatus === 'Vacant Dirty' || r.effectiveStatus === 'Cleaning';
+    else if (statusFilter === 'Occupied') matchesFilter = r.effectiveStatus === 'Occupied' || r.effectiveStatus === 'Occupied Clean';
+    else if (statusFilter === 'Occupied Clean') matchesFilter = r.effectiveStatus === 'Occupied Clean';
+    else if (statusFilter === 'Maintenance') matchesFilter = r.effectiveStatus === 'Maintenance' || r.effectiveStatus === 'VIP Hold';
+    else matchesFilter = r.effectiveStatus === statusFilter;
 
     const matchesSearch = r.roomNumber.includes(searchTerm) || 
-      (r.currentGuestName && r.currentGuestName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (r.effectiveGuestName && r.effectiveGuestName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (r.effectiveCompany && r.effectiveCompany.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
   });
 
@@ -2503,59 +2630,60 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         ))}
       </div>
 
-      {/* AUTHENTIC MYSOFT DATE SELECTION COMMAND BAR (Universal across ALL PMS tabs) */}
-      <UniversalDateFilterBar
-        fromDate={filterFromDate}
-        toDate={filterToDate}
-        onDateChange={(from, to) => {
-          setFilterFromDate(from);
-          setFilterToDate(to);
-        }}
-        onDisplay={(from, to) => {
-          setFilterFromDate(from);
-          setFilterToDate(to);
-          setIsDateFilterActive(true);
-        }}
-        title={`PMS AUDIT WINDOW (${activeTab.replace(/-/g, ' ').toUpperCase()})`}
-        totalCount={
-          activeTab === 'tape-chart' ? totalCount :
-          activeTab === 'police-register' ? filteredBookings.length :
-          activeTab === 'cashier-audit' ? filteredSettlements.length :
-          activeTab === 'lost-and-found' ? filteredLostAndFound.length :
-          activeTab === 'maintenance-ooo' ? filteredMaintenance.length :
-          activeTab === 'transit-dayuse' ? filteredTransitStays.length :
-          null
-        }
-        totalAmount={
-          activeTab === 'cashier-audit' ? filteredSettlements.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0) :
-          activeTab === 'transit-dayuse' ? filteredTransitStays.reduce((sum, t) => sum + (t.tariff || 0), 0) :
-          activeTab === 'police-register' ? filteredBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.tariff || 0)), 0) :
-          null
-        }
-        onExportCSV={() => {
-          const link = document.createElement("a");
-          let csvContent = "";
-          if (activeTab === 'police-register') {
-            csvContent = "Room,GuestName,Phone,IDProof,Origin,Interstate,StayDuration,TotalAmount\n" +
-              filteredBookings.map(b => `${b.room_number || b.roomNumber},"${b.guest_name || b.guestName}","${b.guest_phone || b.guestPhone}","${b.id_proof_masked || b.idProofMasked || ''}","${b.state_of_origin || b.stateOfOrigin || ''}",${b.is_interstate || b.isInterstate ? 'YES' : 'NO'},"${b.checkIn || ''} to ${b.checkOut || ''}",${b.totalAmount || 0}`).join('\n');
-          } else if (activeTab === 'cashier-audit') {
-            csvContent = "Time,Room,GuestName,BillNo,TotalAmount,Tenders\n" +
-              filteredSettlements.map(s => `"${s.settlementTime}",${s.roomNumber},"${s.guestName}","${s.billNo}",${s.totalAmount},"${(s.tendersSummary || []).join('; ')}"`).join('\n');
-          } else if (activeTab === 'transit-dayuse') {
-            csvContent = "Room,GuestName,Phone,Origin,Purpose,Slot,CheckIn,ExpectedOut,Tariff,Status\n" +
-              filteredTransitStays.map(t => `${t.roomNumber},"${t.guestName}","${t.phone}","${t.origin}","${t.purpose}","${t.slotDuration}","${t.checkInTime}","${t.expectedCheckOut}",${t.tariff},"${t.status}"`).join('\n');
-          } else {
-            csvContent = "Date,Room,Status,GuestName\n" + 
-              rooms.map(r => `${filterFromDate},${r.roomNumber},${r.status},"${r.currentGuestName || ''}"`).join('\n');
+      {/* AUTHENTIC MYSOFT DATE SELECTION COMMAND BAR (Universal across audit tabs, embedded directly inside Master Tabular Ledger for Tape Chart) */}
+      {activeTab !== 'tape-chart' && (
+        <UniversalDateFilterBar
+          fromDate={filterFromDate}
+          toDate={filterToDate}
+          onDateChange={(from, to) => {
+            setFilterFromDate(from);
+            setFilterToDate(to);
+          }}
+          onDisplay={(from, to) => {
+            setFilterFromDate(from);
+            setFilterToDate(to);
+            setIsDateFilterActive(true);
+          }}
+          title={`PMS AUDIT WINDOW (${activeTab.replace(/-/g, ' ').toUpperCase()})`}
+          totalCount={
+            activeTab === 'police-register' ? filteredBookings.length :
+            activeTab === 'cashier-audit' ? filteredSettlements.length :
+            activeTab === 'lost-and-found' ? filteredLostAndFound.length :
+            activeTab === 'maintenance-ooo' ? filteredMaintenance.length :
+            activeTab === 'transit-dayuse' ? filteredTransitStays.length :
+            null
           }
-          link.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
-          link.download = `PMS_${activeTab.replace(/-/g, '_')}_${filterFromDate}_to_${filterToDate}.csv`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }}
-        onPrint={() => window.print()}
-      />
+          totalAmount={
+            activeTab === 'cashier-audit' ? filteredSettlements.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0) :
+            activeTab === 'transit-dayuse' ? filteredTransitStays.reduce((sum, t) => sum + (t.tariff || 0), 0) :
+            activeTab === 'police-register' ? filteredBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.tariff || 0)), 0) :
+            null
+          }
+          onExportCSV={() => {
+            const link = document.createElement("a");
+            let csvContent = "";
+            if (activeTab === 'police-register') {
+              csvContent = "Room,GuestName,Phone,IDProof,Origin,Interstate,StayDuration,TotalAmount\n" +
+                filteredBookings.map(b => `${b.room_number || b.roomNumber},"${b.guest_name || b.guestName}","${b.guest_phone || b.guestPhone}","${b.id_proof_masked || b.idProofMasked || ''}","${b.state_of_origin || b.stateOfOrigin || ''}",${b.is_interstate || b.isInterstate ? 'YES' : 'NO'},"${b.checkIn || ''} to ${b.checkOut || ''}",${b.totalAmount || 0}`).join('\n');
+            } else if (activeTab === 'cashier-audit') {
+              csvContent = "Time,Room,GuestName,BillNo,TotalAmount,Tenders\n" +
+                filteredSettlements.map(s => `"${s.settlementTime}",${s.roomNumber},"${s.guestName}","${s.billNo}",${s.totalAmount},"${(s.tendersSummary || []).join('; ')}"`).join('\n');
+            } else if (activeTab === 'transit-dayuse') {
+              csvContent = "Room,GuestName,Phone,Origin,Purpose,Slot,CheckIn,ExpectedOut,Tariff,Status\n" +
+                filteredTransitStays.map(t => `${t.roomNumber},"${t.guestName}","${t.phone}","${t.origin}","${t.purpose}","${t.slotDuration}","${t.checkInTime}","${t.expectedCheckOut}",${t.tariff},"${t.status}"`).join('\n');
+            } else {
+              csvContent = "Date,Room,Status,GuestName\n" + 
+                rooms.map(r => `${filterFromDate},${r.roomNumber},${r.status},"${r.currentGuestName || ''}"`).join('\n');
+            }
+            link.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+            link.download = `PMS_${activeTab.replace(/-/g, '_')}_${filterFromDate}_to_${filterToDate}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+          onPrint={() => window.print()}
+        />
+      )}
 
       {/* UNIVERSAL OPERATIONAL SEARCH & COMMAND STRIP (Active on ALL 15 tabs) */}
       <div style={{
@@ -3309,41 +3437,47 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           {/* VIEW 0: ENTERPRISE MASTER TABULAR ROOM LEDGER (Spreadsheet Format) */}
           {tapeChartViewMode === 'table' ? (
             <div className="enterprise-data-table-container">
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '12px',
-                padding: '0.85rem 1.25rem',
-                background: 'linear-gradient(90deg, #0b1526 0%, #15243d 50%, #0b1526 100%)',
-                borderBottom: '2px solid rgba(212, 175, 55, 0.4)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--gold-glow)', letterSpacing: '0.02em' }}>
-                    📋 MASTER TABULAR ROOM LEDGER (All 39 Keys)
-                  </span>
-                  <span style={{
-                    fontSize: '0.72rem',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(56, 189, 248, 0.2)',
-                    color: '#38bdf8',
-                    border: '1px solid rgba(56, 189, 248, 0.4)',
-                    fontWeight: 700
-                  }}>
-                    REAL-TIME SPREADSHEET AUDIT
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#cbd5e1', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <span>Showing <strong style={{ color: '#ffffff' }}>{filteredRooms.length}</strong> of 39 Rooms</span>
-                  <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
-                  <span>Occupied: <strong style={{ color: '#fb923c' }}>{occupiedDirtyCount + occupiedCleanCount}</strong></span>
-                  <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
-                  <span>Vacant Clean: <strong style={{ color: '#34d399' }}>{vacantCleanCount}</strong></span>
-                  <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
-                  <span>OOO: <strong style={{ color: '#f87171' }}>{oooCount}</strong></span>
-                </div>
+              {/* AUTHENTIC MYSOFT ENTERPRISE DATE COMMAND SECTION (Integrated in Master Tabular Room Ledger) */}
+              <div style={{ padding: '0.65rem 0.85rem', background: '#071224', borderBottom: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                <UniversalDateFilterBar
+                  fromDate={filterFromDate}
+                  toDate={filterToDate}
+                  onDateChange={(from, to) => {
+                    setFilterFromDate(from);
+                    setFilterToDate(to);
+                  }}
+                  onDisplay={(from, to) => {
+                    setFilterFromDate(from);
+                    setFilterToDate(to);
+                    setIsDateFilterActive(true);
+                  }}
+                  title="MASTER TABULAR ROOM LEDGER"
+                  totalCount={filteredRooms.length}
+                  totalAmount={filteredRooms.reduce((sum, r) => sum + (r.effectiveStatus?.includes('Occupied') ? (r.effectiveTariff || 0) : 0), 0)}
+                  extraStats={
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.76rem', color: '#e0e7ff' }}>
+                      <span>Occupied: <strong style={{ color: '#fed7aa' }}>{occupiedDirtyCount + occupiedCleanCount}</strong></span>
+                      <span>|</span>
+                      <span>Vacant Clean: <strong style={{ color: '#a7f3d0' }}>{vacantCleanCount}</strong></span>
+                      <span>|</span>
+                      <span>OOO: <strong style={{ color: '#fca5a5' }}>{oooCount}</strong></span>
+                    </div>
+                  }
+                  onExportCSV={() => {
+                    const csvContent = "Room,Floor,Tier,Status,GuestName,Phone,Company,StayPeriod,Tariff,BalanceDue\n" +
+                      filteredRooms.map(r => `${r.roomNumber},${r.floor},"${r.tier}","${r.effectiveStatus}","${r.effectiveGuestName}","${r.effectivePhone}","${r.effectiveCompany}","${r.effectiveStayPeriod}",${r.effectiveTariff},${r.effectiveBalanceDue}`).join('\n');
+                    const link = document.createElement("a");
+                    link.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+                    link.download = `Master_Tabular_Room_Ledger_${filterFromDate}_to_${filterToDate}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  onExportExcel={() => {
+                    alert("Exporting Master Tabular Room Ledger to Excel (Spreadsheet format)...");
+                  }}
+                  onPrint={() => window.print()}
+                />
               </div>
 
               <table className="enterprise-data-table">
@@ -3372,27 +3506,27 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                     </tr>
                   ) : (
                     filteredRooms.map(room => {
-                      const isOccupied = room.status === 'Occupied' || room.status === 'Occupied Clean';
-                      const isMaint = room.status === 'Maintenance';
-                      const isCleaning = room.status === 'Cleaning' || room.status === 'Vacant Dirty';
-                      const isVacant = room.status === 'Available';
+                      const isOccupied = room.effectiveStatus === 'Occupied' || room.effectiveStatus === 'Occupied Clean';
+                      const isMaint = room.effectiveStatus === 'Maintenance';
+                      const isCleaning = room.effectiveStatus === 'Cleaning' || room.effectiveStatus === 'Vacant Dirty';
+                      const isVacant = room.effectiveStatus === 'Available';
 
-                      const matchedBooking = bookings.find(b => b.roomNumber === room.roomNumber || b.room_number === room.roomNumber) || {
+                      const matchedBooking = room.matchedBooking || {
                         bookingId: `FMBIL2627-${room.roomNumber}`,
                         billNo: `FMBIL2627-${room.roomNumber}`,
                         roomNumber: room.roomNumber,
-                        guestName: room.currentGuestName || (isOccupied ? 'Guest In-House' : 'WALK-IN GUEST'),
-                        guestPhone: room.guestPhone || '+91 94370 22555',
-                        company: room.company || (isOccupied ? 'LINDE INDIA LTD' : 'INDIVIDUAL'),
+                        guestName: room.effectiveGuestName || (isOccupied ? 'Guest In-House' : 'WALK-IN GUEST'),
+                        guestPhone: room.effectivePhone || '+91 94370 22555',
+                        company: room.effectiveCompany || (isOccupied ? 'LINDE INDIA LTD' : 'INDIVIDUAL'),
                         corporateGstin: '21AAACB2528H1ZA',
                         tier: room.tier,
-                        tariff: room.tariff || 2199,
-                        totalAmount: room.outstandingBalance || room.balanceDue || room.tariff || 2199,
+                        tariff: room.effectiveTariff || 2199,
+                        totalAmount: room.effectiveBalanceDue || room.effectiveTariff || 2199,
                         nights: 1,
                         grcNo: `GRC-${room.roomNumber}`,
-                        checkInDate: '22/09/2026',
+                        checkInDate: filterFromDate,
                         checkInTime: '11:00 AM',
-                        checkOutDate: '23/09/2026 (12:00 PM)'
+                        checkOutDate: `${filterToDate} (12:00 PM)`
                       };
 
                       return (
@@ -3444,7 +3578,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                     ? '1px solid rgba(234, 179, 8, 0.5)' 
                                     : '1px solid rgba(16, 185, 129, 0.5)'
                             }}>
-                              {room.status}
+                              {room.effectiveStatus}
                             </span>
                           </td>
 
@@ -3453,11 +3587,11 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                             {isInlineEditActive && isOccupied ? (
                               <input
                                 type="text"
-                                defaultValue={room.currentGuestName || ''}
+                                defaultValue={room.effectiveGuestName || ''}
                                 onBlur={(e) => {
                                   const newName = e.target.value.trim();
                                   if (newName && onUpdateRoomStatus) {
-                                    onUpdateRoomStatus(room.roomNumber, room.status, newName, room.tariff);
+                                    onUpdateRoomStatus(room.roomNumber, room.effectiveStatus, newName, room.effectiveTariff);
                                   }
                                 }}
                                 placeholder="Guest Name..."
@@ -3474,34 +3608,34 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               />
                             ) : (
                               <div style={{ fontWeight: isOccupied ? 700 : 500, color: isOccupied ? '#ffffff' : '#64748b' }}>
-                                {isOccupied ? (room.currentGuestName || matchedBooking.guestName || 'In-House Guest') : '—'}
+                                {isOccupied ? (room.effectiveGuestName || matchedBooking.guestName || 'In-House Guest') : '—'}
                               </div>
                             )}
                           </td>
 
                           {/* Phone */}
                           <td style={{ color: '#cbd5e1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                            {isOccupied ? (matchedBooking.guestPhone || room.guestPhone || '+91 94370 22555') : '—'}
+                            {isOccupied ? (matchedBooking.guestPhone || room.effectivePhone || '+91 94370 22555') : '—'}
                           </td>
 
                           {/* Company */}
                           <td style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
-                            {isOccupied ? (matchedBooking.company || 'Direct Corporate') : '—'}
+                            {isOccupied ? (matchedBooking.company || room.effectiveCompany || 'Direct Corporate') : '—'}
                           </td>
 
                           {/* Stay Period */}
                           <td style={{ color: '#94a3b8', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                            {isOccupied ? `${matchedBooking.checkInDate || 'Today'} (${matchedBooking.nights || 1}N)` : '—'}
+                            {room.effectiveStayPeriod}
                           </td>
 
                           {/* Tariff */}
                           <td className="cell-num" style={{ color: '#38bdf8' }}>
-                            ₹{(room.tariff || 2199).toLocaleString('en-IN')}
+                            ₹{(room.effectiveTariff || 2199).toLocaleString('en-IN')}
                           </td>
 
                           {/* Balance Due */}
-                          <td className="cell-num" style={{ color: (room.outstandingBalance || room.balanceDue) ? '#f87171' : '#34d399' }}>
-                            ₹{(room.outstandingBalance || room.balanceDue || 0).toLocaleString('en-IN')}
+                          <td className="cell-num" style={{ color: (room.effectiveBalanceDue) ? '#f87171' : '#34d399' }}>
+                            ₹{(room.effectiveBalanceDue || 0).toLocaleString('en-IN')}
                           </td>
 
                           {/* Key / HK */}
