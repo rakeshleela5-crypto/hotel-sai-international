@@ -19,7 +19,7 @@ function getSecurityHeaders(originHeader = null) {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Cache-Control": "no-store, no-cache, must-revalidate",
     "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
     "Vary": "Origin"
   };
@@ -271,3 +271,103 @@ export async function onRequestGet({ request, env }) {
     }, 500, request);
   }
 }
+
+// POST /api/d1-tables: Direct Inline Cell Update in Cloudflare D1
+export async function onRequestPost({ request, env }) {
+  try {
+    const db = env?.DB;
+    if (!db) {
+      return jsonResponse({ success: false, error: "Cloudflare D1 database binding 'DB' not configured" }, 503, request);
+    }
+
+    const payload = await request.json();
+    const { tableName, primaryKeyColumn, primaryKeyValue, column, value } = payload;
+
+    if (!tableName || !primaryKeyColumn || primaryKeyValue === undefined || !column) {
+      return jsonResponse({ 
+        success: false, 
+        error: "Missing required parameters: tableName, primaryKeyColumn, primaryKeyValue, column" 
+      }, 400, request);
+    }
+
+    // Security validation: identifiers must only contain letters, numbers, and underscores
+    const identifierRegex = /^[a-zA-Z0-9_]+$/;
+    if (!identifierRegex.test(tableName) || !identifierRegex.test(primaryKeyColumn) || !identifierRegex.test(column)) {
+      return jsonResponse({ success: false, error: "Invalid table or column identifier format" }, 400, request);
+    }
+
+    // 1. Verify table exists in SQLite catalog
+    const tableExists = await db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
+    ).bind(tableName).first();
+
+    if (!tableExists) {
+      return jsonResponse({ success: false, error: `Table '${tableName}' not found in D1 database` }, 404, request);
+    }
+
+    // 2. Fetch table metadata to ensure column exists & check if primary key
+    const columnsRes = await db.prepare(`PRAGMA table_info("${tableName}")`).all();
+    const colMeta = (columnsRes.results || []).find(c => c.name === column);
+    if (!colMeta) {
+      return jsonResponse({ success: false, error: `Column '${column}' does not exist on table '${tableName}'` }, 400, request);
+    }
+
+    // 3. Security safeguard: Disallow direct primary key mutation to avoid data corruption
+    if (colMeta.pk && column === primaryKeyColumn) {
+      return jsonResponse({ success: false, error: `Cannot modify primary key column '${column}'` }, 400, request);
+    }
+
+    // 4. Type casting/sanitization
+    let sanitizedValue = value;
+    const colTypeUpper = (colMeta.type || '').toUpperCase();
+    if (sanitizedValue === '' || sanitizedValue === null || sanitizedValue === 'NULL') {
+      sanitizedValue = colMeta.notnull ? (colTypeUpper.includes('INT') || colTypeUpper.includes('REAL') ? 0 : '') : null;
+    } else if (colTypeUpper.includes('INT') || colTypeUpper.includes('INTEGER')) {
+      const num = parseInt(sanitizedValue, 10);
+      sanitizedValue = isNaN(num) ? 0 : num;
+    } else if (colTypeUpper.includes('REAL') || colTypeUpper.includes('NUM') || colTypeUpper.includes('DECIMAL')) {
+      const flt = parseFloat(sanitizedValue);
+      sanitizedValue = isNaN(flt) ? 0.0 : flt;
+    }
+
+    // 5. Execute parameterized update
+    const updateSql = `UPDATE "${tableName}" SET "${column}" = ? WHERE "${primaryKeyColumn}" = ?`;
+    const result = await db.prepare(updateSql).bind(sanitizedValue, primaryKeyValue).run();
+
+    // 6. Record audit trail entry if pms_audit_trail table is present
+    try {
+      await db.prepare(
+        `INSERT INTO pms_audit_trail (table_name, record_id, action, changed_fields, user_id, timestamp) 
+         VALUES (?, ?, ?, ?, ?, datetime('now'))`
+      ).bind(
+        tableName, 
+        String(primaryKeyValue), 
+        "INLINE_CELL_UPDATE", 
+        JSON.stringify({ [column]: sanitizedValue }), 
+        "staff-direct-edit"
+      ).run();
+    } catch {
+      // Audit trail table is optional; ignore if not present
+    }
+
+    return jsonResponse({
+      success: true,
+      message: `Cell '${column}' updated in '${tableName}'`,
+      tableName,
+      column,
+      value: sanitizedValue,
+      primaryKeyColumn,
+      primaryKeyValue,
+      changes: result.meta?.changes ?? 1,
+      updatedAt: new Date().toISOString()
+    }, 200, request);
+
+  } catch (error) {
+    console.error("D1 Cell Update Error:", error);
+    return jsonResponse({
+      success: false,
+      error: error.message || "Failed to update cell in Cloudflare D1"
+    }, 500, request);
+  }
+}
+

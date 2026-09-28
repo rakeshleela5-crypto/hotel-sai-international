@@ -14,7 +14,9 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
-  Sparkles
+  Sparkles,
+  Edit2,
+  Loader2
 } from 'lucide-react';
 
 // Master schema directory of all 68 Cloudflare D1 tables across 10 operational departments
@@ -120,6 +122,12 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [syncStatus, setSyncStatus] = useState('connecting'); // 'live' | 'local_fallback' | 'connecting' | 'error'
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Live Inline Spreadsheet Cell Editing States
+  const [editingCell, setEditingCell] = useState(null); // { rowKey, pkCol, pkVal, colName, originalVal, currentVal, colType }
+  const [savingKey, setSavingKey] = useState(null); // `${rowKey}:${colName}`
+  const [savedKey, setSavedKey] = useState(null); // `${rowKey}:${colName}`
+  const [toastMessage, setToastMessage] = useState(null);
 
   // 1. Fetch tables directory on mount from Cloudflare D1
   const fetchDirectory = async () => {
@@ -367,6 +375,135 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // --- GOOGLE SHEETS LIVE INLINE CELL EDITING LOGIC ---
+  const handleStartCellEdit = (row, col) => {
+    if (col.pk) {
+      setToastMessage({ type: 'info', text: `🔒 Column '${col.name}' is the Primary Key (Immutable).` });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    const pkCol = tableData?.columns?.find(c => c.pk)?.name || 'id';
+    const pkVal = row[pkCol] ?? row.id ?? row.booking_id ?? row.room_number ?? row.voucher_number ?? row.code;
+    const rowKey = pkVal !== undefined ? pkVal : JSON.stringify(row);
+    const originalVal = row[col.name];
+
+    setEditingCell({
+      rowKey,
+      pkCol,
+      pkVal,
+      colName: col.name,
+      originalVal,
+      currentVal: originalVal === null || originalVal === undefined ? '' : String(originalVal),
+      colType: col.type
+    });
+  };
+
+  const handleCommitEdit = async (row, col, nextColTarget = null) => {
+    if (!editingCell) return;
+    if (editingCell.colName !== col.name) return;
+
+    const { rowKey, pkCol, pkVal, currentVal, originalVal, colType } = editingCell;
+    const origStr = originalVal === null || originalVal === undefined ? '' : String(originalVal);
+
+    // If unchanged, just close edit mode
+    if (currentVal.trim() === origStr.trim()) {
+      setEditingCell(null);
+      if (nextColTarget) handleStartCellEdit(row, nextColTarget);
+      return;
+    }
+
+    // Type casting
+    let parsedVal = currentVal;
+    const typeUpper = (colType || '').toUpperCase();
+    if (currentVal.trim() === '') {
+      parsedVal = col.notnull ? (typeUpper.includes('INT') || typeUpper.includes('REAL') ? 0 : '') : null;
+    } else if (typeUpper.includes('INT')) {
+      const parsedInt = parseInt(currentVal.trim(), 10);
+      parsedVal = isNaN(parsedInt) ? 0 : parsedInt;
+    } else if (typeUpper.includes('REAL') || typeUpper.includes('DECIMAL') || typeUpper.includes('NUM')) {
+      const parsedFloat = parseFloat(currentVal.trim());
+      parsedVal = isNaN(parsedFloat) ? 0.0 : parsedFloat;
+    }
+
+    // Optimistically update local row state
+    if (tableData && tableData.rows) {
+      const updatedRows = tableData.rows.map(r => {
+        const currPk = r[pkCol] ?? r.id ?? r.booking_id ?? r.room_number ?? r.voucher_number ?? r.code;
+        if (currPk === pkVal) {
+          return { ...r, [col.name]: parsedVal };
+        }
+        return r;
+      });
+      setTableData({ ...tableData, rows: updatedRows });
+    }
+
+    const cellKey = `${rowKey}:${col.name}`;
+    setSavingKey(cellKey);
+    setEditingCell(null);
+
+    try {
+      const res = await fetch('/api/d1-tables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableName: selectedTable,
+          primaryKeyColumn: pkCol,
+          primaryKeyValue: pkVal,
+          column: col.name,
+          value: parsedVal
+        })
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setSavedKey(cellKey);
+        setToastMessage({ type: 'success', text: `✅ Saved '${col.name}' to D1: ${parsedVal}` });
+        setTimeout(() => {
+          setSavedKey(prev => prev === cellKey ? null : prev);
+          setToastMessage(null);
+        }, 2500);
+      } else {
+        throw new Error(json.error || 'Server rejected update');
+      }
+    } catch (err) {
+      // Revert optimistic update
+      if (tableData && tableData.rows) {
+        const revertedRows = tableData.rows.map(r => {
+          const currPk = r[pkCol] ?? r.id ?? r.booking_id ?? r.room_number ?? r.voucher_number ?? r.code;
+          if (currPk === pkVal) {
+            return { ...r, [col.name]: originalVal };
+          }
+          return r;
+        });
+        setTableData({ ...tableData, rows: revertedRows });
+      }
+      setToastMessage({ type: 'error', text: `❌ Save failed for '${col.name}': ${err.message}` });
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setSavingKey(null);
+      if (nextColTarget) handleStartCellEdit(row, nextColTarget);
+    }
+  };
+
+  const handleCellKeyDown = (e, row, col) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleCommitEdit(row, col);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setEditingCell(null);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      e.stopPropagation();
+      const editableCols = (tableData?.columns || []).filter(c => !c.pk);
+      const currIdx = editableCols.findIndex(c => c.name === col.name);
+      const nextCol = currIdx >= 0 && currIdx + 1 < editableCols.length ? editableCols[currIdx + 1] : null;
+      handleCommitEdit(row, col, nextCol);
+    }
   };
 
   const totalRegisteredTables = tablesDirectory?.length || MASTER_68_TABLES.length;
@@ -771,80 +908,191 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
             No columns or metadata found for table "{selectedTable}".
           </div>
         ) : (
-          <div style={{ width: '100%', overflowX: 'auto', maxHeight: '520px', overflowY: 'auto' }}>
-            <table className="enterprise-data-table sheets-grid-table">
-              <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
-                <tr>
-                  <th style={{ width: '45px', textAlign: 'center' }}>#</th>
-                  {tableData.columns.map(col => (
-                    <th key={col.name} style={{ whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ color: col.pk ? 'var(--gold-glow)' : 'inherit', fontWeight: col.pk ? 900 : 700 }}>
-                          {col.pk ? `🔑 ${col.name}` : col.name}
-                        </span>
-                        <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>
-                          {col.type || 'TEXT'}
-                        </span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayedRows.length === 0 ? (
+          <div>
+            {/* Live Spreadsheet Edit Mode Helper Banner */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '8px',
+              padding: '0.45rem 1rem',
+              background: 'linear-gradient(90deg, rgba(8, 20, 38, 0.95), rgba(15, 30, 56, 0.95))',
+              borderBottom: '1px solid rgba(56, 189, 248, 0.3)',
+              fontSize: '0.76rem',
+              color: '#e2e8f0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '4px', 
+                  padding: '2px 7px', 
+                  borderRadius: '4px', 
+                  background: 'rgba(34, 197, 94, 0.18)', 
+                  color: '#4ade80', 
+                  fontWeight: 800,
+                  border: '1px solid rgba(34, 197, 94, 0.35)'
+                }}>
+                  🟢 SPREADSHEET DIRECT EDIT
+                </span>
+                <span style={{ color: '#94a3b8' }}>
+                  Click any cell to edit • <kbd style={{ background: '#1e293b', border: '1px solid #475569', borderRadius: '3px', padding: '1px 5px', color: '#fff' }}>Enter</kbd> / <kbd style={{ background: '#1e293b', border: '1px solid #475569', borderRadius: '3px', padding: '1px 5px', color: '#fff' }}>Tab</kbd> to save • <kbd style={{ background: '#1e293b', border: '1px solid #475569', borderRadius: '3px', padding: '1px 5px', color: '#fff' }}>Esc</kbd> to cancel • D1 Live Sync
+                </span>
+              </div>
+
+              {toastMessage && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '2px 10px',
+                  borderRadius: '4px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  background: toastMessage.type === 'error' ? 'rgba(239, 68, 68, 0.2)' : toastMessage.type === 'success' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                  border: `1px solid ${toastMessage.type === 'error' ? '#ef4444' : toastMessage.type === 'success' ? '#22c55e' : '#38bdf8'}`,
+                  color: toastMessage.type === 'error' ? '#fca5a5' : toastMessage.type === 'success' ? '#86efac' : '#7dd3fc'
+                }}>
+                  {toastMessage.text}
+                </div>
+              )}
+            </div>
+
+            <div style={{ width: '100%', overflowX: 'auto', maxHeight: '520px', overflowY: 'auto' }}>
+              <table className="enterprise-data-table sheets-grid-table">
+                <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
                   <tr>
-                    <td colSpan={tableData.columns.length + 1} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-                      {searchTerm 
-                        ? `No records found matching search query "${searchTerm}".`
-                        : `Table "${selectedTable}" has no records yet in D1 database.`}
-                    </td>
+                    <th style={{ width: '45px', textAlign: 'center' }}>#</th>
+                    {tableData.columns.map(col => (
+                      <th key={col.name} style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ color: col.pk ? 'var(--gold-glow)' : 'inherit', fontWeight: col.pk ? 900 : 700 }}>
+                            {col.pk ? `🔑 ${col.name}` : col.name}
+                          </span>
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>
+                            {col.type || 'TEXT'}
+                          </span>
+                        </div>
+                      </th>
+                    ))}
                   </tr>
-                ) : (
-                  displayedRows.map((row, rowIdx) => (
-                    <tr key={rowIdx}>
-                      <td style={{ textAlign: 'center', color: '#64748b', fontSize: '0.72rem', userSelect: 'none' }}>
-                        {rowIdx + 1}
+                </thead>
+                <tbody>
+                  {displayedRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={tableData.columns.length + 1} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                        {searchTerm 
+                          ? `No records found matching search query "${searchTerm}".`
+                          : `Table "${selectedTable}" has no records yet in D1 database.`}
                       </td>
-                      {tableData.columns.map(col => {
-                        const val = row[col.name];
-                        const isNumeric = col.type && (col.type.includes('INT') || col.type.includes('REAL') || col.type.includes('NUM') || col.type.includes('DECIMAL'));
-                        const isBoolean = col.type && col.type.includes('BOOL');
-
-                        let displayVal = val;
-                        if (val === null || val === undefined) {
-                          displayVal = <span style={{ color: '#475569', fontStyle: 'italic' }}>NULL</span>;
-                        } else if (typeof val === 'object') {
-                          displayVal = <code>{JSON.stringify(val)}</code>;
-                        } else if (isBoolean) {
-                          displayVal = val ? 'TRUE' : 'FALSE';
-                        } else if (isNumeric && typeof val === 'number') {
-                          // Format currency or amounts nicely
-                          if (col.name.toLowerCase().includes('amount') || col.name.toLowerCase().includes('tariff') || col.name.toLowerCase().includes('balance') || col.name.toLowerCase().includes('float') || col.name.toLowerCase().includes('collected') || col.name.toLowerCase().includes('expected') || col.name.toLowerCase().includes('actual')) {
-                            displayVal = `₹${val.toLocaleString('en-IN')}`;
-                          } else {
-                            displayVal = val.toLocaleString('en-IN');
-                          }
-                        }
-
-                        return (
-                          <td
-                            key={col.name}
-                            className={isNumeric ? 'cell-num' : ''}
-                            style={{
-                              color: col.pk ? 'var(--gold-glow)' : '#f1f5f9',
-                              fontWeight: col.pk ? 800 : 500,
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {displayVal}
-                          </td>
-                        );
-                      })}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    displayedRows.map((row, rowIdx) => {
+                      const pkCol = tableData.columns.find(c => c.pk)?.name || 'id';
+                      const pkVal = row[pkCol] ?? row.id ?? row.booking_id ?? row.room_number ?? row.voucher_number ?? row.code;
+                      const rowKey = pkVal !== undefined ? pkVal : rowIdx;
+
+                      return (
+                        <tr key={rowKey}>
+                          <td style={{ textAlign: 'center', color: '#64748b', fontSize: '0.72rem', userSelect: 'none' }}>
+                            {rowIdx + 1}
+                          </td>
+                          {tableData.columns.map(col => {
+                            const val = row[col.name];
+                            const isNumeric = col.type && (col.type.includes('INT') || col.type.includes('REAL') || col.type.includes('NUM') || col.type.includes('DECIMAL'));
+                            const isBoolean = col.type && col.type.includes('BOOL');
+                            const cellKey = `${rowKey}:${col.name}`;
+
+                            const isCellEditing = editingCell && editingCell.rowKey === rowKey && editingCell.colName === col.name;
+                            const isSaving = savingKey === cellKey;
+                            const isSaved = savedKey === cellKey;
+
+                            let displayVal = val;
+                            if (val === null || val === undefined) {
+                              displayVal = <span style={{ color: '#475569', fontStyle: 'italic' }}>NULL</span>;
+                            } else if (typeof val === 'object') {
+                              displayVal = <code>{JSON.stringify(val)}</code>;
+                            } else if (isBoolean) {
+                              displayVal = val ? 'TRUE' : 'FALSE';
+                            } else if (isNumeric && typeof val === 'number') {
+                              if (col.name.toLowerCase().includes('amount') || col.name.toLowerCase().includes('tariff') || col.name.toLowerCase().includes('balance') || col.name.toLowerCase().includes('float') || col.name.toLowerCase().includes('collected') || col.name.toLowerCase().includes('expected') || col.name.toLowerCase().includes('actual')) {
+                                displayVal = `₹${val.toLocaleString('en-IN')}`;
+                              } else {
+                                displayVal = val.toLocaleString('en-IN');
+                              }
+                            }
+
+                            return (
+                              <td
+                                key={col.name}
+                                className={isNumeric ? 'cell-num' : ''}
+                                onClick={() => !isCellEditing && handleStartCellEdit(row, col)}
+                                title={col.pk ? '🔒 Primary Key (Immutable)' : '✏️ Click to edit directly'}
+                                style={{
+                                  color: col.pk ? 'var(--gold-glow)' : '#f1f5f9',
+                                  fontWeight: col.pk ? 800 : 500,
+                                  whiteSpace: 'nowrap',
+                                  cursor: col.pk ? 'not-allowed' : 'pointer',
+                                  position: 'relative',
+                                  background: isSaved 
+                                    ? 'rgba(34, 197, 94, 0.25)' 
+                                    : isSaving 
+                                    ? 'rgba(56, 189, 248, 0.25)' 
+                                    : isCellEditing 
+                                    ? '#020617' 
+                                    : undefined,
+                                  transition: 'background 0.2s ease',
+                                  minWidth: '80px'
+                                }}
+                              >
+                                {isCellEditing ? (
+                                  <input
+                                    type="text"
+                                    value={editingCell.currentVal}
+                                    onChange={e => setEditingCell(prev => prev ? { ...prev, currentVal: e.target.value } : null)}
+                                    onKeyDown={e => handleCellKeyDown(e, row, col)}
+                                    onBlur={() => handleCommitEdit(row, col)}
+                                    autoFocus
+                                    onFocus={e => e.target.select()}
+                                    style={{
+                                      width: '100%',
+                                      minWidth: '70px',
+                                      background: '#090d16',
+                                      border: '2px solid #38bdf8',
+                                      borderRadius: '3px',
+                                      color: '#ffffff',
+                                      fontSize: '0.82rem',
+                                      fontWeight: 600,
+                                      padding: '2px 6px',
+                                      outline: 'none',
+                                      boxShadow: '0 0 8px rgba(56, 189, 248, 0.5)'
+                                    }}
+                                  />
+                                ) : isSaving ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#38bdf8', fontSize: '0.74rem' }}>
+                                    <RefreshCw size={12} className="animate-spin" /> Saving...
+                                  </span>
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                                    <span>{displayVal}</span>
+                                    {isSaved ? (
+                                      <CheckCircle2 size={12} color="#22c55e" style={{ flexShrink: 0 }} />
+                                    ) : !col.pk ? (
+                                      <span className="cell-edit-hint" style={{ opacity: 0.25, fontSize: '0.65rem' }}>✎</span>
+                                    ) : null}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
