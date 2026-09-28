@@ -26,6 +26,7 @@ import CheckInReviewModal from './CheckInReviewModal';
 import StayDurationAnalytics from './StayDurationAnalytics';
 import OperationsSettingsTab from './OperationsSettingsTab';
 import D1LiveDatabaseExplorer from './D1LiveDatabaseExplorer';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 import { useUniversalInlineEdit, InlineEditorBanner, InlineText } from './UniversalInlineEditor';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
@@ -73,6 +74,13 @@ export default function ReceptionAdmin({
   const [tapeChartViewMode, setTapeChartViewMode] = useState('table'); // 'table' (Master Tabular Ledger), 'mysoft' (Legacy Tape Matrix), or 'modern' (Cards)
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Authentic Mysoft Universal Date Range Selector States (From Date -> To Date)
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [filterFromDate, setFilterFromDate] = useState(todayStr);
+  const [filterToDate, setFilterToDate] = useState(todayStr);
+  const [isDateFilterActive, setIsDateFilterActive] = useState(false);
+
   const [isInlineEditActive, setIsInlineEditActive] = useState(false);
   const searchInputRef = useRef(null);
   const receptionContainerRef = useRef(null);
@@ -2415,6 +2423,31 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           </button>
         ))}
       </div>
+
+      {/* AUTHENTIC MYSOFT DATE SELECTION COMMAND BAR (Universal across ALL PMS tabs) */}
+      <UniversalDateFilterBar
+        fromDate={filterFromDate}
+        toDate={filterToDate}
+        onDateChange={(from, to) => {
+          setFilterFromDate(from);
+          setFilterToDate(to);
+        }}
+        onDisplay={(from, to) => {
+          setFilterFromDate(from);
+          setFilterToDate(to);
+          setIsDateFilterActive(true);
+        }}
+        title={`PMS AUDIT WINDOW (${activeTab.replace(/-/g, ' ').toUpperCase()})`}
+        onExportCSV={() => {
+          const link = document.createElement("a");
+          link.href = "data:text/csv;charset=utf-8,Date,Room,Status,GuestName\n" + rooms.map(r => `${filterFromDate},${r.roomNumber},${r.status},"${r.currentGuestName || ''}"`).join('\n');
+          link.download = `PMS_Export_${filterFromDate}_to_${filterToDate}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }}
+        onPrint={() => window.print()}
+      />
 
       {/* UNIVERSAL OPERATIONAL SEARCH & COMMAND STRIP (Active on ALL 15 tabs) */}
       <div style={{
@@ -5599,7 +5632,11 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       {/* CLOUDFLARE D1 LIVE DATABASE EXPLORER TAB (Direct Tabular Schema Mirroring) */}
       {/* ========================================================================= */}
       {activeTab === 'd1-database-explorer' && (
-        <D1LiveDatabaseExplorer localContextData={{ rooms, bookings }} />
+        <D1LiveDatabaseExplorer 
+          localContextData={{ rooms, bookings }} 
+          fromDate={filterFromDate}
+          toDate={filterToDate}
+        />
       )}
 
       {/* ========================================================================= */}

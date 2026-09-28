@@ -12,6 +12,7 @@ import BookingReceiptModal from './BookingReceiptModal';
 import TallyConsoleModal from './TallyConsoleModal';
 import { generateOfficialGstr1Json, reconcileGstr2bWithPurchases, validateGstin } from '../utils/gstGovExport';
 import { useUniversalInlineEdit, InlineEditorBanner } from './UniversalInlineEditor';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 export default function AccountsLedgerModal({
   isOpen,
@@ -65,6 +66,11 @@ export default function AccountsLedgerModal({
     remarks: ''
   });
   const [gstAmendSaving, setGstAmendSaving] = useState(false);
+
+  // Authentic Mysoft From Date -> To Date Selector States for GST FOM & Ledgers
+  const [fomFromDate, setFomFromDate] = useState('2026-09-25');
+  const [fomToDate, setFomToDate] = useState('2026-09-25');
+  const [fomDateFilterActive, setFomDateFilterActive] = useState(true);
 
   // Authentic 2026-09-24 Item Wise Sales Report filters
   const [itemSalesCategoryFilter, setItemSalesCategoryFilter] = useState('ALL');
@@ -485,6 +491,19 @@ export default function AccountsLedgerModal({
     if (gstFomFilter === 'B2B' && !r.isB2B) return false;
     if (gstFomFilter === 'B2C' && r.isB2B) return false;
     if (accountsQuickFilter === 'B2B' && !r.isB2B) return false;
+
+    // Authentic Mysoft Date Range Filter: From Date to To Date
+    if (fomDateFilterActive && fomFromDate && fomToDate) {
+      let rDate = r.date;
+      if (rDate && rDate.includes('/')) {
+        const [d, m, y] = rDate.split('/');
+        rDate = `${y}-${m}-${d}`;
+      }
+      if (rDate && (rDate < fomFromDate || rDate > fomToDate)) {
+        return false;
+      }
+    }
+
     const searchTarget = (accountsSearchQuery || gstFomSearch).trim().toLowerCase();
     if (searchTarget) {
       return (
@@ -499,13 +518,13 @@ export default function AccountsLedgerModal({
     return true;
   });
 
-  const gstFomTotalTaxable0 = gstFomRecords.reduce((s, r) => s + (r.taxable0 || 0), 0);
-  const gstFomTotalTaxable5 = gstFomRecords.reduce((s, r) => s + (r.taxable5 || 0), 0);
-  const gstFomTotalSgst2_5 = gstFomRecords.reduce((s, r) => s + (r.sgst2_5 || 0), 0);
-  const gstFomTotalCgst2_5 = gstFomRecords.reduce((s, r) => s + (r.cgst2_5 || 0), 0);
-  const gstFomGrandTotal = gstFomRecords.reduce((s, r) => s + (r.totalAmount || 0), 0);
-  const gstFomB2bCount = gstFomRecords.filter(r => r.isB2B).length;
-  const gstFomB2cCount = gstFomRecords.filter(r => !r.isB2B).length;
+  const gstFomTotalTaxable0 = filteredGstRecords.reduce((s, r) => s + (r.taxable0 || 0), 0);
+  const gstFomTotalTaxable5 = filteredGstRecords.reduce((s, r) => s + (r.taxable5 || 0), 0);
+  const gstFomTotalSgst2_5 = filteredGstRecords.reduce((s, r) => s + (r.sgst2_5 || 0), 0);
+  const gstFomTotalCgst2_5 = filteredGstRecords.reduce((s, r) => s + (r.cgst2_5 || 0), 0);
+  const gstFomGrandTotal = filteredGstRecords.reduce((s, r) => s + (r.totalAmount || 0), 0);
+  const gstFomB2bCount = filteredGstRecords.filter(r => r.isB2B).length;
+  const gstFomB2cCount = filteredGstRecords.filter(r => !r.isB2B).length;
   const gstFomTotalTaxes = gstFomTotalSgst2_5 + gstFomTotalCgst2_5;
 
   const handleOpenGstAmend = (rec) => {
@@ -2004,6 +2023,26 @@ export default function AccountsLedgerModal({
                 </button>
               </div>
             </div>
+
+            {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+            <UniversalDateFilterBar
+              fromDate={fomFromDate}
+              toDate={fomToDate}
+              onDateChange={(from, to) => {
+                setFomFromDate(from);
+                setFomToDate(to);
+              }}
+              onDisplay={(from, to) => {
+                setFomFromDate(from);
+                setFomToDate(to);
+                setFomDateFilterActive(true);
+              }}
+              title="GST AMENDMENTS"
+              totalCount={filteredGstRecords.length}
+              totalAmount={gstFomGrandTotal}
+              onExportCSV={handleExportGstFomCSV}
+              onPrint={() => window.print()}
+            />
 
             {/* Legal GST Compliance Banner (Direct Answer to Audio & Monitor) */}
             <div style={{

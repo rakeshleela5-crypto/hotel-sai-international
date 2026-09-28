@@ -18,6 +18,7 @@ import {
   Edit2,
   Loader2
 } from 'lucide-react';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 // Master schema directory of all 68 Cloudflare D1 tables across 10 operational departments
 export const MASTER_68_TABLES = [
@@ -110,7 +111,7 @@ export const MASTER_68_TABLES = [
   { name: 'pms_audit_trail', label: 'Universal PMS Security Audit Trail', category: 'System & Telemetry', icon: '📜', rowCount: 45 }
 ];
 
-export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
+export default function D1LiveDatabaseExplorer({ localContextData = {}, fromDate: propFromDate, toDate: propToDate }) {
   const [tablesDirectory, setTablesDirectory] = useState(MASTER_68_TABLES);
   const [selectedTable, setSelectedTable] = useState('bookings');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -122,6 +123,18 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [syncStatus, setSyncStatus] = useState('connecting'); // 'live' | 'local_fallback' | 'connecting' | 'error'
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Authentic Mysoft Universal Date Range Selector States
+  const todayDefault = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [filterFromDate, setFilterFromDate] = useState(propFromDate || todayDefault);
+  const [filterToDate, setFilterToDate] = useState(propToDate || todayDefault);
+  const [isDateFilterActive, setIsDateFilterActive] = useState(Boolean(propFromDate && propToDate));
+
+  useEffect(() => {
+    if (propFromDate) setFilterFromDate(propFromDate);
+    if (propToDate) setFilterToDate(propToDate);
+    if (propFromDate && propToDate) setIsDateFilterActive(true);
+  }, [propFromDate, propToDate]);
 
   // Live Inline Spreadsheet Cell Editing States
   const [editingCell, setEditingCell] = useState(null); // { rowKey, pkCol, pkVal, colName, originalVal, currentVal, colType }
@@ -339,18 +352,71 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
     return list;
   }, [tablesDirectory, selectedCategory, tableSearchQuery]);
 
-  // Filter rows by search term
+  // Filter rows by search term and date range (From Date -> To Date)
   const displayedRows = useMemo(() => {
     if (!tableData || !tableData.rows) return [];
-    if (!searchTerm.trim()) return tableData.rows;
+    let rows = tableData.rows;
+
+    // Date range filtering across any date/time column in the table
+    if (isDateFilterActive && filterFromDate && filterToDate && tableData.columns) {
+      const dateCols = tableData.columns.filter(c => {
+        const n = c.name.toLowerCase();
+        return (
+          n.includes('date') || 
+          n.includes('time') || 
+          n.includes('created') || 
+          n.includes('check_in') || 
+          n.includes('check_out') || 
+          n.includes('timestamp') ||
+          n.includes('handover') ||
+          n.includes('audit')
+        );
+      });
+
+      if (dateCols.length > 0) {
+        rows = rows.filter(row => {
+          return dateCols.some(col => {
+            const rawVal = row[col.name];
+            if (!rawVal) return false;
+            let isoDate = null;
+            if (typeof rawVal === 'string') {
+              if (rawVal.includes('T')) isoDate = rawVal.split('T')[0];
+              else if (rawVal.includes(' ')) isoDate = rawVal.split(' ')[0];
+              else if (rawVal.length === 10 && rawVal.includes('-')) isoDate = rawVal;
+              else if (rawVal.includes('/')) {
+                const parts = rawVal.split('/');
+                if (parts.length === 3) {
+                  if (parts[0].length === 4) isoDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
+                  else isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+              }
+            }
+            if (!isoDate) return false;
+            return isoDate >= filterFromDate && isoDate <= filterToDate;
+          });
+        });
+      }
+    }
+
+    if (!searchTerm.trim()) return rows;
 
     const term = searchTerm.toLowerCase();
-    return tableData.rows.filter(row => {
+    return rows.filter(row => {
       return Object.values(row).some(val => 
         val !== null && val !== undefined && String(val).toLowerCase().includes(term)
       );
     });
-  }, [tableData, searchTerm]);
+  }, [tableData, searchTerm, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const totalAmountSum = useMemo(() => {
+    if (!displayedRows || displayedRows.length === 0 || !tableData?.columns) return null;
+    const amountCol = tableData.columns.find(c => {
+      const n = c.name.toLowerCase();
+      return n.includes('amount') || n.includes('tariff') || n.includes('total') || n.includes('price') || n.includes('balance');
+    });
+    if (!amountCol) return null;
+    return displayedRows.reduce((sum, r) => sum + (parseFloat(r[amountCol.name]) || 0), 0);
+  }, [displayedRows, tableData]);
 
   // Export current table to CSV
   const handleExportCSV = () => {
@@ -895,6 +961,30 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
             </div>
           </div>
         </div>
+
+        {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+        {tableData && tableData.columns && (
+          <div style={{ padding: '0.5rem 1rem 0' }}>
+            <UniversalDateFilterBar
+              fromDate={filterFromDate}
+              toDate={filterToDate}
+              onDateChange={(from, to) => {
+                setFilterFromDate(from);
+                setFilterToDate(to);
+              }}
+              onDisplay={(from, to) => {
+                setFilterFromDate(from);
+                setFilterToDate(to);
+                setIsDateFilterActive(true);
+              }}
+              title={selectedTable.replace(/_/g, ' ').toUpperCase()}
+              totalCount={displayedRows.length}
+              totalAmount={totalAmountSum}
+              onExportCSV={handleExportCSV}
+              compact={true}
+            />
+          </div>
+        )}
 
         {/* Spreadsheet Data Grid */}
         {isLoading ? (
