@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Package, ShoppingCart, Plus, CheckCircle2, Clock, 
   DollarSign, FileText, X, AlertTriangle, Truck,
   UtensilsCrossed, Sparkles, Scale, RefreshCw, Layers, Check
 } from 'lucide-react';
 import { INITIAL_STORE_PURCHASES, INITIAL_KITCHEN_REQUISITIONS } from '../data/hotelData';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 // Kitchen Recipe Bill of Materials (BOM) & Food Costing Data (Inspired by InvenTree & ERPNext)
 const KITCHEN_RECIPE_BOM = [
@@ -152,6 +153,12 @@ export default function StoreInventoryModal({
       .catch(err => console.warn('Store inventory sync error:', err));
   }, [isOpen]);
 
+  // Authentic Mysoft Universal Date Range Selector States
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [filterFromDate, setFilterFromDate] = useState(todayStr);
+  const [filterToDate, setFilterToDate] = useState(todayStr);
+  const [isDateFilterActive, setIsDateFilterActive] = useState(false);
+
   // New Purchase State
   const [newPurchaseOpen, setNewPurchaseOpen] = useState(false);
   const [vendorName, setVendorName] = useState('Rayagada Daily Sabzi Mandi');
@@ -160,8 +167,39 @@ export default function StoreInventoryModal({
   const [amount, setAmount] = useState('');
   const [payStatus, setPayStatus] = useState('Cash Paid');
 
-  const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
-  const creditPayables = purchases.filter(p => p.paymentStatus === 'Credit Payable').reduce((sum, p) => sum + p.totalAmount, 0);
+  const parseDateToIso = (dStr) => {
+    if (!dStr || typeof dStr !== 'string') return null;
+    if (dStr.includes('/')) {
+      const parts = dStr.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        return parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    } else if (dStr.includes('T')) {
+      return dStr.split('T')[0];
+    } else if (dStr.includes('-')) {
+      return dStr.split(' ')[0];
+    }
+    return null;
+  };
+
+  const isDateInRange = (dStr) => {
+    const iso = parseDateToIso(dStr);
+    if (!iso) return true;
+    return iso >= filterFromDate && iso <= filterToDate;
+  };
+
+  const filteredPurchases = useMemo(() => {
+    if (!isDateFilterActive) return purchases;
+    return purchases.filter(p => isDateInRange(p.date));
+  }, [purchases, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const filteredRequisitions = useMemo(() => {
+    if (!isDateFilterActive) return requisitions;
+    return requisitions.filter(r => isDateInRange(r.issueDate || r.date));
+  }, [requisitions, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const totalPurchases = filteredPurchases.reduce((sum, p) => sum + p.totalAmount, 0);
+  const creditPayables = filteredPurchases.filter(p => p.paymentStatus === 'Credit Payable').reduce((sum, p) => sum + p.totalAmount, 0);
 
   const handleAddPurchase = (e) => {
     e.preventDefault();
@@ -394,6 +432,42 @@ export default function StoreInventoryModal({
 
         {/* Body Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>
+          {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+          <UniversalDateFilterBar
+            fromDate={filterFromDate}
+            toDate={filterToDate}
+            onDateChange={(from, to) => {
+              setFilterFromDate(from);
+              setFilterToDate(to);
+            }}
+            onDisplay={(from, to) => {
+              setFilterFromDate(from);
+              setFilterToDate(to);
+              setIsDateFilterActive(true);
+            }}
+            title={`STORE INVENTORY & PURCHASING (${activeTab.toUpperCase()})`}
+            totalCount={activeTab === 'purchases' ? filteredPurchases.length : filteredRequisitions.length}
+            totalAmount={activeTab === 'purchases' ? filteredPurchases.reduce((s, p) => s + p.totalAmount, 0) : filteredRequisitions.reduce((s, r) => s + (r.approxCost || 0), 0)}
+            onExportCSV={() => {
+              let csv = "";
+              if (activeTab === 'purchases') {
+                csv = "PurchaseID,Vendor,Date,Category,Items,Amount,Status,ReceivedBy\n" +
+                  filteredPurchases.map(p => `"${p.purchaseId}","${p.vendorName}","${p.date}","${p.category}","${p.itemsSummary}",${p.totalAmount},"${p.paymentStatus}","${p.receivedBy}"`).join('\n');
+              } else {
+                csv = "RequisitionID,Date,TargetOutlet,Item,Quantity,Cost,IssuedTo,IssuedBy\n" +
+                  filteredRequisitions.map(r => `"${r.requisitionId}","${r.issueDate}","${r.targetOutlet}","${r.itemName}",${r.quantityIssued},${r.approxCost},"${r.issuedTo}","${r.issuedBy}"`).join('\n');
+              }
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `Store_${activeTab}_${filterFromDate}_to_${filterToDate}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            onPrint={() => window.print()}
+          />
+
           {activeTab === 'purchases' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -430,7 +504,7 @@ export default function StoreInventoryModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {purchases.map(p => (
+                  {filteredPurchases.map(p => (
                     <tr key={p.purchaseId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '0.85rem 1rem' }}>
                         <div style={{ fontWeight: 600, color: '#fff' }}>{p.purchaseId}</div>
@@ -558,7 +632,7 @@ export default function StoreInventoryModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {requisitions.map(r => (
+                  {filteredRequisitions.map(r => (
                     <tr key={r.requisitionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fbbf24' }}>{r.requisitionId}</td>
                       <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issueDate || r.date}</td>

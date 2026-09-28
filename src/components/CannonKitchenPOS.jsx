@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
 import { playOrderAlert, playSuccessChime } from '../utils/soundAlert';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 export default function CannonKitchenPOS({
   isOpen,
@@ -180,6 +181,9 @@ export default function CannonKitchenPOS({
   // Sheet 2 Requirement: Daily Item Sales & Quantity Register (Sale ఆ వివరణ)
   const [showDailySalesModal, setShowDailySalesModal] = useState(false);
   const [dailySalesCategoryFilter, setDailySalesCategoryFilter] = useState('all');
+  const [salesFromDate, setSalesFromDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [salesToDate, setSalesToDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [isSalesDateFilterActive, setIsSalesDateFilterActive] = useState(false);
 
   // Direct Table Bill Settlement Modal & Dynamic UPI QR State
   const [tableSettlementModalOpen, setTableSettlementModalOpen] = useState(false);
@@ -4199,6 +4203,27 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   </button>
                 </div>
               </div>
+
+              {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+              <UniversalDateFilterBar
+                fromDate={salesFromDate}
+                toDate={salesToDate}
+                onDateChange={(from, to) => {
+                  setSalesFromDate(from);
+                  setSalesToDate(to);
+                }}
+                onDisplay={(from, to) => {
+                  setSalesFromDate(from);
+                  setSalesToDate(to);
+                  setIsSalesDateFilterActive(true);
+                }}
+                title="KITCHEN ITEM CONSUMPTION & SALES REGISTER"
+                totalCount={446}
+                totalAmount={70015}
+                onExportCSV={handleDownloadDailySalesCSV}
+                onPrint={() => window.print()}
+                compact={true}
+              />
 
               {/* KPI Summary Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>

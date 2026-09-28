@@ -917,24 +917,103 @@ export default function ReceptionAdmin({
     }
   };
 
-  // The Wild Oasis Protocol: Today's Arrivals and Departures Feed Data
-  const todayArrivals = [
-    ...internalBookings.filter(b => b.bookingStatus !== 'Checked In'),
-    ...bookings.filter(b => b.bookingStatus !== 'Checked In' && !internalBookings.some(ib => (ib.bookingId || ib.id) === (b.bookingId || b.id)))
-  ];
+  // =========================================================================
+  // UNIVERSAL PMS DATE RANGE ENGINE (Responds to Authentic Mysoft Command Bar)
+  // =========================================================================
+  const parseDateToIso = (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    if (dateStr.includes('/')) {
+      const clean = dateStr.split(' ')[0];
+      const parts = clean.split('/');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    if (dateStr.includes('-')) {
+      return dateStr.split('T')[0].split(' ')[0];
+    }
+    return null;
+  };
 
-  const todayDepartures = rooms
-    .filter(r => r.status === 'Occupied' || r.status === 'Occupied Clean')
-    .slice(0, 4)
-    .map(r => {
-      const matchB = bookings.find(b => b.roomNumber === r.roomNumber) || {};
-      return {
-        ...r,
-        guestName: r.currentGuestName || matchB.guestName || 'In-House Guest',
-        outstandingBalance: r.balanceDue !== undefined ? r.balanceDue : (matchB.balanceDue !== undefined ? matchB.balanceDue : (r.tariff || 962)),
-        tier: r.tier || matchB.tier || 'Executive AC'
-      };
+  const isDateInRange = (dStr, fromDate, toDate) => {
+    const iso = parseDateToIso(dStr);
+    if (!iso) return true;
+    return iso >= fromDate && iso <= toDate;
+  };
+
+  const filteredBookings = useMemo(() => {
+    if (!isDateFilterActive) return bookings;
+    return bookings.filter(b => {
+      const inDate = b.checkIn || b.check_in_date || b.checkInDate || b.date;
+      const outDate = b.checkOut || b.check_out_date || b.checkOutDate;
+      const inIso = parseDateToIso(inDate);
+      const outIso = parseDateToIso(outDate);
+      if (inIso && outIso) {
+        return inIso <= filterToDate && outIso >= filterFromDate;
+      }
+      if (inIso) {
+        return inIso >= filterFromDate && inIso <= filterToDate;
+      }
+      return true;
     });
+  }, [bookings, isDateFilterActive, filterFromDate, filterToDate]);
+
+  // The Wild Oasis Protocol: Today's Arrivals and Departures Feed Data (Dynamic Date Filtering)
+  const todayArrivals = useMemo(() => {
+    const baseArrivals = [
+      ...internalBookings.filter(b => b.bookingStatus !== 'Checked In'),
+      ...bookings.filter(b => b.bookingStatus !== 'Checked In' && !internalBookings.some(ib => (ib.bookingId || ib.id) === (b.bookingId || b.id)))
+    ];
+    if (!isDateFilterActive) return baseArrivals;
+    return baseArrivals.filter(b => {
+      const d = b.checkIn || b.checkInDate || b.check_in_date || b.date;
+      return isDateInRange(d, filterFromDate, filterToDate);
+    });
+  }, [internalBookings, bookings, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const todayDepartures = useMemo(() => {
+    const baseDepartures = rooms
+      .filter(r => r.status === 'Occupied' || r.status === 'Occupied Clean')
+      .slice(0, 8)
+      .map(r => {
+        const matchB = bookings.find(b => b.roomNumber === r.roomNumber) || {};
+        return {
+          ...r,
+          guestName: r.currentGuestName || matchB.guestName || 'In-House Guest',
+          outstandingBalance: r.balanceDue !== undefined ? r.balanceDue : (matchB.balanceDue !== undefined ? matchB.balanceDue : (r.tariff || 962)),
+          tier: r.tier || matchB.tier || 'Executive AC',
+          checkOutDate: matchB.checkOut || matchB.checkOutDate || matchB.check_out_date
+        };
+      });
+    if (!isDateFilterActive) return baseDepartures;
+    return baseDepartures.filter(d => isDateInRange(d.checkOutDate, filterFromDate, filterToDate));
+  }, [rooms, bookings, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const filteredSettlements = useMemo(() => {
+    if (!isDateFilterActive) return recentSettlements;
+    return recentSettlements.filter(s => isDateInRange(s.settlementDate || s.date || s.created_at, filterFromDate, filterToDate));
+  }, [recentSettlements, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const filteredLuggagePasses = useMemo(() => {
+    if (!isDateFilterActive) return luggagePasses;
+    return luggagePasses.filter(l => isDateInRange(l.droppedDate || l.date || l.pickupTime, filterFromDate, filterToDate));
+  }, [luggagePasses, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const filteredLostAndFound = useMemo(() => {
+    if (!isDateFilterActive) return lostAndFoundItems;
+    return lostAndFoundItems.filter(i => isDateInRange(i.dateFound || i.date, filterFromDate, filterToDate));
+  }, [lostAndFoundItems, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const filteredMaintenance = useMemo(() => {
+    if (!isDateFilterActive) return maintenanceTickets;
+    return maintenanceTickets.filter(m => isDateInRange(m.reportedDate || m.date, filterFromDate, filterToDate));
+  }, [maintenanceTickets, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const filteredTransitStays = useMemo(() => {
+    if (!isDateFilterActive) return transitStays;
+    return transitStays.filter(t => isDateInRange(t.checkInTime || t.date, filterFromDate, filterToDate));
+  }, [transitStays, isDateFilterActive, filterFromDate, filterToDate]);
 
   const handleFastCheckInClick = (booking) => {
     setSelectedArrivalForCheckIn(booking);
@@ -2438,10 +2517,39 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           setIsDateFilterActive(true);
         }}
         title={`PMS AUDIT WINDOW (${activeTab.replace(/-/g, ' ').toUpperCase()})`}
+        totalCount={
+          activeTab === 'tape-chart' ? totalCount :
+          activeTab === 'police-register' ? filteredBookings.length :
+          activeTab === 'cashier-audit' ? filteredSettlements.length :
+          activeTab === 'lost-and-found' ? filteredLostAndFound.length :
+          activeTab === 'maintenance-ooo' ? filteredMaintenance.length :
+          activeTab === 'transit-dayuse' ? filteredTransitStays.length :
+          null
+        }
+        totalAmount={
+          activeTab === 'cashier-audit' ? filteredSettlements.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0) :
+          activeTab === 'transit-dayuse' ? filteredTransitStays.reduce((sum, t) => sum + (t.tariff || 0), 0) :
+          activeTab === 'police-register' ? filteredBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.tariff || 0)), 0) :
+          null
+        }
         onExportCSV={() => {
           const link = document.createElement("a");
-          link.href = "data:text/csv;charset=utf-8,Date,Room,Status,GuestName\n" + rooms.map(r => `${filterFromDate},${r.roomNumber},${r.status},"${r.currentGuestName || ''}"`).join('\n');
-          link.download = `PMS_Export_${filterFromDate}_to_${filterToDate}.csv`;
+          let csvContent = "";
+          if (activeTab === 'police-register') {
+            csvContent = "Room,GuestName,Phone,IDProof,Origin,Interstate,StayDuration,TotalAmount\n" +
+              filteredBookings.map(b => `${b.room_number || b.roomNumber},"${b.guest_name || b.guestName}","${b.guest_phone || b.guestPhone}","${b.id_proof_masked || b.idProofMasked || ''}","${b.state_of_origin || b.stateOfOrigin || ''}",${b.is_interstate || b.isInterstate ? 'YES' : 'NO'},"${b.checkIn || ''} to ${b.checkOut || ''}",${b.totalAmount || 0}`).join('\n');
+          } else if (activeTab === 'cashier-audit') {
+            csvContent = "Time,Room,GuestName,BillNo,TotalAmount,Tenders\n" +
+              filteredSettlements.map(s => `"${s.settlementTime}",${s.roomNumber},"${s.guestName}","${s.billNo}",${s.totalAmount},"${(s.tendersSummary || []).join('; ')}"`).join('\n');
+          } else if (activeTab === 'transit-dayuse') {
+            csvContent = "Room,GuestName,Phone,Origin,Purpose,Slot,CheckIn,ExpectedOut,Tariff,Status\n" +
+              filteredTransitStays.map(t => `${t.roomNumber},"${t.guestName}","${t.phone}","${t.origin}","${t.purpose}","${t.slotDuration}","${t.checkInTime}","${t.expectedCheckOut}",${t.tariff},"${t.status}"`).join('\n');
+          } else {
+            csvContent = "Date,Room,Status,GuestName\n" + 
+              rooms.map(r => `${filterFromDate},${r.roomNumber},${r.status},"${r.currentGuestName || ''}"`).join('\n');
+          }
+          link.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+          link.download = `PMS_${activeTab.replace(/-/g, '_')}_${filterFromDate}_to_${filterToDate}.csv`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -3057,8 +3165,11 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               setIsReceiptModalOpen(true);
             }}
             onRefresh={() => {
-              showToast('✓ Today\'s operational feed refreshed from Cloudflare D1!');
+              showToast('✓ Operational feed refreshed from Cloudflare D1!');
             }}
+            fromDate={filterFromDate}
+            toDate={filterToDate}
+            isFiltered={isDateFilterActive}
           />
 
           {/* Top Operational Status Ribbon (Exact from Screenshot 2) */}
@@ -4773,7 +4884,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </p>
               </div>
               <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #10b981', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
-                ✓ {recentSettlements.length} Audited Settlements
+                ✓ {filteredSettlements.length} Audited Settlements {isDateFilterActive ? `(${filterFromDate} to ${filterToDate})` : ''}
               </span>
             </div>
 
@@ -4791,7 +4902,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                   </tr>
                 </thead>
                 <tbody>
-                  {recentSettlements.map((s, idx) => (
+                  {filteredSettlements.map((s, idx) => (
                     <tr key={idx}>
                       <td style={{ color: '#94a3b8' }}>{s.settlementTime}</td>
                       <td>
@@ -5528,7 +5639,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((b, idx) => (
+                {filteredBookings.map((b, idx) => (
                   <tr key={idx}>
                     <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--gold-glow)' }}>
                       Room {b.room_number || b.roomNumber}
@@ -5684,7 +5795,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 Active Transit Stays
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>
-                {transitStays.filter(t => t.status === 'Active In-Stay').length} Rooms
+                {filteredTransitStays.filter(t => t.status === 'Active In-Stay').length} Rooms
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                 Occupying Room 105 &amp; 206 currently
@@ -5696,7 +5807,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 Daytime Transit Revenue
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#34d399', marginTop: '0.2rem' }}>
-                ₹{transitStays.reduce((sum, t) => sum + t.tariff, 0).toLocaleString()}
+                ₹{filteredTransitStays.reduce((sum, t) => sum + t.tariff, 0).toLocaleString()}
               </div>
               <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '0.15rem' }}>
                 Pure incremental daytime cashflow
@@ -5732,7 +5843,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Clock size={16} color="#38bdf8" /> Live Transit &amp; Fresh-Up Register (25/09/2026)
+                <Clock size={16} color="#38bdf8" /> Live Transit &amp; Fresh-Up Register {isDateFilterActive ? `(${filterFromDate} to ${filterToDate})` : ''}
               </h4>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 Auto-releasing rooms for evening corporate arrivals
@@ -5755,7 +5866,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </tr>
               </thead>
               <tbody>
-                {transitStays.map(stay => (
+                {filteredTransitStays.map(stay => (
                   <tr key={stay.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '0.65rem', textAlign: 'center' }}>
                       <span style={{ padding: '3px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', fontWeight: 800 }}>
@@ -6448,7 +6559,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 Articles in Safe Custody
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>
-                {lostAndFoundItems.filter(i => i.status === 'In Custody').length} Items
+                {filteredLostAndFound.filter(i => i.status === 'In Custody').length} Items
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                 Stored in Reception Lockers B-04 &amp; B-07
@@ -6460,7 +6571,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 Successfully Returned
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#34d399', marginTop: '0.2rem' }}>
-                {lostAndFoundItems.filter(i => i.status === 'Handed Over').length} Items
+                {filteredLostAndFound.filter(i => i.status === 'Handed Over').length} Items
               </div>
               <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '0.15rem' }}>
                 100% verified handover rate this month
@@ -6472,7 +6583,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 Vault Locker Capacity
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '0.2rem' }}>
-                {lostAndFoundItems.filter(i => i.status === 'In Custody').length} / 12 Lockers
+                {filteredLostAndFound.filter(i => i.status === 'In Custody').length} / 12 Lockers
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                 10 secure lockers currently empty and ready
@@ -6498,7 +6609,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </tr>
               </thead>
               <tbody>
-                {lostAndFoundItems.map(item => (
+                {filteredLostAndFound.map(item => (
                   <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '0.65rem', textAlign: 'center', fontFamily: 'monospace', color: '#94a3b8' }}>
                       {item.id}
@@ -6609,7 +6720,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 OOO Rooms Blocked
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#ef4444', marginTop: '0.2rem' }}>
-                {maintenanceTickets.filter(t => t.blockType === 'OOO (Out of Order)' && t.status === 'In Progress').length} Room
+                {filteredMaintenance.filter(t => t.blockType === 'OOO (Out of Order)' && t.status === 'In Progress').length} Room
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                 Room 205 (AC Coil Leakage)
@@ -6621,7 +6732,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 OOS Minor Servicing
               </div>
               <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fbbf24', marginTop: '0.2rem' }}>
-                {maintenanceTickets.filter(t => t.blockType === 'OOS (Out of Service)' && t.status === 'In Progress').length} Room
+                {filteredMaintenance.filter(t => t.blockType === 'OOS (Out of Service)' && t.status === 'In Progress').length} Room
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                 Room 307 (Geyser Pilot Element)
@@ -6659,7 +6770,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </tr>
               </thead>
               <tbody>
-                {maintenanceTickets.map(tkt => (
+                {filteredMaintenance.map(tkt => (
                   <tr key={tkt.ticketId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '0.65rem', textAlign: 'center', fontFamily: 'monospace', color: '#94a3b8' }}>
                       {tkt.ticketId}

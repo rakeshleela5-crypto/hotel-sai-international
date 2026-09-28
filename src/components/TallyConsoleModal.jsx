@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   X, Check, Plus, Trash2, Download, Printer, Search, Calendar, 
   ArrowRight, ShieldCheck, AlertCircle, RefreshCw, KeyRound, 
@@ -6,6 +6,7 @@ import {
   DollarSign, Building2, HelpCircle
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 export const DEFAULT_CHART_OF_ACCOUNTS = [
   // Cash & Bank
@@ -115,10 +116,49 @@ export default function TallyConsoleModal({
   const [voucherNarration, setVoucherNarration] = useState('');
   const [voucherRef, setVoucherRef] = useState('');
   
+  // Authentic Mysoft Universal Date Range Selector States
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [filterFromDate, setFilterFromDate] = useState(todayStr);
+  const [filterToDate, setFilterToDate] = useState(todayStr);
+  const [isDateFilterActive, setIsDateFilterActive] = useState(false);
+
   // Ledger and Vouchers list
   const [ledgers, setLedgers] = useState(DEFAULT_CHART_OF_ACCOUNTS);
   const [vouchers, setVouchers] = useState(INITIAL_DAYBOOK_VOUCHERS);
   const [selectedVoucherForView, setSelectedVoucherForView] = useState(null);
+
+  const parseDateToIso = (dStr) => {
+    if (!dStr || typeof dStr !== 'string') return null;
+    if (dStr.includes('/')) {
+      const parts = dStr.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        return parts[0].length === 4 ? `${parts[0]}-${parts[1]}-${parts[2]}` : `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    } else if (dStr.includes('T')) {
+      return dStr.split('T')[0];
+    } else if (dStr.includes('-')) {
+      return dStr.split(' ')[0];
+    }
+    return null;
+  };
+
+  const isDateInRange = (dStr) => {
+    const iso = parseDateToIso(dStr);
+    if (!iso) return true;
+    return iso >= filterFromDate && iso <= filterToDate;
+  };
+
+  const filteredVouchers = useMemo(() => {
+    if (!isDateFilterActive) return vouchers;
+    return vouchers.filter(v => isDateInRange(v.date));
+  }, [vouchers, isDateFilterActive, filterFromDate, filterToDate]);
+
+  const totalVoucherDebit = useMemo(() => {
+    return filteredVouchers.reduce((sum, v) => {
+      const drSum = v.lines.filter(l => l.drCr === 'Dr').reduce((s, l) => s + (l.amount || 0), 0);
+      return sum + drSum;
+    }, 0);
+  }, [filteredVouchers]);
 
   // Voucher Grid Rows
   const [voucherRows, setVoucherRows] = useState([
@@ -426,7 +466,7 @@ export default function TallyConsoleModal({
         </TALLYMESSAGE>`).join('')}
 
         <!-- DAYBOOK VOUCHERS -->
-        ${vouchers.map(v => `
+        ${filteredVouchers.map(v => `
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <VOUCHER VCHTYPE="${v.type}" ACTION="Create">
             <DATE>${v.date.replace(/-/g, '')}</DATE>
@@ -1294,6 +1334,37 @@ export default function TallyConsoleModal({
                 </div>
               </div>
 
+              {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+              <UniversalDateFilterBar
+                fromDate={filterFromDate}
+                toDate={filterToDate}
+                onDateChange={(from, to) => {
+                  setFilterFromDate(from);
+                  setFilterToDate(to);
+                }}
+                onDisplay={(from, to) => {
+                  setFilterFromDate(from);
+                  setFilterToDate(to);
+                  setIsDateFilterActive(true);
+                }}
+                title="TALLY PRIME AUDIT JOURNAL"
+                totalCount={filteredVouchers.length}
+                totalAmount={totalVoucherDebit}
+                onExportCSV={() => {
+                  const csv = "Date,VoucherNo,Type,Ledger,DrCr,Amount\n" +
+                    filteredVouchers.flatMap(v => v.lines.map(l => `"${v.date}","${v.voucherNo}","${v.type}","${l.ledgerName}","${l.drCr}",${l.amount}`)).join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `Tally_DayBook_${filterFromDate}_to_${filterToDate}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                onPrint={() => window.print()}
+                compact={true}
+              />
+
               {/* Day Book Table */}
               <div style={{
                 flex: 1,
@@ -1313,7 +1384,7 @@ export default function TallyConsoleModal({
                     </tr>
                   </thead>
                   <tbody>
-                    {vouchers.map(v => {
+                    {filteredVouchers.map(v => {
                       const vTotal = v.lines
                         .filter(l => l.drCr === 'Dr')
                         .reduce((sum, l) => sum + l.amount, 0);

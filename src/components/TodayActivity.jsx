@@ -20,7 +20,10 @@ export default function TodayActivity({
   onFastCheckOut,
   onViewFolio,
   onViewGrc,
-  onRefresh
+  onRefresh,
+  fromDate = null,
+  toDate = null,
+  isFiltered = false
 }) {
   const [filterMode, setFilterMode] = useState('all'); // 'all', 'arrivals', 'departures'
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -76,9 +79,12 @@ export default function TodayActivity({
             margin: '0.35rem 0 0 0',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem'
+            gap: '0.5rem',
+            flexWrap: 'wrap'
           }}>
-            Today's Operational Activity
+            {isFiltered && fromDate && toDate 
+              ? `Operational Activity (${fromDate} to ${toDate})` 
+              : "Today's Operational Activity"}
             <span style={{
               background: totalActivities > 0 ? '#f59e0b' : '#34d399',
               color: '#060e1a',
@@ -87,11 +93,26 @@ export default function TodayActivity({
               padding: '2px 8px',
               borderRadius: '12px'
             }}>
-              {totalActivities} Pending
+              {totalActivities} Active
             </span>
+            {isFiltered && (
+              <span style={{
+                background: 'rgba(56, 189, 248, 0.2)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '4px'
+              }}>
+                📅 Filter Active
+              </span>
+            )}
           </h3>
           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Streamlined arrivals verification &amp; automated housekeeping checkout turnover
+            {isFiltered && fromDate && toDate
+              ? `Showing arrivals and departures active between ${fromDate} and ${toDate}`
+              : "Streamlined arrivals verification & automated housekeeping checkout turnover"}
           </p>
         </div>
 

@@ -23,6 +23,11 @@ export default function UniversalDateFilterBar({
   const [internalFrom, setInternalFrom] = useState(fromDate || new Date().toISOString().slice(0, 10));
   const [internalTo, setInternalTo] = useState(toDate || new Date().toISOString().slice(0, 10));
 
+  React.useEffect(() => {
+    if (fromDate) setInternalFrom(fromDate);
+    if (toDate) setInternalTo(toDate);
+  }, [fromDate, toDate]);
+
   const formatMysoftDate = (dateStr) => {
     if (!dateStr) return '';
     try {
