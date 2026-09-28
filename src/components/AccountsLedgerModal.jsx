@@ -119,6 +119,14 @@ export default function AccountsLedgerModal({
     { voucher: 'EXP-902', item: 'Diesel Generator Top-up (50 Ltrs)', amount: 4650.00, category: 'Power & Fuel', date: '2026-09-22', approvedBy: 'Maintenance Head' },
     { voucher: 'EXP-903', item: 'Local Courier & Police Register dispatch', amount: 250.00, category: 'Front Desk & Admin', date: '2026-09-22', approvedBy: 'Front Desk Mgr' }
   ]);
+  const filteredPettyCashEntries = React.useMemo(() => {
+    if (!fomDateFilterActive) return pettyCashEntries;
+    return pettyCashEntries.filter(e => {
+      const d = e.date;
+      if (!d) return true;
+      return d >= fomFromDate && d <= fomToDate;
+    });
+  }, [pettyCashEntries, fomDateFilterActive, fomFromDate, fomToDate]);
   const [showAddJournalModal, setShowAddJournalModal] = useState(false);
   const [isBankDepositModalOpen, setIsBankDepositModalOpen] = useState(false);
   const [bankDepositData, setBankDepositData] = useState({
@@ -945,7 +953,7 @@ export default function AccountsLedgerModal({
   };
 
   const totalCollected = dayBookData.collections.reduce((sum, c) => sum + c.gross, 0);
-  const totalPettyCash = pettyCashEntries.reduce((sum, e) => sum + e.amount, 0);
+  const totalPettyCash = filteredPettyCashEntries.reduce((sum, e) => sum + e.amount, 0);
   const cashIn = dayBookData.collections.find(c => c.mode.startsWith('Cash'))?.gross || 0;
   const expectedCashInDrawer = dayBookData.openingFloat + cashIn - totalPettyCash;
 
@@ -1706,6 +1714,40 @@ export default function AccountsLedgerModal({
           </div>
         </div>
 
+        {/* AUTHENTIC MYSOFT DATE CONTROLLER & BLUE BANNER (Universal across all 10 Accounts Tabs) */}
+        <div style={{ padding: '0.75rem 1.5rem 0', background: '#0a0e19' }}>
+          <UniversalDateFilterBar
+            fromDate={fomFromDate}
+            toDate={fomToDate}
+            onDateChange={(from, to) => {
+              setFomFromDate(from);
+              setFomToDate(to);
+            }}
+            onDisplay={(from, to) => {
+              setFomFromDate(from);
+              setFomToDate(to);
+              setFomDateFilterActive(true);
+            }}
+            title={`HOTEL SAI INTERNATIONAL - ${activeTab.replace(/-/g, ' ').toUpperCase()}`}
+            totalCount={
+              activeTab === 'gst-fom-report' ? filteredGstRecords.length :
+              activeTab === 'corp-ledger' ? (corporateLedger[selectedCorporate] || []).length :
+              activeTab === 'day-book' ? filteredPettyCashEntries.length :
+              null
+            }
+            totalAmount={
+              activeTab === 'gst-fom-report' ? gstFomGrandTotal :
+              activeTab === 'day-book' ? filteredPettyCashEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0) :
+              null
+            }
+            onExportCSV={() => {
+              if (activeTab === 'gst-fom-report') handleExportGstFomCSV();
+              else window.print();
+            }}
+            onPrint={() => window.print()}
+          />
+        </div>
+
         {/* Dedicated Tab: TALLY PRIME ERP & DAY BOOK HUB */}
         {activeTab === 'tally-erp' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.75rem', background: '#070f1e' }}>
@@ -2023,26 +2065,6 @@ export default function AccountsLedgerModal({
                 </button>
               </div>
             </div>
-
-            {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
-            <UniversalDateFilterBar
-              fromDate={fomFromDate}
-              toDate={fomToDate}
-              onDateChange={(from, to) => {
-                setFomFromDate(from);
-                setFomToDate(to);
-              }}
-              onDisplay={(from, to) => {
-                setFomFromDate(from);
-                setFomToDate(to);
-                setFomDateFilterActive(true);
-              }}
-              title="GST AMENDMENTS"
-              totalCount={filteredGstRecords.length}
-              totalAmount={gstFomGrandTotal}
-              onExportCSV={handleExportGstFomCSV}
-              onPrint={() => window.print()}
-            />
 
             {/* Legal GST Compliance Banner (Direct Answer to Audio & Monitor) */}
             <div style={{
@@ -3130,7 +3152,7 @@ export default function AccountsLedgerModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {pettyCashEntries.map((e, i) => (
+                  {filteredPettyCashEntries.map((e, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: '#fbbf24', fontWeight: 700 }}>{e.voucher}</td>
                       <td style={{ padding: '0.75rem 1rem', color: '#fff' }}>

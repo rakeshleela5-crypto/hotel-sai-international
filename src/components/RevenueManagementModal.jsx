@@ -18,6 +18,7 @@ import {
   calculateChannelNetRevPAR 
 } from '../utils/g3RmsEngine';
 import { CORPORATE_PARTNERS } from '../data/hotelData';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 export default function RevenueManagementModal({
   isOpen,
@@ -37,6 +38,9 @@ export default function RevenueManagementModal({
   }, [isOpen, onClose]);
   // Active Tab: 'yielding' | 'mar' | 'investigator' | 'sandbox' | 'guardrails' | 'netrevpar'
   const [activeTab, setActiveTab] = useState('yielding');
+  const [rmsFromDate, setRmsFromDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [rmsToDate, setRmsToDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [isRmsDateFilterActive, setIsRmsDateFilterActive] = useState(true);
 
   // Automation Mode: 'autonomous' | 'exception' | 'interactive'
   const [automationMode, setAutomationMode] = useState('exception');
@@ -481,7 +485,28 @@ export default function RevenueManagementModal({
 
         {/* Tab Content Container */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', background: '#0b1120' }}>
-          
+          {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <UniversalDateFilterBar
+              fromDate={rmsFromDate}
+              toDate={rmsToDate}
+              onDateChange={(from, to) => {
+                setRmsFromDate(from);
+                setRmsToDate(to);
+              }}
+              onDisplay={(from, to) => {
+                setRmsFromDate(from);
+                setRmsToDate(to);
+                setIsRmsDateFilterActive(true);
+              }}
+              title={`REVENUE MANAGEMENT & DYNAMIC YIELDING (${activeTab.toUpperCase()})`}
+              totalCount={39}
+              totalAmount={46280}
+              onExportCSV={() => window.print()}
+              onPrint={() => window.print()}
+            />
+          </div>
+
           {/* =========================================================================
               TAB 1: CONTINUOUS MICRO-RATE YIELDING ENGINE
              ========================================================================= */}

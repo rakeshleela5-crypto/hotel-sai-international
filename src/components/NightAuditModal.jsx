@@ -5,6 +5,7 @@ import {
   RotateCcw, ArrowRight, X, User, FileText, Loader2
 } from 'lucide-react';
 import { HOTEL_CONFIG, INITIAL_NIGHT_AUDITS } from '../data/hotelData';
+import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 export default function NightAuditModal({
   isOpen,
@@ -23,8 +24,11 @@ export default function NightAuditModal({
   const [isSealing, setIsSealing] = useState(false);
   const [sealProgress, setSealProgress] = useState(0);
 
-  // Active business date
+  // Active business date & Audit Date Range Selector
   const [businessDate, setBusinessDate] = useState('2026-09-21');
+  const [auditFromDate, setAuditFromDate] = useState('2026-09-21');
+  const [auditToDate, setAuditToDate] = useState('2026-09-21');
+  const [isAuditDateFilterActive, setIsAuditDateFilterActive] = useState(true);
   const nextBusinessDate = '2026-09-22';
 
   // Metrics for today's audit (Matching MySoft Screenshot 16 & Owner Meeting)
@@ -327,6 +331,30 @@ export default function NightAuditModal({
               </button>
             );
           })}
+        </div>
+
+        {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+        <div style={{ padding: '0.85rem 2rem 0', background: '#0a0e19' }}>
+          <UniversalDateFilterBar
+            fromDate={auditFromDate}
+            toDate={auditToDate}
+            onDateChange={(from, to) => {
+              setAuditFromDate(from);
+              setAuditToDate(to);
+              setBusinessDate(from);
+            }}
+            onDisplay={(from, to) => {
+              setAuditFromDate(from);
+              setAuditToDate(to);
+              setBusinessDate(from);
+              setIsAuditDateFilterActive(true);
+            }}
+            title="DAILY NIGHT AUDIT & STATUTORY DAY CLOSING"
+            totalCount={occupiedRooms}
+            totalAmount={grossRevenue}
+            onExportCSV={() => window.print()}
+            onPrint={() => window.print()}
+          />
         </div>
 
         {/* Step Content with Smooth Entrance Keyframe */}

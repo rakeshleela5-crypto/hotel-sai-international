@@ -1173,6 +1173,29 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                 </div>
               </div>
 
+              {/* Authentic Mysoft Universal Date Range Selector Bar (Screenshot Identical) */}
+              <div style={{ padding: '0.65rem 1.5rem 0', background: '#070b14' }}>
+                <UniversalDateFilterBar
+                  fromDate={salesFromDate}
+                  toDate={salesToDate}
+                  onDateChange={(from, to) => {
+                    setSalesFromDate(from);
+                    setSalesToDate(to);
+                  }}
+                  onDisplay={(from, to) => {
+                    setSalesFromDate(from);
+                    setSalesToDate(to);
+                    setIsSalesDateFilterActive(true);
+                  }}
+                  title="CANNON KITCHEN ORDER TRACKER &amp; KDS REGISTER"
+                  totalCount={currentOrders.length}
+                  totalAmount={currentOrders.reduce((sum, o) => sum + (o.items?.reduce((s, it) => s + (it.price * it.quantity), 0) || 0), 0)}
+                  onExportCSV={() => window.print()}
+                  onPrint={() => window.print()}
+                  compact={true}
+                />
+              </div>
+
               {/* Outlet Filter Bar & Search */}
               <div style={{
                 padding: '0.5rem 1.5rem',
@@ -1262,6 +1285,10 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                       if (kdsOutletFilter === 'Drop In Bar' && order.outlet !== 'Drop In Bar') return false;
                       if (kdsOutletFilter === 'Room Service' && order.outlet !== 'Room Service' && order.orderType !== 'room') return false;
                       if (kdsOutletFilter === 'Online' && !['Swiggy', 'Zomato'].includes(order.outlet)) return false;
+                    }
+                    if (isSalesDateFilterActive && (order.date || order.created_at)) {
+                      const d = (order.date || order.created_at).slice(0, 10);
+                      if (d < salesFromDate || d > salesToDate) return false;
                     }
                     if (kdsSearchQuery.trim()) {
                       const q = kdsSearchQuery.toLowerCase();
