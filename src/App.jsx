@@ -586,6 +586,15 @@ export default function App() {
       return r;
     }));
 
+    // Persist new booking to Cloudflare D1
+    try {
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save_booking', payload: newBooking })
+      }).catch(err => console.warn("Cloudflare D1 save_booking background sync:", err));
+    } catch (e) {}
+
     // Auto-inject Day-1 Room Tariff debit and Advance Deposit credit into central transactions ledger
     const initialTxs = [];
     const tariffAmount = Number(newBooking.tariffPerNight || newBooking.baseTotal || 1699);

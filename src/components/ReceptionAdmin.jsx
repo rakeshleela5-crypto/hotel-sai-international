@@ -1806,7 +1806,17 @@ export default function ReceptionAdmin({
 
     const selectedRoomObj = rooms.find(r => r.roomNumber === walkInRoom);
     const tier = selectedRoomObj ? selectedRoomObj.tier : 'Standard Deluxe';
-    const tax = calculateRoomTax(walkInRate * walkInNights);
+    
+    // Agreed rate is inclusive of GST (All-inclusive tariff standard for Hotel Sai International)
+    // Example: Tariff ₹2,899 - Advance Deposit ₹1,500 = Balance Due ₹1,399
+    const totalStayAmount = walkInRate * walkInNights;
+    const advanceDepositNum = Number(walkInDeposit) || 0;
+    const balanceDueCalculated = Math.max(0, totalStayAmount - advanceDepositNum);
+
+    // Calculate embedded GST for SAC 996311 compliance
+    const taxableBase = Math.round((totalStayAmount / 1.05) * 100) / 100;
+    const cgstAmt = Math.round(((totalStayAmount - taxableBase) / 2) * 100) / 100;
+    const sgstAmt = Math.round((totalStayAmount - taxableBase - cgstAmt) * 100) / 100;
 
     const bookingPayload = {
       bookingId: `WALK-${Date.now().toString().slice(-6)}`,
@@ -1826,19 +1836,29 @@ export default function ReceptionAdmin({
       mealPlan: walkInMealPlan,
       billingType: walkInBillingType,
       company: walkInBillingType === 'BTC' ? walkInCompany : 'Individual',
+      companyName: walkInBillingType === 'BTC' ? walkInCompany : 'Individual',
       tariffPerNight: walkInRate,
-      baseTotal: walkInRate * walkInNights,
-      cgst: tax.cgst,
-      sgst: tax.sgst,
-      totalAmount: tax.total,
-      advanceDeposit: Number(walkInDeposit),
-      balanceDue: Math.max(0, tax.total - Number(walkInDeposit)),
+      baseTotal: taxableBase,
+      cgst: cgstAmt,
+      sgst: sgstAmt,
+      totalAmount: totalStayAmount,
+      advanceDeposit: advanceDepositNum,
+      balanceDue: balanceDueCalculated,
       paymentMode: walkInPaymentMode,
-      paymentStatus: Number(walkInDeposit) >= tax.total ? 'Paid at Check-In' : 'Partially Paid',
+      paymentStatus: advanceDepositNum >= totalStayAmount ? 'Paid at Check-In' : (advanceDepositNum > 0 ? 'Partially Paid' : 'Pending Payment'),
       bookingStatus: 'Checked In',
       isB2b: walkInBillingType === 'BTC',
       consentDpdp: 1
     };
+
+    // Save directly to Cloudflare D1 database
+    try {
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save_booking', payload: bookingPayload })
+      }).catch(err => console.warn("D1 booking sync non-fatal:", err));
+    } catch (e) {}
 
     onNewBooking(bookingPayload);
     onUpdateRoomStatus(walkInRoom, 'Occupied', walkInName, bookingPayload.bookingId);

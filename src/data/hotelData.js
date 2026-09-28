@@ -98,6 +98,7 @@ export const INITIAL_ROOMS_INVENTORY = [
   { roomNumber: '201', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'LAVAKANTA', balanceDue: 4410.00, pax: '1 Pax', coordinates3D: { x: -6, y: 4.5, z: -2 } },
   { roomNumber: '202', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'SATYARANJAN', balanceDue: 39060.00, pax: '2 Pax', coordinates3D: { x: -3, y: 4.5, z: -2 } },
   { roomNumber: '203', tier: 'Premium Suite', roomType: 'PRSUITE', floor: 2, tariff: 3999, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Suite', coordinates3D: { x: 0, y: 4.5, z: -2 } },
+  { roomNumber: '204', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 1.5, y: 4.5, z: -2 } },
   { roomNumber: '205', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Available', currentGuestName: null, balanceDue: 0, pax: 'Available', coordinates3D: { x: 3, y: 4.5, z: -2 } },
   { roomNumber: '206', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'S S HAMEED', balanceDue: 7560.00, pax: '1 Pax', coordinates3D: { x: 6, y: 4.5, z: -2 } },
   { roomNumber: '207', tier: 'Deluxe Room', roomType: 'EXEDEL', floor: 2, tariff: 2199, status: 'Occupied', currentGuestName: 'SAHANAWAZ', balanceDue: 35910.00, pax: '1 Pax', coordinates3D: { x: -6, y: 4.5, z: 2 } },

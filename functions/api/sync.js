@@ -403,22 +403,30 @@ export async function onRequestPost({ request, env }) {
 
     // 1. PUBLIC GUEST ACTION: Save Booking
     if (action === 'save_booking') {
-      const b = payload;
-      if (!b.roomNumber || !b.checkInDate || !b.checkOutDate || !b.guestName || !b.guestPhone) {
-        return jsonResponse({ error: "Missing required booking fields" }, 400);
+      const b = payload || {};
+      const roomNumber = String(b.roomNumber || b.room_number || '');
+      const checkInDate = b.checkInDate || b.check_in_date;
+      const checkOutDate = b.checkOutDate || b.check_out_date || checkInDate;
+      const guestName = b.guestName || b.guest_name;
+      const guestPhone = b.guestPhone || b.guest_phone;
+      const bookingId = b.bookingId || b.booking_id || `HSI-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+
+      if (!roomNumber || !checkInDate || !guestName || !guestPhone) {
+        return jsonResponse({ error: "Missing required booking fields (roomNumber, checkInDate, guestName, guestPhone)" }, 400);
       }
 
-      // Mutex collision check: verify room is not booked on conflicting dates
+      // Mutex collision check: verify room is not booked on conflicting dates by another booking
       const collision = await db.prepare(`
         SELECT booking_id FROM bookings 
         WHERE room_number = ? 
+          AND booking_id != ?
           AND booking_status NOT IN ('Cancelled', 'Checked Out')
           AND NOT (check_out_date <= ? OR check_in_date >= ?)
-      `).bind(b.roomNumber, b.checkInDate, b.checkOutDate).first();
+      `).bind(roomNumber, bookingId, checkInDate, checkOutDate).first();
 
       if (collision) {
         return jsonResponse({
-          error: `Room ${b.roomNumber} is already booked for the selected dates. Please select another room.`,
+          error: `Room ${roomNumber} is already booked for the selected dates. Please select another room.`,
           collisionId: collision.booking_id
         }, 409);
       }
@@ -427,20 +435,25 @@ export async function onRequestPost({ request, env }) {
       // Public submissions can NEVER self-verify as 'Paid'
       const isAdmin = await verifyAdminAuth(request, env, db);
       let calculatedPaymentStatus = 'Pending Gateway Verification';
-      if (isAdmin && b.paymentStatus) {
-        calculatedPaymentStatus = b.paymentStatus;
-      } else if (b.paymentMode === 'Pay at Hotel') {
+      if (isAdmin && (b.paymentStatus || b.payment_status)) {
+        calculatedPaymentStatus = b.paymentStatus || b.payment_status;
+      } else if (b.paymentMode === 'Pay at Hotel' || b.payment_mode === 'Pay at Hotel' || b.paymentMode === 'Cash') {
         calculatedPaymentStatus = 'Pending Payment at Check-In';
       }
 
-      const bookingId = b.bookingId || `HSI-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
-      const maskedId = b.idProofMasked || `XXXX-XXXX-${String(b.guestPhone).slice(-4)}`;
-
-      // Interstate classification for Sarai Act
-      const isInterstate = (b.stateOfOrigin && b.stateOfOrigin.toLowerCase() !== 'odisha') ? 1 : 0;
-
-      const billNo = b.billNo || `INV-${b.roomNumber}-${Date.now().toString().slice(-4)}`;
-      const companyName = b.companyName || '';
+      const maskedId = b.idProofMasked || b.id_proof_masked || `XXXX-XXXX-${String(guestPhone).slice(-4)}`;
+      const stateOfOrigin = b.stateOfOrigin || b.state_of_origin || 'Odisha';
+      const isInterstate = (stateOfOrigin.toLowerCase() !== 'odisha') ? 1 : 0;
+      const billNo = b.billNo || b.bill_no || `INV-${roomNumber}-${Date.now().toString().slice(-4)}`;
+      const companyName = b.companyName || b.company_name || (b.company || '');
+      const tariffPerNight = Number(b.tariffPerNight || b.tariff_per_night || b.tariff || 2199);
+      const nights = Number(b.nights || 1);
+      const totalAmount = Number(b.totalAmount !== undefined ? b.totalAmount : (b.total_amount !== undefined ? b.total_amount : tariffPerNight * nights));
+      const advanceDeposit = Number(b.advanceDeposit !== undefined ? b.advanceDeposit : (b.advance_deposit !== undefined ? b.advance_deposit : 0));
+      const balanceDue = Number(b.balanceDue !== undefined ? b.balanceDue : (b.balance_due !== undefined ? b.balance_due : Math.max(0, totalAmount - advanceDeposit)));
+      const baseTotal = Number(b.baseTotal || b.base_total || Math.round((totalAmount / 1.05) * 100) / 100);
+      const cgst = Number(b.cgst !== undefined ? b.cgst : Math.round(((totalAmount - baseTotal) / 2) * 100) / 100);
+      const sgst = Number(b.sgst !== undefined ? b.sgst : Math.round((totalAmount - baseTotal - cgst) * 100) / 100);
 
       await db.prepare(`
         INSERT INTO bookings (
@@ -462,20 +475,36 @@ export async function onRequestPost({ request, env }) {
           ?, ?,
           ?, ?, datetime('now'), datetime('now')
         )
+        ON CONFLICT(booking_id) DO UPDATE SET
+          room_number = excluded.room_number,
+          guest_name = excluded.guest_name,
+          guest_phone = excluded.guest_phone,
+          check_in_date = excluded.check_in_date,
+          check_out_date = excluded.check_out_date,
+          nights = excluded.nights,
+          tariff_per_night = excluded.tariff_per_night,
+          base_total = excluded.base_total,
+          cgst = excluded.cgst,
+          sgst = excluded.sgst,
+          total_amount = excluded.total_amount,
+          advance_deposit = excluded.advance_deposit,
+          balance_due = excluded.balance_due,
+          payment_status = excluded.payment_status,
+          booking_status = excluded.booking_status,
+          updated_at = datetime('now')
       `).bind(
-        bookingId, b.roomNumber, b.guestName, b.guestPhone, b.guestEmail || '',
-        b.idProofType || 'Aadhaar', maskedId, b.stateOfOrigin || 'Odisha', isInterstate,
-        b.checkInDate, b.checkOutDate, b.nights || 1, b.adults || 1, b.children || 0,
-        b.tariffPerNight || 1699, b.baseTotal || 1699, b.cgst || 42.48, b.sgst || 42.48, b.totalAmount || 1783.96,
-        b.advanceDeposit || 0, b.balanceDue !== undefined ? b.balanceDue : (b.totalAmount || 1783.96), b.paymentMode || 'UPI',
-        calculatedPaymentStatus, b.bookingStatus || 'Confirmed',
-        b.isB2b ? 1 : 0, b.corporateId || '', b.corporateGstin || '',
+        bookingId, roomNumber, guestName, guestPhone, b.guestEmail || b.guest_email || '',
+        b.idProofType || b.id_proof_type || 'Aadhaar', maskedId, stateOfOrigin, isInterstate,
+        checkInDate, checkOutDate, nights, b.adults || 1, b.children || 0,
+        tariffPerNight, baseTotal, cgst, sgst, totalAmount,
+        advanceDeposit, balanceDue, b.paymentMode || b.payment_mode || 'Cash',
+        calculatedPaymentStatus, b.bookingStatus || b.booking_status || 'Checked In',
+        (b.isB2b || b.is_b2b) ? 1 : 0, b.corporateId || b.corporate_id || '', b.corporateGstin || b.corporate_gstin || '',
         companyName, billNo,
-        b.consentDpdp ? 1 : 1, b.specialRequests || ''
+        (b.consentDpdp !== undefined ? b.consentDpdp : 1), b.specialRequests || b.special_requests || ''
       ).run();
 
       // Update room status and outstanding balance on front desk matrix
-      const activeBalance = b.balanceDue !== undefined ? b.balanceDue : (b.totalAmount || 1783.96);
       await db.prepare(`
         UPDATE rooms 
         SET status = 'Occupied',
@@ -483,7 +512,7 @@ export async function onRequestPost({ request, env }) {
             current_booking_id = ?,
             outstanding_balance = ?
         WHERE room_number = ?
-      `).bind(b.guestName, bookingId, activeBalance, b.roomNumber).run().catch(e => console.warn("Room status update non-fatal:", e));
+      `).bind(guestName, bookingId, balanceDue, roomNumber).run().catch(e => console.warn("Room status update non-fatal:", e));
 
       // Upsert into central guest CRM profiles (Table 50)
       await db.prepare(`
