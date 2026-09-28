@@ -26,6 +26,7 @@ export default function UniversalDateFilterBar({
   const [internalFrom, setInternalFrom] = useState(fromDate || new Date().toISOString().slice(0, 10));
   const [internalTo, setInternalTo] = useState(toDate || new Date().toISOString().slice(0, 10));
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDisplaying, setIsDisplaying] = useState(false);
 
   React.useEffect(() => {
     if (fromDate) setInternalFrom(fromDate);
@@ -44,6 +45,8 @@ export default function UniversalDateFilterBar({
   };
 
   const handleApply = (fromVal = internalFrom, toVal = internalTo) => {
+    setIsDisplaying(true);
+    setTimeout(() => setIsDisplaying(false), 900);
     if (onDateChange) {
       onDateChange(fromVal, toVal);
     }
@@ -165,13 +168,15 @@ export default function UniversalDateFilterBar({
             </div>
           </div>
 
-          {/* Authentic Mysoft Green Display Button */}
+          {/* Authentic Mysoft Green Display Button with instant feedback */}
           <button
             type="button"
             onClick={() => handleApply()}
             style={{
-              background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
-              border: '1px solid #86efac',
+              background: isDisplaying
+                ? 'linear-gradient(180deg, #15803d 0%, #14532d 100%)'
+                : 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
+              border: isDisplaying ? '1.5px solid #bbf7d0' : '1px solid #86efac',
               borderRadius: '5px',
               color: '#ffffff',
               padding: '5px 20px',
@@ -181,13 +186,16 @@ export default function UniversalDateFilterBar({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 2px 10px rgba(34, 197, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+              boxShadow: isDisplaying
+                ? '0 0 16px rgba(34, 197, 94, 0.8), inset 0 2px 4px rgba(0,0,0,0.4)'
+                : '0 2px 10px rgba(34, 197, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
               textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              transform: isDisplaying ? 'scale(0.97)' : 'scale(1)',
               transition: 'all 0.15s ease'
             }}
             title="Filter records between selected dates"
           >
-            Display
+            {isDisplaying ? '✓ Displayed' : 'Display'}
           </button>
 
           {/* Dedicated Dates Selection Modal Trigger Button */}

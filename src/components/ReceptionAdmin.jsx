@@ -2643,6 +2643,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             setFilterFromDate(from);
             setFilterToDate(to);
             setIsDateFilterActive(true);
+            setFeedbackToast(`📋 Audit Window applied: Showing ${from} to ${to}`);
           }}
           title={`PMS AUDIT WINDOW (${activeTab.replace(/-/g, ' ').toUpperCase()})`}
           totalCount={
@@ -3450,6 +3451,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                     setFilterFromDate(from);
                     setFilterToDate(to);
                     setIsDateFilterActive(true);
+                    setFeedbackToast(`📋 Master Tabular Room Ledger: Filtered for ${from} to ${to}`);
                   }}
                   title="MASTER TABULAR ROOM LEDGER"
                   totalCount={filteredRooms.length}
