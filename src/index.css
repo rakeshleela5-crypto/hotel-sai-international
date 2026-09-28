@@ -844,7 +844,7 @@ button:focus-visible, .btn:focus-visible {
   border-spacing: 0 !important;
   font-size: 0.82rem;
   color: #f1f5f9;
-  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  border: 1px solid rgba(148, 163, 184, 0.45) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -852,7 +852,7 @@ button:focus-visible, .btn:focus-visible {
 .enterprise-data-table thead tr,
 .sheets-grid-table thead tr {
   background: #0e1726 !important;
-  border-bottom: 2px solid rgba(212, 175, 55, 0.7) !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.75) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
@@ -865,8 +865,8 @@ button:focus-visible, .btn:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  border: 1px solid rgba(148, 163, 184, 0.3) !important;
-  border-bottom: 2px solid rgba(212, 175, 55, 0.7) !important;
+  border: 1px solid rgba(148, 163, 184, 0.45) !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.75) !important;
   text-align: left;
   background: #0e1726;
   position: relative;
@@ -880,10 +880,10 @@ button:focus-visible, .btn:focus-visible {
 }
 
 /* Dedicated Google Sheets Row Number Column (#) */
-.enterprise-data-table th:first-child,
-.sheets-grid-table th:first-child,
-.enterprise-data-table td:first-child,
-.sheets-grid-table td:first-child {
+.enterprise-data-table th.col-row-num,
+.sheets-grid-table th.col-row-num,
+.enterprise-data-table td.col-row-num,
+.sheets-grid-table td.col-row-num {
   background: #0b1320 !important;
   color: #94a3b8 !important;
   font-weight: 700;
@@ -896,11 +896,11 @@ button:focus-visible, .btn:focus-visible {
   font-size: 0.72rem;
 }
 
-/* Google Sheets Data Cells with Crisp Gridlines */
+/* Google Sheets Data Cells with Crisp 4-Sided Gridlines */
 .enterprise-data-table td,
 .sheets-grid-table td {
   padding: 0.55rem 0.8rem;
-  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  border: 1px solid rgba(148, 163, 184, 0.38) !important;
   vertical-align: middle;
   transition: background 0.12s ease;
   font-variant-numeric: tabular-nums;
@@ -910,30 +910,30 @@ button:focus-visible, .btn:focus-visible {
 /* Alternating Rows (Zebra striping like Google Sheets alternate colors) */
 .enterprise-data-table tbody tr:nth-child(even),
 .sheets-grid-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
 }
 
 .enterprise-data-table tbody tr:nth-child(odd),
 .sheets-grid-table tbody tr:nth-child(odd) {
-  background: rgba(10, 18, 32, 0.7) !important;
+  background: rgba(10, 18, 32, 0.75) !important;
 }
 
 /* Hover Row Highlight */
 .enterprise-data-table tbody tr:hover,
 .sheets-grid-table tbody tr:hover {
-  background: rgba(56, 189, 248, 0.12) !important;
+  background: rgba(56, 189, 248, 0.14) !important;
   outline: 1px solid rgba(56, 189, 248, 0.4);
 }
 
 .enterprise-data-table tbody tr:hover td,
 .sheets-grid-table tbody tr:hover td {
-  border-color: rgba(56, 189, 248, 0.35) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
 }
 
 /* Active Cell focus feeling */
 .enterprise-data-table td:hover,
 .sheets-grid-table td:hover {
-  background: rgba(212, 175, 55, 0.15) !important;
+  background: rgba(212, 175, 55, 0.18) !important;
   outline: 1.5px solid var(--gold-glow);
   outline-offset: -1px;
 }

@@ -1919,15 +1919,15 @@ export default function AccountsLedgerModal({
                 <Scale size={18} color="var(--gold-glow)" /> Side-by-Side Operational Reconciliation Ledger (Date: 20/09/2026)
               </h4>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <div className="enterprise-data-table-container">
+                <table className="enterprise-data-table sheets-grid-table">
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                      <th style={{ padding: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Accounting Stream</th>
-                      <th style={{ padding: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Sub-Ledger Account</th>
-                      <th style={{ padding: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'right' }}>Debit / Revenue (₹)</th>
-                      <th style={{ padding: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'right' }}>Credit / Payment (₹)</th>
-                      <th style={{ padding: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>Verification State</th>
+                    <tr>
+                      <th style={{ padding: '0.75rem' }}>Accounting Stream</th>
+                      <th style={{ padding: '0.75rem' }}>Sub-Ledger Account</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Debit / Revenue (₹)</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Credit / Payment (₹)</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Verification State</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2250,10 +2250,10 @@ export default function AccountsLedgerModal({
               overflow: 'hidden',
               marginBottom: '1.5rem'
             }}>
-              <div style={{ overflowX: 'auto', maxHeight: '55vh' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
+              <div className="enterprise-data-table-container" style={{ overflowX: 'auto', maxHeight: '55vh' }}>
+                <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0a0f1d' }}>
-                    <tr style={{ borderBottom: '1.5px solid rgba(255, 255, 255, 0.12)', color: 'var(--text-muted)' }}>
+                    <tr>
                       <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>SL</th>
                       <th style={{ padding: '0.65rem 0.6rem', textAlign: 'left' }}>BILL NO</th>
                       <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>DATE</th>
@@ -2633,20 +2633,21 @@ export default function AccountsLedgerModal({
             </div>
 
             {/* Tabular Sales Summary */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                  <th style={{ padding: '0.75rem 1rem' }}>Bill # / Room</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Guest & Company</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Plan</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Room Tariff (₹)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#34d399' }}>Rest. F&B (₹)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>CGST (₹)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>SGST (₹)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total Bill (₹)</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Settlement Mode</th>
-                </tr>
-              </thead>
+            <div className="enterprise-data-table-container">
+              <table className="enterprise-data-table sheets-grid-table">
+                <thead>
+                  <tr>
+                    <th style={{ padding: '0.75rem 1rem' }}>Bill # / Room</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Guest & Company</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Plan</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Room Tariff (₹)</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#34d399' }}>Rest. F&B (₹)</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>CGST (₹)</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>SGST (₹)</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total Bill (₹)</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Settlement Mode</th>
+                  </tr>
+                </thead>
               <tbody>
                 {salesSummaryReport.map((row, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -2685,6 +2686,7 @@ export default function AccountsLedgerModal({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
@@ -2895,11 +2897,10 @@ export default function AccountsLedgerModal({
               </div>
 
               {/* Itemized Table */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto', maxHeight: '55vh' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                    <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgb(20, 24, 40)' }}>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)', textAlign: 'left' }}>
+              <div className="enterprise-data-table-container" style={{ overflowX: 'auto', maxHeight: '55vh' }}>
+                <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.82rem' }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgb(20, 24, 40)' }}>
+                    <tr>
                         <th style={{ padding: '0.75rem' }}>Item Code</th>
                         <th style={{ padding: '0.75rem' }}>Dish / Beverage Name</th>
                         <th style={{ padding: '0.75rem' }}>Section</th>
@@ -2975,7 +2976,6 @@ export default function AccountsLedgerModal({
                     </tfoot>
                   </table>
                 </div>
-              </div>
             </div>
           );
         })()}
@@ -3095,26 +3095,28 @@ export default function AccountsLedgerModal({
             {/* Mode-wise Collections Table */}
             <div style={{ marginBottom: '2rem' }}>
               <h3 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '0.75rem' }}>Tender-Wise Collection Ledger</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.75rem 1rem' }}>Payment Mode</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Vouchers / Count</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Reconciliation Notes</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dayBookData.collections.map((c, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fff' }}>{c.mode}</td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{c.count}</td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{c.notes}</td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{c.gross.toFixed(2)}</td>
+              <div className="enterprise-data-table-container">
+                <table className="enterprise-data-table sheets-grid-table">
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '0.75rem 1rem' }}>Payment Mode</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Vouchers / Count</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Reconciliation Notes</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total Amount (₹)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {dayBookData.collections.map((c, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fff' }}>{c.mode}</td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{c.count}</td>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{c.notes}</td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{c.gross.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Petty Cash & Manual Journal Vouchers */}
@@ -3142,15 +3144,16 @@ export default function AccountsLedgerModal({
                 </button>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.75rem 1rem' }}>Voucher ID</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Head of Account / Purpose</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Authorized By</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Amount Paid (₹)</th>
-                  </tr>
-                </thead>
+              <div className="enterprise-data-table-container">
+                <table className="enterprise-data-table sheets-grid-table">
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '0.75rem 1rem' }}>Voucher ID</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Head of Account / Purpose</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Authorized By</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Amount Paid (₹)</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {filteredPettyCashEntries.map((e, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -3165,6 +3168,7 @@ export default function AccountsLedgerModal({
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -3328,17 +3332,18 @@ export default function AccountsLedgerModal({
             </div>
 
             {/* Dr/Cr Ledger Table */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                  <th style={{ padding: '0.75rem 1rem' }}>Date / Ref</th>
-                  <th style={{ padding: '0.75rem 1rem' }}>Transaction Type & Description</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Debit (Stays)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Credit (Receipts)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>TDS Deducted</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Running Balance</th>
-                </tr>
-              </thead>
+            <div className="enterprise-data-table-container">
+              <table className="enterprise-data-table sheets-grid-table">
+                <thead>
+                  <tr>
+                    <th style={{ padding: '0.75rem 1rem' }}>Date / Ref</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Transaction Type & Description</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Debit (Stays)</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Credit (Receipts)</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>TDS Deducted</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Running Balance</th>
+                  </tr>
+                </thead>
               <tbody>
                 {corpLedgerEntries.map(e => (
                   <tr key={e.entryId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -3372,6 +3377,7 @@ export default function AccountsLedgerModal({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
@@ -3498,8 +3504,8 @@ export default function AccountsLedgerModal({
                   </button>
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                <div className="enterprise-data-table-container">
+                  <table className="enterprise-data-table sheets-grid-table">
                     <thead>
                       <tr style={{ background: '#1e293b', color: '#94a3b8' }}>
                         <th style={{ padding: '0.5rem' }}>Status</th>
@@ -3543,10 +3549,10 @@ export default function AccountsLedgerModal({
             )}
 
             {/* Invoices Table */}
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <div className="enterprise-data-table-container">
+              <table className="enterprise-data-table sheets-grid-table">
                 <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                  <tr>
                     <th style={{ padding: '0.75rem' }}>Invoice # / Date</th>
                     <th style={{ padding: '0.75rem' }}>Company Name</th>
                     <th style={{ padding: '0.75rem' }}>GSTIN</th>
@@ -3747,11 +3753,10 @@ export default function AccountsLedgerModal({
 
             {/* VIEW 1: IN-HOUSE GUESTS OUTSTANDING TABLE */}
             {outstandingViewType === 'in-house' && (
-              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                    <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="enterprise-data-table-container">
+                <table className="enterprise-data-table sheets-grid-table">
+                  <thead>
+                    <tr>
                         <th style={{ padding: '0.75rem 0.85rem' }}>Room No</th>
                         <th style={{ padding: '0.75rem 0.85rem' }}>Guest / Company</th>
                         <th style={{ padding: '0.75rem 0.85rem' }}>Phone</th>
@@ -3876,7 +3881,6 @@ export default function AccountsLedgerModal({
                     </tfoot>
                   </table>
                 </div>
-              </div>
             )}
 
             {/* VIEW 2: IDS NEXT CORPORATE CITY LEDGER AGING & CREDIT CONTROL MATRIX */}
@@ -3923,11 +3927,10 @@ export default function AccountsLedgerModal({
                 </div>
 
                 {/* Aging Breakdown Table */}
-                <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                      <thead>
-                        <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="enterprise-data-table-container">
+                  <table className="enterprise-data-table sheets-grid-table">
+                    <thead>
+                      <tr>
                           <th style={{ padding: '0.75rem 0.85rem' }}>Corporate Account</th>
                           <th style={{ padding: '0.75rem 0.85rem' }}>DRI Contact</th>
                           <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: '#34d399' }}>0 - 30 Days (Current)</th>
@@ -4120,8 +4123,7 @@ export default function AccountsLedgerModal({
                     </table>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
         )}
 
@@ -5409,10 +5411,10 @@ export default function AccountsLedgerModal({
                   return (
                     <div>
                       {/* Itemized Folios Table */}
-                      <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <div className="enterprise-data-table-container" style={{ marginBottom: '1.25rem' }}>
+                        <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.82rem' }}>
                           <thead>
-                            <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                            <tr>
                               <th style={{ padding: '0.75rem 1rem' }}>Folio / Invoice #</th>
                               <th style={{ padding: '0.75rem 1rem' }}>Stay Date</th>
                               <th style={{ padding: '0.75rem 1rem' }}>Guest / Delegation</th>

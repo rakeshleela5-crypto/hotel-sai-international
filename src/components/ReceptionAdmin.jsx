@@ -3482,7 +3482,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 />
               </div>
 
-              <table className="enterprise-data-table">
+              <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
                     <th style={{ width: '80px', textAlign: 'center' }}>Room #</th>
@@ -5025,7 +5025,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             <div className="enterprise-data-table-container">
-              <table className="enterprise-data-table">
+              <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
                     <th style={{ width: '80px' }}>Time</th>
@@ -5102,7 +5102,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               <ClipboardList size={18} color="var(--gold-glow)" /> Shift Handover Audit Trail &amp; Safe Drop Register
             </h4>
             <div className="enterprise-data-table-container">
-              <table className="enterprise-data-table">
+              <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
                     <th style={{ width: '130px' }}>Shift ID / Date</th>
@@ -5605,7 +5605,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             <div className="enterprise-data-table-container">
-              <table className="enterprise-data-table">
+              <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
                     <th style={{ width: '130px' }}>Ticket # / Date</th>
@@ -5762,7 +5762,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
 
           {/* Guest Table - High-Density Enterprise Spreadsheet Format */}
           <div className="enterprise-data-table-container">
-            <table className="enterprise-data-table">
+            <table className="enterprise-data-table sheets-grid-table">
               <thead>
                 <tr>
                   <th style={{ width: '100px', textAlign: 'center' }}>Room #</th>
@@ -5986,21 +5986,22 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </span>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>GUEST NAME &amp; PHONE</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>TRAIN / ORIGIN &amp; PURPOSE</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>SLOT</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CHECK-IN</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>EXPECTED OUT</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'right' }}>TARIFF (₹)</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>MODE</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>STATUS</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>OPERATIONAL ACTIONS</th>
-                </tr>
-              </thead>
+            <div className="enterprise-data-table-container">
+              <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
+                    <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>GUEST NAME &amp; PHONE</th>
+                    <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>TRAIN / ORIGIN &amp; PURPOSE</th>
+                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>SLOT</th>
+                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CHECK-IN</th>
+                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>EXPECTED OUT</th>
+                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'right' }}>TARIFF (₹)</th>
+                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>MODE</th>
+                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>STATUS</th>
+                    <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>OPERATIONAL ACTIONS</th>
+                  </tr>
+                </thead>
               <tbody>
                 {filteredTransitStays.map(stay => (
                   <tr key={stay.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -6087,6 +6088,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* RAYAGADA JUNCTION (RGDA) STATION TRANSFER & LOGISTICS DISPATCH (Inspired by Open-Hotel-PMS) */}

@@ -492,17 +492,18 @@ export default function StoreInventoryModal({
               </div>
 
               {/* Table */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.75rem 1rem' }}>Date / Purchase ID</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Vendor Name</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Category</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Items Summary</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total (₹)</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Payment Mode</th>
-                  </tr>
-                </thead>
+              <div className="enterprise-data-table-container">
+                <table className="enterprise-data-table sheets-grid-table">
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '0.75rem 1rem' }}>Date / Purchase ID</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Vendor Name</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Category</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Items Summary</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total (₹)</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Payment Mode</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {filteredPurchases.map(p => (
                     <tr key={p.purchaseId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -533,6 +534,7 @@ export default function StoreInventoryModal({
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -558,10 +560,10 @@ export default function StoreInventoryModal({
                 </div>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <div className="enterprise-data-table-container">
+                <table className="enterprise-data-table sheets-grid-table">
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                    <tr>
                       <th style={{ padding: '0.7rem 0.75rem' }}>Supplier / Mandi Dealer</th>
                       <th style={{ padding: '0.7rem 0.75rem' }}>Supplies Category</th>
                       <th style={{ padding: '0.7rem 0.75rem' }}>Key Contact</th>
@@ -620,34 +622,36 @@ export default function StoreInventoryModal({
                 Stock transferred from Main Store to Head Chef Jagabandhu Sahu to prevent raw material pilferage.
               </p>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.75rem 1rem' }}>Requisition #</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Date</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Raw Material Item</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Quantity Issued</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Est. Cost (₹)</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Issued To</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRequisitions.map(r => (
-                    <tr key={r.requisitionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fbbf24' }}>{r.requisitionId}</td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issueDate || r.date}</td>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fff' }}>{r.itemName}</td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'center', color: '#38bdf8', fontWeight: 600 }}>
-                        {r.quantityIssued || r.quantity} {r.unit}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>
-                        ₹{Number(r.approxCost || 0).toFixed(2)}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issuedTo}</td>
+              <div className="enterprise-data-table-container">
+                <table className="enterprise-data-table sheets-grid-table">
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '0.75rem 1rem' }}>Requisition #</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Date</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Raw Material Item</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Quantity Issued</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Est. Cost (₹)</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Issued To</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredRequisitions.map(r => (
+                      <tr key={r.requisitionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fbbf24' }}>{r.requisitionId}</td>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issueDate || r.date}</td>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fff' }}>{r.itemName}</td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center', color: '#38bdf8', fontWeight: 600 }}>
+                          {r.quantityIssued || r.quantity} {r.unit}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>
+                          ₹{Number(r.approxCost || 0).toFixed(2)}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issuedTo}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -693,16 +697,17 @@ export default function StoreInventoryModal({
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Click dish to inspect BOM</span>
                   </div>
 
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                    <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                        <th style={{ padding: '0.65rem 0.75rem' }}>Dish &amp; Code</th>
-                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Menu Price</th>
-                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Raw Cost</th>
-                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Food Cost %</th>
-                        <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Stock Capacity</th>
-                      </tr>
-                    </thead>
+                  <div className="enterprise-data-table-container" style={{ margin: 0 }}>
+                    <table className="enterprise-data-table sheets-grid-table">
+                      <thead>
+                        <tr>
+                          <th style={{ padding: '0.65rem 0.75rem' }}>Dish &amp; Code</th>
+                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Menu Price</th>
+                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Raw Cost</th>
+                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Food Cost %</th>
+                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Stock Capacity</th>
+                        </tr>
+                      </thead>
                     <tbody>
                       {KITCHEN_RECIPE_BOM.map(dish => (
                         <tr 
@@ -752,6 +757,7 @@ export default function StoreInventoryModal({
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
 
                 {/* Right: Selected Dish BOM Specification (InvenTree Style) */}
