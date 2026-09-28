@@ -54,6 +54,13 @@ CREATE TABLE IF NOT EXISTS bookings (
   corporate_gstin TEXT,
   company_name TEXT,
   bill_no TEXT,
+  check_in_time TEXT DEFAULT '12:00 PM',
+  billing_address TEXT,
+  billing_type TEXT DEFAULT 'Direct',
+  meal_plan TEXT DEFAULT 'EP',
+  grc_no TEXT,
+  pax INTEGER DEFAULT 1,
+  is_non_gst INTEGER DEFAULT 0,
   consent_dpdp INTEGER NOT NULL DEFAULT 1,
   special_requests TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -275,6 +282,9 @@ CREATE TABLE IF NOT EXISTS cashier_shift_handovers (
   discrepancy_reason TEXT,
   status TEXT NOT NULL DEFAULT 'BALANCED', -- 'BALANCED', 'SURPLUS', 'DEFICIT', 'Balanced', 'Discrepancy'
   verified_by TEXT NOT NULL DEFAULT 'Duty Manager',
+  shift_lead TEXT DEFAULT 'Sudhakar Reddy',
+  handover_signed INTEGER DEFAULT 1,
+  signed_at TEXT,
   notes TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -396,6 +406,7 @@ CREATE TABLE IF NOT EXISTS corporate_partners (
   credit_days INTEGER NOT NULL DEFAULT 30,
   credit_limit REAL NOT NULL DEFAULT 200000,
   opening_balance REAL NOT NULL DEFAULT 0,
+  billing_mode TEXT DEFAULT 'Room Only',
   status TEXT NOT NULL DEFAULT 'Active'
 );
 
@@ -549,6 +560,8 @@ CREATE TABLE IF NOT EXISTS folio_transactions (
   sgst REAL NOT NULL DEFAULT 0,
   sac_code TEXT NOT NULL DEFAULT '996311', -- 996311 (Accommodation 12%), 996331 (Restaurant F&B 5%)
   invoice_id TEXT, -- Target split invoice: e.g. INV-ROOM-402 or INV-FOOD-402
+  payment_mode TEXT DEFAULT 'Cash',
+  rule48_copy TEXT DEFAULT 'ORIGINAL FOR RECIPIENT',
   is_locked INTEGER NOT NULL DEFAULT 0, -- 1 = Frozen by 12:00 AM Night Audit
   created_by TEXT NOT NULL DEFAULT 'Reception Cashier',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -1176,5 +1189,204 @@ CREATE INDEX IF NOT EXISTS idx_food_orders_room
 -- 11. Staff Biometric Attendance Index
 CREATE INDEX IF NOT EXISTS idx_attendance_staff_date 
   ON attendance (staff_id, date);
+
+-- ============================================================================
+-- 58. TALLY PRIME MASTER LEDGERS (CHART OF ACCOUNTS)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS tally_ledgers (
+  ledger_id TEXT PRIMARY KEY,
+  ledger_name TEXT NOT NULL UNIQUE,
+  group_name TEXT NOT NULL,
+  opening_balance REAL NOT NULL DEFAULT 0,
+  current_balance REAL NOT NULL DEFAULT 0,
+  balance_type TEXT NOT NULL DEFAULT 'Dr' CHECK (balance_type IN ('Dr', 'Cr')),
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 59. TALLY PRIME DOUBLE-ENTRY BALANCED VOUCHERS
+CREATE TABLE IF NOT EXISTS tally_vouchers (
+  voucher_no TEXT PRIMARY KEY,
+  voucher_type TEXT NOT NULL,
+  type_code TEXT NOT NULL,
+  voucher_date TEXT NOT NULL,
+  ref_no TEXT,
+  narration TEXT NOT NULL,
+  total_debit REAL NOT NULL,
+  total_credit REAL NOT NULL,
+  is_balanced INTEGER NOT NULL DEFAULT 1,
+  created_by TEXT NOT NULL DEFAULT 'Accountant',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 60. TALLY PRIME VOUCHER LINE ITEMS
+CREATE TABLE IF NOT EXISTS tally_voucher_lines (
+  line_id TEXT PRIMARY KEY,
+  voucher_no TEXT NOT NULL,
+  dr_cr TEXT NOT NULL CHECK (dr_cr IN ('Dr', 'Cr')),
+  ledger_id TEXT NOT NULL,
+  ledger_name TEXT NOT NULL,
+  amount REAL NOT NULL,
+  line_order INTEGER NOT NULL DEFAULT 1,
+  FOREIGN KEY (voucher_no) REFERENCES tally_vouchers(voucher_no) ON DELETE CASCADE
+);
+
+-- 61. OFFICIAL GST PORTAL GSTR-1 RETURNS (GSTN SCHEMA v1.7)
+CREATE TABLE IF NOT EXISTS gstr1_filings (
+  filing_id TEXT PRIMARY KEY,
+  return_period TEXT NOT NULL,
+  gstin TEXT NOT NULL DEFAULT '21AAACH2877E1Z0',
+  financial_year TEXT NOT NULL DEFAULT '2026-2027',
+  gross_turnover REAL NOT NULL DEFAULT 0,
+  b2b_invoices_count INTEGER NOT NULL DEFAULT 0,
+  b2b_taxable_value REAL NOT NULL DEFAULT 0,
+  b2b_total_tax REAL NOT NULL DEFAULT 0,
+  b2cs_taxable_value REAL NOT NULL DEFAULT 0,
+  b2cs_total_tax REAL NOT NULL DEFAULT 0,
+  hsn_items_count INTEGER NOT NULL DEFAULT 0,
+  docs_issued_count INTEGER NOT NULL DEFAULT 0,
+  json_payload TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Generated',
+  generated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 62. GSTR-2B INPUT TAX CREDIT (ITC) INWARD SUPPLIES & RECONCILIATION
+CREATE TABLE IF NOT EXISTS gstr2b_inward_supplies (
+  record_id TEXT PRIMARY KEY,
+  return_period TEXT NOT NULL,
+  supplier_gstin TEXT NOT NULL,
+  supplier_name TEXT NOT NULL,
+  invoice_number TEXT NOT NULL,
+  invoice_date TEXT NOT NULL,
+  invoice_value REAL NOT NULL,
+  taxable_value REAL NOT NULL,
+  cgst REAL NOT NULL DEFAULT 0,
+  sgst REAL NOT NULL DEFAULT 0,
+  igst REAL NOT NULL DEFAULT 0,
+  itc_eligibility TEXT NOT NULL DEFAULT 'Y',
+  reconciliation_status TEXT NOT NULL DEFAULT 'UNPROCESSED',
+  books_purchase_id TEXT,
+  difference_amount REAL NOT NULL DEFAULT 0,
+  remarks TEXT,
+  imported_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 63. GST FRONT OFFICE MODULE (FOM) INVOICE REGISTER & AMENDMENTS
+CREATE TABLE IF NOT EXISTS gst_fom_records (
+  record_id TEXT PRIMARY KEY,
+  bill_no TEXT NOT NULL UNIQUE,
+  bill_date TEXT NOT NULL,
+  ref_no TEXT NOT NULL,
+  guest_name TEXT NOT NULL,
+  room_number TEXT NOT NULL,
+  company_name TEXT,
+  gstin TEXT,
+  billing_address TEXT,
+  state_code TEXT NOT NULL DEFAULT '21 (Odisha)',
+  taxable_0 REAL NOT NULL DEFAULT 0,
+  taxable_5 REAL NOT NULL DEFAULT 0,
+  cgst REAL NOT NULL DEFAULT 0,
+  sgst REAL NOT NULL DEFAULT 0,
+  total_amount REAL NOT NULL,
+  amendment_reason TEXT,
+  amended_by TEXT DEFAULT 'Front Desk Cashier',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 64. GUEST STATION / PLANT TRANSFERS & CAB DISPATCH LOG
+CREATE TABLE IF NOT EXISTS guest_transfers (
+  transfer_id TEXT PRIMARY KEY,
+  guest_name TEXT NOT NULL,
+  room_number TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  transfer_type TEXT NOT NULL,
+  train_number TEXT,
+  scheduled_time TEXT NOT NULL,
+  pickup_location TEXT NOT NULL,
+  assigned_vehicle TEXT NOT NULL,
+  driver_name TEXT NOT NULL,
+  driver_phone TEXT NOT NULL,
+  fare REAL NOT NULL DEFAULT 0,
+  is_corporate_courtesy INTEGER NOT NULL DEFAULT 0,
+  billing_status TEXT NOT NULL DEFAULT 'Pending Settlement',
+  dispatch_status TEXT NOT NULL DEFAULT 'Scheduled',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 65. RESTAURANT TABLE BILL SETTLEMENTS & CASHIER PAYMENTS
+CREATE TABLE IF NOT EXISTS restaurant_table_settlements (
+  settlement_id TEXT PRIMARY KEY,
+  table_number TEXT NOT NULL,
+  kot_id TEXT,
+  guest_name TEXT NOT NULL DEFAULT 'Walk-in Diner',
+  subtotal REAL NOT NULL DEFAULT 0,
+  cgst REAL NOT NULL DEFAULT 0,
+  sgst REAL NOT NULL DEFAULT 0,
+  total_amount REAL NOT NULL,
+  payment_mode TEXT NOT NULL,
+  room_number TEXT,
+  captain_name TEXT,
+  settled_by TEXT NOT NULL DEFAULT 'Restaurant Cashier',
+  settled_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 66. CORPORATE ADVANCE TARIFF QUOTATIONS & PROFORMA PROPOSALS
+CREATE TABLE IF NOT EXISTS corporate_quotations (
+  quotation_id TEXT PRIMARY KEY,
+  corporate_id TEXT,
+  company_name TEXT NOT NULL,
+  gstin TEXT,
+  contact_person TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  contact_phone TEXT NOT NULL,
+  room_tier TEXT NOT NULL DEFAULT 'Executive Room',
+  rooms_count INTEGER NOT NULL DEFAULT 1,
+  nights INTEGER NOT NULL DEFAULT 1,
+  quoted_rate REAL NOT NULL,
+  estimated_total REAL NOT NULL,
+  tds_applicable TEXT NOT NULL DEFAULT '194C (2%)',
+  valid_until TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Draft',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 67. RULE 48 STATUTORY MULTI-COPY INVOICE PRINT AUDIT LOG
+CREATE TABLE IF NOT EXISTS invoice_print_audit_logs (
+  log_id TEXT PRIMARY KEY,
+  invoice_no TEXT NOT NULL,
+  booking_id TEXT,
+  room_number TEXT,
+  guest_or_company TEXT NOT NULL,
+  rule48_copy TEXT NOT NULL,
+  document_type TEXT NOT NULL DEFAULT 'Tax Invoice (SAC 996311)',
+  printed_by TEXT NOT NULL DEFAULT 'Front Desk Cashier',
+  printer_identifier TEXT,
+  reprint_reason TEXT,
+  printed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 68. UNIVERSAL INLINE CELL EDIT PERSISTENT OVERRIDES
+CREATE TABLE IF NOT EXISTS universal_inline_overrides (
+  override_id TEXT PRIMARY KEY,
+  storage_prefix TEXT NOT NULL DEFAULT 'hsi_accounts',
+  table_name TEXT NOT NULL,
+  row_key TEXT NOT NULL,
+  column_key TEXT NOT NULL,
+  original_value TEXT,
+  overridden_value TEXT NOT NULL,
+  edited_by TEXT NOT NULL DEFAULT 'Accountant',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Additional Indexes for high throughput querying
+CREATE INDEX IF NOT EXISTS idx_tally_vouchers_date ON tally_vouchers (voucher_date DESC);
+CREATE INDEX IF NOT EXISTS idx_tally_voucher_lines_vno ON tally_voucher_lines (voucher_no);
+CREATE INDEX IF NOT EXISTS idx_gstr2b_period ON gstr2b_inward_supplies (return_period, reconciliation_status);
+CREATE INDEX IF NOT EXISTS idx_transfers_status ON guest_transfers (dispatch_status, scheduled_time);
+CREATE INDEX IF NOT EXISTS idx_table_settle_date ON restaurant_table_settlements (settled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quotations_corp ON corporate_quotations (corporate_id, status);
+CREATE INDEX IF NOT EXISTS idx_print_logs_inv ON invoice_print_audit_logs (invoice_no, printed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inline_override_tbl ON universal_inline_overrides (table_name, row_key, column_key);
+
 
 

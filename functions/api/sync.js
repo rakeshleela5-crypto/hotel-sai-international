@@ -185,7 +185,17 @@ export async function onRequestGet({ request, env }) {
       digitalKeycardsRes,
       maintenanceWorkOrdersRes,
       policeDispatchesRes,
-      lostAndFoundRes
+      lostAndFoundRes,
+      tallyLedgersRes,
+      tallyVouchersRes,
+      gstr1FilingsRes,
+      gstr2bSuppliesRes,
+      gstFomRecordsRes,
+      guestTransfersRes,
+      tableSettlementsRes,
+      corporateQuotationsRes,
+      invoicePrintLogsRes,
+      inlineOverridesRes
     ] = await Promise.all([
       db.prepare("SELECT * FROM rooms ORDER BY floor ASC, room_number ASC").all(),
       db.prepare("SELECT * FROM bookings ORDER BY created_at DESC LIMIT 100").all(),
@@ -219,7 +229,17 @@ export async function onRequestGet({ request, env }) {
       db.prepare("SELECT * FROM digital_keycards WHERE is_active = 1 ORDER BY created_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
       db.prepare("SELECT * FROM maintenance_work_orders ORDER BY created_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
       db.prepare("SELECT * FROM police_register_dispatches ORDER BY dispatch_date DESC LIMIT 30").all().catch(() => ({ results: [] })),
-      db.prepare("SELECT * FROM lost_and_found ORDER BY found_date DESC LIMIT 50").all().catch(() => ({ results: [] }))
+      db.prepare("SELECT * FROM lost_and_found ORDER BY found_date DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM tally_ledgers ORDER BY ledger_name ASC").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM tally_vouchers ORDER BY voucher_date DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM gstr1_filings ORDER BY generated_at DESC LIMIT 20").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM gstr2b_inward_supplies ORDER BY invoice_date DESC LIMIT 100").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM gst_fom_records ORDER BY bill_date DESC LIMIT 100").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM guest_transfers ORDER BY scheduled_time DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM restaurant_table_settlements ORDER BY settled_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM corporate_quotations ORDER BY created_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM invoice_print_audit_logs ORDER BY printed_at DESC LIMIT 50").all().catch(() => ({ results: [] })),
+      db.prepare("SELECT * FROM universal_inline_overrides ORDER BY updated_at DESC LIMIT 200").all().catch(() => ({ results: [] }))
     ]);
 
     // Parse food order items JSON
@@ -351,7 +371,17 @@ export async function onRequestGet({ request, env }) {
         digitalKeycards: digitalKeycardsRes?.results || [],
         maintenanceWorkOrders: maintenanceWorkOrdersRes?.results || [],
         policeDispatches: policeDispatchesRes?.results || [],
-        lostAndFound: lostAndFoundRes?.results || []
+        lostAndFound: lostAndFoundRes?.results || [],
+        tallyLedgers: tallyLedgersRes?.results || [],
+        tallyVouchers: tallyVouchersRes?.results || [],
+        gstr1Filings: gstr1FilingsRes?.results || [],
+        gstr2bSupplies: gstr2bSuppliesRes?.results || [],
+        gstFomRecords: gstFomRecordsRes?.results || [],
+        guestTransfers: guestTransfersRes?.results || [],
+        restaurantTableSettlements: tableSettlementsRes?.results || [],
+        corporateQuotations: corporateQuotationsRes?.results || [],
+        invoicePrintAuditLogs: invoicePrintLogsRes?.results || [],
+        universalInlineOverrides: inlineOverridesRes?.results || []
       }
     });
   } catch (error) {
@@ -1496,6 +1526,339 @@ export async function onRequestPost({ request, env }) {
       }
 
       return jsonResponse({ success: true, updatedKeys: pairs.map(p => p[0]) });
+    }
+
+    // 40. CANNON KITCHEN POS: Record Dining Table Settlement & Tax Receipt
+    if (action === 'record_table_settlement') {
+      const p = payload || {};
+      const settlementId = p.invoiceId || `SETTLE-${Date.now()}`;
+      const subtotal = Number(p.subtotal || 0);
+      const gst = Number(p.gst || 0);
+      const totalAmount = Number(p.totalAmount || 0);
+      const tableNumber = String(p.tableNumber || '1');
+      const paymentMode = String(p.paymentMode || 'Cash');
+
+      await db.prepare(`
+        INSERT INTO restaurant_table_settlements (
+          settlement_id, table_number, kot_id, guest_name,
+          subtotal, cgst, sgst, total_amount, payment_mode,
+          room_number, captain_name, settled_by, settled_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(settlement_id) DO UPDATE SET
+          total_amount = excluded.total_amount,
+          payment_mode = excluded.payment_mode
+      `).bind(
+        settlementId, tableNumber, p.invoiceId || null, `Table ${tableNumber} Guest`,
+        subtotal, gst / 2, gst / 2, totalAmount, paymentMode,
+        p.roomNumber || null, p.captain || 'Restaurant Captain', 'Restaurant Cashier'
+      ).run().catch(() => {});
+
+      // If Billed to Room, post to folio_transactions
+      if (paymentMode.toLowerCase().includes('room') && p.roomNumber) {
+        await db.prepare(`
+          INSERT INTO folio_transactions (
+            transaction_id, folio_id, room_number, transaction_type, outlet,
+            description, debit_amount, taxable_base, gst_rate, cgst, sgst, sac_code, created_by
+          ) VALUES (?, ?, ?, 'Food & Beverage', 'Cannon Kitchen', ?, ?, ?, 5, ?, ?, '996331', 'Restaurant POS Cashier')
+        `).bind(
+          `TXN-POS-${settlementId}`, `FOLIO-${p.roomNumber}`, p.roomNumber,
+          `Cannon Kitchen Dining Table ${tableNumber} (Invoice #${settlementId})`,
+          totalAmount, subtotal, gst / 2, gst / 2
+        ).run().catch(() => {});
+
+        await db.prepare(`
+          UPDATE rooms SET outstanding_balance = outstanding_balance + ? WHERE room_number = ?
+        `).bind(totalAmount, p.roomNumber).run().catch(() => {});
+      }
+
+      // Mark table available/cleaning
+      await db.prepare(`
+        UPDATE restaurant_tables SET status = 'available', current_kot = NULL WHERE table_number = ?
+      `).bind(tableNumber).run().catch(() => {});
+
+      return jsonResponse({ success: true, settlementId, tableNumber, totalAmount, paymentMode });
+    }
+
+    // 41. CORPORATE PORTAL: Record Corporate Advance Quotation
+    if (action === 'record_corporate_advance_quotation') {
+      const q = payload || {};
+      const quotationId = q.quotationNo || `HSI-QUO-${Date.now()}`;
+      const partnerId = q.partnerId || null;
+      const companyName = q.companyName || 'Corporate Client';
+      const grandTotal = Number(q.grandTotal || 0);
+      const quotedRate = Number(q.quotedRate || 2200);
+
+      await db.prepare(`
+        INSERT INTO corporate_quotations (
+          quotation_id, corporate_id, company_name, contact_person, contact_email, contact_phone,
+          room_tier, rooms_count, nights, quoted_rate, estimated_total, tds_applicable, valid_until, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATE('now', '+30 days'), ?)
+        ON CONFLICT(quotation_id) DO UPDATE SET
+          estimated_total = excluded.estimated_total,
+          status = excluded.status
+      `).bind(
+        quotationId, partnerId, companyName, q.contactPerson || 'Authorized Representative',
+        q.contactEmail || 'corporate@partner.com', q.contactPhone || '+91 94370 00000',
+        q.roomTier || 'Executive Room', Number(q.roomCount || 1), Number(q.nightCount || 1),
+        quotedRate, grandTotal, '194C (2%)', q.status || 'Advance Confirmed'
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, quotationId, companyName, grandTotal, status: q.status || 'Advance Confirmed' });
+    }
+
+    // 42. FRONT DESK / RECEPTION: Bill Direct Service / Transfer / Laundry to Room Folio
+    if (action === 'bill_to_room') {
+      const p = payload || {};
+      const roomNumber = p.roomNumber;
+      if (!roomNumber) {
+        return jsonResponse({ error: "roomNumber is required" }, 400);
+      }
+      const amount = Number(p.amount || 0);
+      const taxRate = Number(p.taxRate || 5);
+      const baseAmount = amount / (1 + (taxRate / 100));
+      const totalTax = amount - baseAmount;
+      const sac = p.sac || '996412';
+      const txnId = `TXN-BILL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      await db.prepare(`
+        INSERT INTO folio_transactions (
+          transaction_id, folio_id, room_number, transaction_type, outlet,
+          description, debit_amount, taxable_base, gst_rate, cgst, sgst, sac_code, created_by
+        ) VALUES (?, ?, ?, 'Room Service', 'Front Desk', ?, ?, ?, ?, ?, ?, ?, 'Front Desk Cashier')
+      `).bind(
+        txnId, `FOLIO-${roomNumber}`, roomNumber,
+        p.description || `Front Desk Charge (SAC ${sac})`,
+        amount, baseAmount, taxRate, totalTax / 2, totalTax / 2, sac
+      ).run().catch(() => {});
+
+      await db.prepare(`
+        UPDATE rooms SET outstanding_balance = outstanding_balance + ? WHERE room_number = ?
+      `).bind(amount, roomNumber).run().catch(() => {});
+
+      return jsonResponse({ success: true, txnId, roomNumber, amount });
+    }
+
+    // 43. TALLY PRIME ERP: Save Balanced Voucher (F4-F9)
+    if (action === 'save_tally_voucher') {
+      const v = payload || {};
+      const voucherNo = v.voucher_no || v.voucherNo || `HSI/VCH/${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO tally_vouchers (
+          voucher_no, voucher_type, type_code, voucher_date, ref_no, narration,
+          total_debit, total_credit, is_balanced, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(voucher_no) DO UPDATE SET
+          total_debit = excluded.total_debit,
+          total_credit = excluded.total_credit,
+          narration = excluded.narration
+      `).bind(
+        voucherNo, v.voucher_type || 'Journal', v.type_code || 'F7',
+        v.voucher_date || new Date().toISOString().slice(0, 10),
+        v.ref_no || null, v.narration || 'General Voucher Entry',
+        Number(v.total_debit || 0), Number(v.total_credit || 0),
+        v.is_balanced !== undefined ? (v.is_balanced ? 1 : 0) : 1,
+        v.created_by || 'Accountant'
+      ).run().catch(() => {});
+
+      // Insert line items if present
+      if (Array.isArray(v.lines)) {
+        for (let idx = 0; idx < v.lines.length; idx++) {
+          const l = v.lines[idx];
+          const lineId = l.line_id || `${voucherNo}-L${idx + 1}`;
+          await db.prepare(`
+            INSERT INTO tally_voucher_lines (line_id, voucher_no, dr_cr, ledger_id, ledger_name, amount, line_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(line_id) DO UPDATE SET amount = excluded.amount
+          `).bind(
+            lineId, voucherNo, l.dr_cr || 'Dr', l.ledger_id || 'LED-001',
+            l.ledger_name || 'Ledger', Number(l.amount || 0), idx + 1
+          ).run().catch(() => {});
+        }
+      }
+
+      return jsonResponse({ success: true, voucherNo });
+    }
+
+    // 44. TALLY PRIME ERP: Save / Update Ledger Account
+    if (action === 'save_tally_ledger') {
+      const l = payload || {};
+      const ledgerId = l.ledger_id || l.ledgerId || `LED-${Date.now().toString().slice(-4)}`;
+      await db.prepare(`
+        INSERT INTO tally_ledgers (
+          ledger_id, ledger_name, group_name, opening_balance, current_balance, balance_type, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(ledger_id) DO UPDATE SET
+          ledger_name = excluded.ledger_name,
+          group_name = excluded.group_name,
+          current_balance = excluded.current_balance,
+          balance_type = excluded.balance_type
+      `).bind(
+        ledgerId, l.ledger_name || l.ledgerName, l.group_name || l.groupName || 'Sundry Debtors',
+        Number(l.opening_balance || 0), Number(l.current_balance || 0),
+        l.balance_type || 'Dr', l.is_active !== undefined ? (l.is_active ? 1 : 0) : 1
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, ledgerId });
+    }
+
+    // 45. GST COMPLIANCE: Record GSTR-1 Return Filing
+    if (action === 'save_gstr1_filing') {
+      const g = payload || {};
+      const filingId = g.filing_id || `GSTR1-${g.return_period || Date.now()}`;
+      await db.prepare(`
+        INSERT INTO gstr1_filings (
+          filing_id, return_period, gstin, financial_year, gross_turnover,
+          b2b_invoices_count, b2b_taxable_value, b2b_total_tax,
+          b2cs_taxable_value, b2cs_total_tax, hsn_items_count, docs_issued_count,
+          json_payload, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(filing_id) DO UPDATE SET
+          status = excluded.status,
+          json_payload = excluded.json_payload
+      `).bind(
+        filingId, g.return_period || '092026', g.gstin || '21AAACH2877E1Z0',
+        g.financial_year || '2026-2027', Number(g.gross_turnover || 0),
+        Number(g.b2b_invoices_count || 0), Number(g.b2b_taxable_value || 0), Number(g.b2b_total_tax || 0),
+        Number(g.b2cs_taxable_value || 0), Number(g.b2cs_total_tax || 0),
+        Number(g.hsn_items_count || 0), Number(g.docs_issued_count || 0),
+        typeof g.json_payload === 'string' ? g.json_payload : JSON.stringify(g.json_payload || {}),
+        g.status || 'Generated'
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, filingId });
+    }
+
+    // 46. GSTR-2B ITC: Save Inward Supply & Reconciliation Record
+    if (action === 'save_gstr2b_recon') {
+      const r = payload || {};
+      const recordId = r.record_id || `G2B-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      await db.prepare(`
+        INSERT INTO gstr2b_inward_supplies (
+          record_id, return_period, supplier_gstin, supplier_name,
+          invoice_number, invoice_date, invoice_value, taxable_value,
+          cgst, sgst, igst, itc_eligibility, reconciliation_status,
+          books_purchase_id, difference_amount, remarks
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(record_id) DO UPDATE SET
+          reconciliation_status = excluded.reconciliation_status,
+          books_purchase_id = excluded.books_purchase_id,
+          difference_amount = excluded.difference_amount
+      `).bind(
+        recordId, r.return_period || '092026', r.supplier_gstin, r.supplier_name,
+        r.invoice_number, r.invoice_date, Number(r.invoice_value || 0), Number(r.taxable_value || 0),
+        Number(r.cgst || 0), Number(r.sgst || 0), Number(r.igst || 0),
+        r.itc_eligibility || 'Y', r.reconciliation_status || 'MATCHED',
+        r.books_purchase_id || null, Number(r.difference_amount || 0), r.remarks || null
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, recordId });
+    }
+
+    // 47. GUEST LOGISTICS: Save / Update Station or Plant Cab Transfer
+    if (action === 'save_guest_transfer') {
+      const t = payload || {};
+      const transferId = t.transfer_id || t.id || `TRF-${Date.now().toString().slice(-4)}`;
+      await db.prepare(`
+        INSERT INTO guest_transfers (
+          transfer_id, guest_name, room_number, phone, transfer_type, train_number,
+          scheduled_time, pickup_location, assigned_vehicle, driver_name, driver_phone,
+          fare, is_corporate_courtesy, billing_status, dispatch_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(transfer_id) DO UPDATE SET
+          billing_status = excluded.billing_status,
+          dispatch_status = excluded.dispatch_status,
+          driver_name = excluded.driver_name,
+          assigned_vehicle = excluded.assigned_vehicle
+      `).bind(
+        transferId, t.guest_name || t.guestName, t.room_number || t.roomNumber,
+        t.phone || '', t.transfer_type || t.transferType, t.train_number || t.trainNumber || null,
+        t.scheduled_time || t.scheduledTime, t.pickup_location || t.pickupLocation,
+        t.assigned_vehicle || t.assignedVehicle, t.driver_name || t.driverName,
+        t.driver_phone || t.driverPhone, Number(t.fare || 0),
+        t.is_corporate_courtesy ? 1 : 0, t.billing_status || t.billingStatus || 'Pending Settlement',
+        t.dispatch_status || t.dispatchStatus || 'Scheduled'
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, transferId });
+    }
+
+    // 48. STATUTORY RULE 48: Log Multi-Copy Tax Invoice Print Event
+    if (action === 'log_invoice_print') {
+      const p = payload || {};
+      const logId = `PRINT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      await db.prepare(`
+        INSERT INTO invoice_print_audit_logs (
+          log_id, invoice_no, booking_id, room_number, guest_or_company,
+          rule48_copy, document_type, printed_by, printer_identifier, reprint_reason
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        logId, p.invoiceNo, p.bookingId || null, p.roomNumber || null,
+        p.guestOrCompany || 'Guest', p.rule48Copy || 'ORIGINAL FOR RECIPIENT',
+        p.documentType || 'Tax Invoice (SAC 996311)', p.printedBy || 'Front Desk Cashier',
+        p.printerIdentifier || 'Thermal/A4 Network Laser', p.reprintReason || null
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, logId });
+    }
+
+    // 49. UNIVERSAL INLINE EDITOR: Persist Cell Override
+    if (action === 'save_inline_override') {
+      const o = payload || {};
+      const overrideId = `${o.tableName || 'table'}_${o.rowKey || 'row'}_${o.columnKey || 'col'}`;
+      await db.prepare(`
+        INSERT INTO universal_inline_overrides (
+          override_id, storage_prefix, table_name, row_key, column_key, original_value, overridden_value, edited_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(override_id) DO UPDATE SET
+          overridden_value = excluded.overridden_value,
+          updated_at = datetime('now')
+      `).bind(
+        overrideId, o.storagePrefix || 'hsi_accounts', o.tableName,
+        String(o.rowKey), String(o.columnKey),
+        String(o.originalValue || ''), String(o.overriddenValue || ''),
+        o.editedBy || 'Accountant'
+      ).run().catch(() => {});
+
+      return jsonResponse({ success: true, overrideId });
+    }
+
+    // 50. CLOUDFLARE D1 ZERO-AUTH-CLIFF DATABASE MIGRATION ENGINE
+    if (action === 'run_db_migration') {
+      const isAdmin = await verifyAdminAuth(request, env, db);
+      let authorized = isAdmin;
+      if (!authorized && payload?.adminPin) {
+        const pinRow = await db.prepare("SELECT value FROM hotel_config WHERE key = 'ownerPin'").first().catch(() => null);
+        if (pinRow && pinRow.value && payload.adminPin === pinRow.value) {
+          authorized = true;
+        }
+      }
+      if (!authorized) {
+        return jsonResponse({ error: "Unauthorized: Invalid administrative credentials or PIN" }, 401);
+      }
+
+      const sqlStatements = payload?.statements || [];
+      const results = [];
+      for (const rawSql of sqlStatements) {
+        const sql = rawSql.trim();
+        if (!sql) continue;
+        try {
+          await db.prepare(sql).run();
+          results.push({ sql: sql.slice(0, 80), status: "SUCCESS" });
+        } catch (err) {
+          const msg = err.message || "";
+          if (msg.includes("duplicate column") || msg.includes("already exists")) {
+            results.push({ sql: sql.slice(0, 80), status: "ALREADY_EXISTS", note: msg });
+          } else {
+            results.push({ sql: sql.slice(0, 80), status: "ERROR", error: msg });
+          }
+        }
+      }
+
+      return jsonResponse({
+        success: true,
+        totalExecuted: results.length,
+        results
+      });
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);

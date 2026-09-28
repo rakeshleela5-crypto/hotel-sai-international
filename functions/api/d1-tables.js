@@ -75,7 +75,18 @@ const KNOWN_TABLE_CATEGORIES = {
   attendance: { category: "HR & Staff", label: "Daily Staff Attendance", icon: "⏱️" },
   salary_advances: { category: "HR & Staff", label: "Salary Advances & Loans", icon: "💵" },
   payroll_history: { category: "HR & Staff", label: "Monthly Payroll Records", icon: "📑" },
-  hotel_config: { category: "Configuration", label: "Hotel Settings & Parameters", icon: "⚙️" }
+  hotel_config: { category: "Configuration", label: "Hotel Settings & Parameters", icon: "⚙️" },
+  tally_ledgers: { category: "Accounting & ERP", label: "Tally Chart of Accounts", icon: "📊" },
+  tally_vouchers: { category: "Accounting & ERP", label: "Tally Double-Entry Vouchers", icon: "📑" },
+  tally_voucher_lines: { category: "Accounting & ERP", label: "Tally Voucher Line Items", icon: "🔢" },
+  gstr1_filings: { category: "Statutory & Compliance", label: "GSTR-1 Returns (GSTN v1.7)", icon: "🏛️" },
+  gstr2b_inward_supplies: { category: "Statutory & Compliance", label: "GSTR-2B ITC Reconciliation", icon: "🔍" },
+  gst_fom_records: { category: "Statutory & Compliance", label: "GST Front Office Module Register", icon: "📋" },
+  guest_transfers: { category: "Front Desk & Rooms", label: "Station & Plant Cab Transfers", icon: "🚗" },
+  restaurant_table_settlements: { category: "F&B & Restaurant", label: "Dining Table Bill Settlements", icon: "🧾" },
+  corporate_quotations: { category: "Billing & Accounts", label: "Corporate Advance Quotations", icon: "💼" },
+  invoice_print_audit_logs: { category: "Statutory & Compliance", label: "Rule 48 Statutory Print Logs", icon: "🖨️" },
+  universal_inline_overrides: { category: "Configuration", label: "Universal Inline Cell Overrides", icon: "💾" }
 };
 
 export async function onRequestGet({ request, env }) {
