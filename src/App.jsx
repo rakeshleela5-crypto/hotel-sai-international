@@ -26,6 +26,8 @@ const lazyWithRetry = (componentImport) => {
   });
 };
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 const FloorExplorer3DModal = lazyWithRetry(() => import('./components/FloorExplorer3DModal'));
 const BookingModal = lazyWithRetry(() => import('./components/BookingModal'));
 const BookingReceiptModal = lazyWithRetry(() => import('./components/BookingReceiptModal'));
@@ -953,34 +955,36 @@ export default function App() {
           </>
         ) : (
           <Suspense fallback={<div style={{ padding: '4rem', textAlign: 'center', color: 'var(--gold-glow)' }}>Loading Front Desk PMS...</div>}>
-            <ReceptionAdmin 
-              rooms={rooms}
-              bookings={bookings}
-              transactions={transactions}
-              initialTab={pmsInitialTab}
-              onAddTransaction={handleAddTransaction}
-              onUpdateRoomStatus={handleUpdateRoomStatus}
-              onNewBooking={handleBookingSuccess}
-              onUpdateBooking={(updated) => {
-                if (updated && (updated.bookingId || updated.id)) {
-                  const bId = updated.bookingId || updated.id;
-                  setBookings(prev => prev.map(b => (b.bookingId === bId || b.id === bId || b.roomNumber === updated.roomNumber) ? { ...b, ...updated } : b));
-                }
-              }}
-              onRunNightAudit={handleRunNightAudit}
-              onExitPMS={() => setCurrentView('guest')}
-              onOpenMasterFolio={handleOpenMasterFolio}
-              onOpenRestaurantPOS={() => setPosModalOpen(true)}
-              onOpenAccountsLedger={(tab) => handleOpenAccountsWithTab(tab || 'tally-erp')}
-              onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
-              onOpenNightAuditModal={() => setNightAuditModalOpen(true)}
-              onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
-              onOpenRevenueManagement={() => setRevenueModalOpen(true)}
-              foodOrders={foodOrders}
-              onUpdateOrderStatus={handleUpdateOrderStatus}
-              roomServices={roomServices}
-              onAddRoomService={handleRequestRoomServiceFromGuestPortal}
-            />
+            <ErrorBoundary onExit={() => setCurrentView('guest')}>
+              <ReceptionAdmin 
+                rooms={rooms}
+                bookings={bookings}
+                transactions={transactions}
+                initialTab={pmsInitialTab}
+                onAddTransaction={handleAddTransaction}
+                onUpdateRoomStatus={handleUpdateRoomStatus}
+                onNewBooking={handleBookingSuccess}
+                onUpdateBooking={(updated) => {
+                  if (updated && (updated.bookingId || updated.id)) {
+                    const bId = updated.bookingId || updated.id;
+                    setBookings(prev => prev.map(b => (b.bookingId === bId || b.id === bId || b.roomNumber === updated.roomNumber) ? { ...b, ...updated } : b));
+                  }
+                }}
+                onRunNightAudit={handleRunNightAudit}
+                onExitPMS={() => setCurrentView('guest')}
+                onOpenMasterFolio={handleOpenMasterFolio}
+                onOpenRestaurantPOS={() => setPosModalOpen(true)}
+                onOpenAccountsLedger={(tab) => handleOpenAccountsWithTab(tab || 'tally-erp')}
+                onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
+                onOpenNightAuditModal={() => setNightAuditModalOpen(true)}
+                onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
+                onOpenRevenueManagement={() => setRevenueModalOpen(true)}
+                foodOrders={foodOrders}
+                onUpdateOrderStatus={handleUpdateOrderStatus}
+                roomServices={roomServices}
+                onAddRoomService={handleRequestRoomServiceFromGuestPortal}
+              />
+            </ErrorBoundary>
 
             <FinancialAnalytics bookings={bookings} />
           </Suspense>
