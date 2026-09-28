@@ -822,65 +822,169 @@ button:focus-visible, .btn:focus-visible {
 }
 
 /* ==========================================================================
-   HIGH-DENSITY ENTERPRISE DATA TABLE
-   Strict, structured spreadsheet ledger layout for all operational hotel datasets.
+   HIGH-DENSITY ENTERPRISE SPREADSHEET GRID (Google Sheets / Excel Style)
+   Crisp, sharp 1px cell gridlines across all operational datasets & D1 tables.
    ========================================================================== */
 
 .enterprise-data-table-container {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  background: rgba(8, 14, 26, 0.95);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background: #080f1a;
+  border: 1.5px solid rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 1px rgba(255, 255, 255, 0.1);
   margin-bottom: 1.5rem;
 }
 
-.enterprise-data-table {
+.enterprise-data-table,
+.sheets-grid-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
   font-size: 0.82rem;
-  color: #f8fafc;
+  color: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.enterprise-data-table thead tr {
-  background: linear-gradient(90deg, #0b1526 0%, #15243d 50%, #0b1526 100%);
-  border-bottom: 2px solid rgba(212, 175, 55, 0.45);
+/* Google Sheets Column Header Row */
+.enterprise-data-table thead tr,
+.sheets-grid-table thead tr {
+  background: #0e1726 !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.7) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-.enterprise-data-table th {
-  padding: 0.75rem 0.85rem;
-  font-weight: 800;
-  font-size: 0.76rem;
-  color: #f3c64c;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  text-align: left;
-}
-
-.enterprise-data-table td {
+.enterprise-data-table th,
+.sheets-grid-table th {
   padding: 0.65rem 0.85rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  font-weight: 800;
+  font-size: 0.74rem;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.7) !important;
+  text-align: left;
+  background: #0e1726;
+  position: relative;
+  user-select: none;
+}
+
+/* Header hover & sort visual */
+.enterprise-data-table th:hover,
+.sheets-grid-table th:hover {
+  background: #142036;
+}
+
+/* Dedicated Google Sheets Row Number Column (#) */
+.enterprise-data-table th:first-child,
+.sheets-grid-table th:first-child,
+.enterprise-data-table td:first-child,
+.sheets-grid-table td:first-child {
+  background: #0b1320 !important;
+  color: #94a3b8 !important;
+  font-weight: 700;
+  text-align: center !important;
+  width: 48px;
+  min-width: 48px;
+  max-width: 54px;
+  border-right: 2px solid rgba(148, 163, 184, 0.5) !important;
+  user-select: none;
+  font-size: 0.72rem;
+}
+
+/* Google Sheets Data Cells with Crisp Gridlines */
+.enterprise-data-table td,
+.sheets-grid-table td {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
   vertical-align: middle;
+  transition: background 0.12s ease;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
 }
 
-.enterprise-data-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.02);
+/* Alternating Rows (Zebra striping like Google Sheets alternate colors) */
+.enterprise-data-table tbody tr:nth-child(even),
+.sheets-grid-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02) !important;
 }
 
-.enterprise-data-table tbody tr:hover {
-  background: rgba(212, 175, 55, 0.09) !important;
+.enterprise-data-table tbody tr:nth-child(odd),
+.sheets-grid-table tbody tr:nth-child(odd) {
+  background: rgba(10, 18, 32, 0.7) !important;
 }
 
-.enterprise-data-table td.cell-num {
-  font-family: 'Courier New', Courier, monospace, system-ui;
+/* Hover Row Highlight */
+.enterprise-data-table tbody tr:hover,
+.sheets-grid-table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.12) !important;
+  outline: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.enterprise-data-table tbody tr:hover td,
+.sheets-grid-table tbody tr:hover td {
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+
+/* Active Cell focus feeling */
+.enterprise-data-table td:hover,
+.sheets-grid-table td:hover {
+  background: rgba(212, 175, 55, 0.15) !important;
+  outline: 1.5px solid var(--gold-glow);
+  outline-offset: -1px;
+}
+
+/* Numeric alignment in spreadsheet */
+.enterprise-data-table td.cell-num,
+.sheets-grid-table td.cell-num {
+  font-family: 'SF Mono', 'Courier New', Courier, monospace, system-ui;
   font-weight: 700;
   text-align: right;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  color: #38bdf8;
+}
+
+/* Global Gridline rules for all tables in PMS container & Reception Admin (Google Sheets Style) */
+.pms-data-sheet-table,
+.pms-table-container table,
+.reception-data-grid table,
+.reception-admin-root table {
+  width: 100%;
+  border-collapse: collapse !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+}
+
+.pms-data-sheet-table th,
+.pms-table-container table th,
+.reception-data-grid table th,
+.reception-admin-root table th {
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.6) !important;
+  background: #0e1726 !important;
+  color: #fbbf24 !important;
+  padding: 0.65rem 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pms-data-sheet-table td,
+.pms-table-container table td,
+.reception-data-grid table td,
+.reception-admin-root table td {
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  padding: 0.55rem 0.8rem;
+}
+
+.reception-admin-root table tr:hover {
+  background: rgba(56, 189, 248, 0.08) !important;
+}
+
+.reception-admin-root table tr:hover td {
+  border-color: rgba(56, 189, 248, 0.35) !important;
 }
 
 .mobile-swipe-guide {

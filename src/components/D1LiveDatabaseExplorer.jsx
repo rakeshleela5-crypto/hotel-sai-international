@@ -772,7 +772,7 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
           </div>
         ) : (
           <div style={{ width: '100%', overflowX: 'auto', maxHeight: '520px', overflowY: 'auto' }}>
-            <table className="enterprise-data-table">
+            <table className="enterprise-data-table sheets-grid-table">
               <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
                 <tr>
                   <th style={{ width: '45px', textAlign: 'center' }}>#</th>
