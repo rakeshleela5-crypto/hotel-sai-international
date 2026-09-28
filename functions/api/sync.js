@@ -544,6 +544,21 @@ export async function onRequestPost({ request, env }) {
         request.headers.get("cf-connecting-ip") || '127.0.0.1'
       ).run().catch(e => console.error("DPDP consent record error:", e));
 
+      // Also record in statutory Sarai Act 1867 Daily Police Register
+      const polEntryId = `POL-${Date.now().toString().slice(-6)}`;
+      await db.prepare(`
+        INSERT OR REPLACE INTO police_guest_entries (
+          entry_id, booking_id, guest_name, phone, id_type,
+          id_number_masked, state_origin, arrival_time, departure_time,
+          purpose_of_visit, dispatch_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, 'Pending', datetime('now'))
+      `).bind(
+        polEntryId, bookingId, guestName, guestPhone,
+        b.idProofType || 'Aadhaar', maskedId, stateOfOrigin,
+        checkOutDate || datetime('now', '+1 day'),
+        b.purposeOfVisit || b.specialRequests || 'Business / Pilgrimage'
+      ).run().catch(e => console.warn("Police guest entry insert non-fatal:", e));
+
       return jsonResponse({ success: true, bookingId, billNo, paymentStatus: calculatedPaymentStatus });
     }
 
@@ -675,7 +690,7 @@ export async function onRequestPost({ request, env }) {
       const h = payload;
       const handoverId = `SFT-${Date.now()}`;
       const variance = (h.closingCashActual || 0) - (h.closingCashExpected || 0);
-      const status = Math.abs(variance) < 1 ? 'BALANCED' : (variance > 0 ? 'SURPLUS' : 'DEFICIT');
+      const status = Math.abs(variance) < 1 ? 'Balanced' : 'Discrepancy';
 
       await db.prepare(`
         INSERT INTO cashier_shift_handovers (
@@ -1258,10 +1273,11 @@ export async function onRequestPost({ request, env }) {
     // 29. STAFF: Record Attendance Entry
     if (action === 'record_staff_attendance') {
       const { staffId, date, status, shift } = payload;
+      const recId = `ATT-${staffId}-${date || new Date().toISOString().slice(0, 10)}`;
       await db.prepare(`
-        INSERT OR REPLACE INTO attendance (id, staff_id, date, status, shift)
-        VALUES (?, ?, ?, ?, ?)
-      `).bind(`ATT-${staffId}-${date}`, staffId, date, status || 'Present', shift || 'Morning').run().catch(() => {});
+        INSERT OR REPLACE INTO attendance (record_id, staff_id, date, status, shift, check_in_time)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(recId, staffId, date || new Date().toISOString().slice(0, 10), status || 'Present', shift || 'Morning').run().catch(e => console.warn("Attendance insert error:", e));
 
       return jsonResponse({ success: true, staffId, date, status });
     }
@@ -1888,6 +1904,50 @@ export async function onRequestPost({ request, env }) {
         totalExecuted: results.length,
         results
       });
+    }
+
+    // 51. ACCOUNTS: Direct Expense Record
+    if (action === 'record_expense' || action === 'add_expense') {
+      const e = payload || {};
+      const expenseId = e.expenseId || e.expense_id || `EXP-${Date.now()}`;
+      await db.prepare(`
+        INSERT INTO expenses (
+          expense_id, category, amount, vendor_name, paid_by, payment_mode, date, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        expenseId,
+        e.category || 'General Store & Maintenance',
+        Number(e.amount || 0),
+        e.vendorName || e.vendor_name || 'Rayagada Local Vendor',
+        e.paidBy || e.paid_by || 'Accounts Department',
+        e.paymentMode || e.payment_mode || 'Cash',
+        e.date || new Date().toISOString().split('T')[0],
+        e.notes || e.description || ''
+      ).run().catch(err => console.warn("Expense insert error:", err));
+
+      return jsonResponse({ success: true, expenseId });
+    }
+
+    // 52. POLICE REGISTER: Add Individual Police Entry
+    if (action === 'record_police_guest') {
+      const p = payload || {};
+      const entryId = p.entryId || `POL-${Date.now().toString().slice(-6)}`;
+      await db.prepare(`
+        INSERT OR REPLACE INTO police_guest_entries (
+          entry_id, booking_id, guest_name, phone, id_type,
+          id_number_masked, state_origin, arrival_time, departure_time,
+          purpose_of_visit, dispatch_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', datetime('now'))
+      `).bind(
+        entryId, p.bookingId || `WALK-${Date.now().toString().slice(-6)}`,
+        p.guestName, p.phone || '', p.idType || 'Aadhaar',
+        p.idNumberMasked || `XXXX-XXXX-${String(p.phone || '').slice(-4)}`,
+        p.stateOrigin || 'Odisha', p.arrivalTime || new Date().toISOString(),
+        p.departureTime || new Date(Date.now() + 86400000).toISOString(),
+        p.purposeOfVisit || 'Business / Pilgrimage'
+      ).run().catch(err => console.warn("Police entry insert error:", err));
+
+      return jsonResponse({ success: true, entryId });
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);

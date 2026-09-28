@@ -2110,8 +2110,26 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
     setIsEditAttendantOpen(false);
   };
 
-  const dispatchPoliceRegisterWhatsApp = () => {
+  const dispatchPoliceRegisterWhatsApp = async () => {
     setPoliceDispatchSent(true);
+    try {
+      const interstateCount = (filteredBookings || []).filter(b => b.isInterstate || (b.stateOfOrigin && b.stateOfOrigin.toLowerCase() !== 'odisha')).length;
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'dispatch_police_register',
+          payload: {
+            totalEntries: (filteredBookings || []).length,
+            interstateEntries: interstateCount,
+            dispatchedBy: 'Front Desk Duty Manager',
+            preview: `Statutory Sarai Act Register: ${(filteredBookings || []).length} total entries, ${interstateCount} inter-state guests dispatched to Rayagada Town Police Station.`
+          }
+        })
+      });
+    } catch (err) {
+      console.warn('Police register dispatch API error non-fatal:', err);
+    }
     setTimeout(() => setPoliceDispatchSent(false), 5000);
   };
 
