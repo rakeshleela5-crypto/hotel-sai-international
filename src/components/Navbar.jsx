@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Scale, Hotel, Phone, Clock, Layers, Utensils, Compass, Bot, 
   ShieldCheck, Lock, Sparkles, Building2, Menu, X, ShoppingBag, 
-  MapPin, CheckCircle2, FileText, MessageCircle, LogOut
+  MapPin, CheckCircle2, FileText, MessageCircle, LogOut, Database
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 
@@ -22,6 +22,7 @@ export default function Navbar({
   onOpenStoreInventory,
   onOpenDirectorPortal,
   onOpenRevenueManagement,
+  onOpenD1Database,
   cartCount = 0,
   rooms = [],
   adminPinVerified,
@@ -304,6 +305,27 @@ export default function Navbar({
           </button>
 
           <button
+            onClick={onOpenD1Database}
+            style={{
+              padding: '0.3rem 0.7rem',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.28), rgba(14, 165, 233, 0.18))',
+              border: '1.5px solid rgba(56, 189, 248, 0.7)',
+              color: '#38bdf8',
+              cursor: 'pointer',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              boxShadow: '0 0 12px rgba(56, 189, 248, 0.3)'
+            }}
+            title="Open Cloudflare D1 Master Database Console (All 68 Tables)"
+          >
+            <Database size={13} color="#38bdf8" /> 🗄️ D1 Database Hub (68 Tables)
+          </button>
+
+          <button
             onClick={onOpenNightAudit}
             style={{
               padding: '0.3rem 0.65rem',
@@ -562,7 +584,25 @@ export default function Navbar({
               <Building2 size={15} color="#8b5cf6" /> Corporate Ledgers
             </button>
 
-
+            <button 
+              onClick={onOpenD1Database}
+              style={{
+                color: '#38bdf8',
+                fontSize: '0.88rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontWeight: 700,
+                background: 'rgba(6, 182, 212, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                padding: '0.3rem 0.65rem',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+              title="Inspect All 68 Cloudflare D1 Database Tables Live"
+            >
+              <Database size={14} color="#38bdf8" /> 🗄️ 68-Table DB Hub
+            </button>
           </div>
 
           {/* Action CTAs */}
@@ -677,6 +717,10 @@ export default function Navbar({
             </button>
             <button onClick={() => { onOpenCorporate(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#a78bfa', padding: '0.4rem 0' }}>
               🏢 Corporate B2B (Ashok Leyland / JK Paper)
+            </button>
+
+            <button onClick={() => { onOpenD1Database?.(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: '#38bdf8', padding: '0.4rem 0', fontWeight: 800 }}>
+              🗄️ Cloudflare D1 Database Hub (68 Tables)
             </button>
 
             <button onClick={() => { onOpenRevenueManagement(); setMobileMenuOpen(false); }} style={{ textAlign: 'left', color: 'var(--gold-glow)', padding: '0.4rem 0', fontWeight: 800 }}>

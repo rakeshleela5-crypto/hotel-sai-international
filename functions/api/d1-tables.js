@@ -44,49 +44,85 @@ export async function onRequestOptions({ request }) {
   });
 }
 
-// Master list of known schema tables for categorization and fallback
+// Master list of known schema tables for categorization and fallback (All 68 Tables)
 const KNOWN_TABLE_CATEGORIES = {
   rooms: { category: "Front Desk & Rooms", label: "Rooms Master Inventory", icon: "🏨" },
   bookings: { category: "Front Desk & Rooms", label: "Guest Bookings & Stays", icon: "📋" },
+  guest_profiles: { category: "Front Desk & Rooms", label: "Guest Profiles & Identity", icon: "👤" },
   digital_keycards: { category: "Front Desk & Rooms", label: "Digital Keycards & Access", icon: "🔑" },
   room_holds: { category: "Front Desk & Rooms", label: "Temporary Room Holds", icon: "⏳" },
+  room_service_requests: { category: "Front Desk & Rooms", label: "Room Service Guest Requests", icon: "🛎️" },
+  guest_transfers: { category: "Front Desk & Rooms", label: "Station & Plant Cab Transfers", icon: "🚗" },
+  devotee_leads: { category: "Front Desk & Rooms", label: "Devotee Temple Leads", icon: "🙏" },
+  guest_reviews: { category: "Front Desk & Rooms", label: "Guest Reviews & Ratings", icon: "⭐" },
+  spiritual_services: { category: "Front Desk & Rooms", label: "Spiritual & Temple Services", icon: "🕉️" },
+
   folio_transactions: { category: "Billing & Accounts", label: "Folio Transactions & Charges", icon: "📄" },
   split_payments: { category: "Billing & Accounts", label: "Split Tender Receipts", icon: "💳" },
   cashier_shift_handovers: { category: "Billing & Accounts", label: "Cashier Shift Handovers", icon: "💼" },
   night_audits: { category: "Billing & Accounts", label: "Night Audit Records", icon: "🌙" },
   night_audit_log: { category: "Billing & Accounts", label: "Night Audit Event Log", icon: "📜" },
   expenses: { category: "Billing & Accounts", label: "Petty Cash & Expenses", icon: "💸" },
+  expense_categories: { category: "Billing & Accounts", label: "Expense Head Categories", icon: "🏷️" },
   corporate_ledger: { category: "Billing & Accounts", label: "Corporate Credit Ledger", icon: "🏢" },
   corporate_partners: { category: "Billing & Accounts", label: "B2B Corporate Partners", icon: "🤝" },
   corporate_b2b_invoices: { category: "Billing & Accounts", label: "Corporate Tax Invoices", icon: "🧾" },
+  corporate_quotations: { category: "Billing & Accounts", label: "Corporate Advance Quotations", icon: "💼" },
+  corporate_inquiries: { category: "Billing & Accounts", label: "Corporate RFQ Inquiries", icon: "📬" },
+  coupons: { category: "Billing & Accounts", label: "Promo Codes & Discounts", icon: "🎟️" },
+
+  tally_ledgers: { category: "Accounting & ERP", label: "Tally Chart of Accounts", icon: "📊" },
+  tally_vouchers: { category: "Accounting & ERP", label: "Tally Double-Entry Vouchers", icon: "📑" },
+  tally_voucher_lines: { category: "Accounting & ERP", label: "Tally Voucher Line Items", icon: "🔢" },
+
   food_orders: { category: "F&B & Restaurant", label: "KOT Food & Beverage Orders", icon: "🍽️" },
   restaurant_tables: { category: "F&B & Restaurant", label: "Dining Tables Layout", icon: "🪑" },
   menu_items: { category: "F&B & Restaurant", label: "Restaurant Menu Catalog", icon: "📖" },
   daily_item_sales: { category: "F&B & Restaurant", label: "Daily F&B Item Sales", icon: "📊" },
   restaurant_kot_voids: { category: "F&B & Restaurant", label: "KOT Voids & Cancellations", icon: "🚫" },
+  restaurant_table_settlements: { category: "F&B & Restaurant", label: "Dining Table Bill Settlements", icon: "🧾" },
+  room_service_catalog: { category: "F&B & Restaurant", label: "In-Room Dining Menu Catalog", icon: "🍲" },
+
+  store_purchases: { category: "Inventory & Store", label: "Mandi & Store Purchases", icon: "🥬" },
+  kitchen_requisitions: { category: "Inventory & Store", label: "Kitchen Department Requisitions", icon: "📦" },
+
   linen_inventory: { category: "Housekeeping & Ops", label: "Linen & Towel Par Stock", icon: "🧺" },
   checkout_inspections: { category: "Housekeeping & Ops", label: "Room Turnover Inspections", icon: "🔍" },
   maintenance_work_orders: { category: "Housekeeping & Ops", label: "Maintenance Defect Orders", icon: "🔧" },
+  lost_and_found: { category: "Housekeeping & Ops", label: "Lost & Found Custody Locker", icon: "🧳" },
+  security_incidents: { category: "Housekeeping & Ops", label: "Security & Incident Log", icon: "⚠️" },
+
   police_guest_entries: { category: "Statutory & Compliance", label: "Sarai Act Police Register", icon: "👮" },
   police_register_dispatches: { category: "Statutory & Compliance", label: "Police Daily Email Dispatches", icon: "📨" },
   dpdp_access_logs: { category: "Statutory & Compliance", label: "DPDP 2023 Data Access Logs", icon: "🛡️" },
   consent_records: { category: "Statutory & Compliance", label: "Guest Data Consent Records", icon: "📝" },
-  staff: { category: "HR & Staff", label: "Staff Roster & Biometrics", icon: "👥" },
-  attendance: { category: "HR & Staff", label: "Daily Staff Attendance", icon: "⏱️" },
-  salary_advances: { category: "HR & Staff", label: "Salary Advances & Loans", icon: "💵" },
-  payroll_history: { category: "HR & Staff", label: "Monthly Payroll Records", icon: "📑" },
-  hotel_config: { category: "Configuration", label: "Hotel Settings & Parameters", icon: "⚙️" },
-  tally_ledgers: { category: "Accounting & ERP", label: "Tally Chart of Accounts", icon: "📊" },
-  tally_vouchers: { category: "Accounting & ERP", label: "Tally Double-Entry Vouchers", icon: "📑" },
-  tally_voucher_lines: { category: "Accounting & ERP", label: "Tally Voucher Line Items", icon: "🔢" },
+  data_rights_requests: { category: "Statutory & Compliance", label: "DPDP Subject Rights Requests", icon: "🔐" },
+  invoice_print_audit_logs: { category: "Statutory & Compliance", label: "Rule 48 Statutory Print Logs", icon: "🖨️" },
   gstr1_filings: { category: "Statutory & Compliance", label: "GSTR-1 Returns (GSTN v1.7)", icon: "🏛️" },
   gstr2b_inward_supplies: { category: "Statutory & Compliance", label: "GSTR-2B ITC Reconciliation", icon: "🔍" },
   gst_fom_records: { category: "Statutory & Compliance", label: "GST Front Office Module Register", icon: "📋" },
-  guest_transfers: { category: "Front Desk & Rooms", label: "Station & Plant Cab Transfers", icon: "🚗" },
-  restaurant_table_settlements: { category: "F&B & Restaurant", label: "Dining Table Bill Settlements", icon: "🧾" },
-  corporate_quotations: { category: "Billing & Accounts", label: "Corporate Advance Quotations", icon: "💼" },
-  invoice_print_audit_logs: { category: "Statutory & Compliance", label: "Rule 48 Statutory Print Logs", icon: "🖨️" },
-  universal_inline_overrides: { category: "Configuration", label: "Universal Inline Cell Overrides", icon: "💾" }
+
+  staff: { category: "HR & Staff", label: "Staff Roster & Biometrics", icon: "👥" },
+  attendance: { category: "HR & Staff", label: "Daily Staff Attendance", icon: "⏱️" },
+  biometric_logs: { category: "HR & Staff", label: "Biometric Punch Device Logs", icon: "👆" },
+  salary_advances: { category: "HR & Staff", label: "Salary Advances & Loans", icon: "💵" },
+  staff_adjustments: { category: "HR & Staff", label: "Salary Overtime & Deductions", icon: "⚖️" },
+  payroll_history: { category: "HR & Staff", label: "Monthly Payroll Records", icon: "📑" },
+
+  festive_pricing_rules: { category: "Revenue & Rates", label: "Festive Surcharge Calendar", icon: "🎉" },
+  dynamic_pricing_rules: { category: "Revenue & Rates", label: "Dynamic Occupancy Pricing", icon: "📈" },
+  rms_rate_guardrails: { category: "Revenue & Rates", label: "RMS Rate Guardrails & Floors", icon: "🛡️" },
+  rms_competitor_rates: { category: "Revenue & Rates", label: "Competitor Rate Parity", icon: "🎯" },
+
+  hotel_config: { category: "System & Telemetry", label: "Hotel Settings & Parameters", icon: "⚙️" },
+  universal_inline_overrides: { category: "System & Telemetry", label: "Universal Inline Cell Overrides", icon: "💾" },
+  room_allocation_mutex_logs: { category: "System & Telemetry", label: "Room Lock & Mutex Telemetry", icon: "🔒" },
+  cron_execution_logs: { category: "System & Telemetry", label: "Automated Cron Heartbeat Logs", icon: "⏱️" },
+  whatsapp_dispatch_logs: { category: "System & Telemetry", label: "WhatsApp Bot Outbound Logs", icon: "💬" },
+  qr_standee_telemetry: { category: "System & Telemetry", label: "Reception QR Standee Scans", icon: "📱" },
+  ai_concierge_interactions: { category: "System & Telemetry", label: "AI Concierge Guest Prompts", icon: "🤖" },
+  director_portal_events: { category: "System & Telemetry", label: "Director Portal Audit Trail", icon: "👁️" },
+  pms_audit_trail: { category: "System & Telemetry", label: "Universal PMS Audit Events", icon: "📜" }
 };
 
 export async function onRequestGet({ request, env }) {

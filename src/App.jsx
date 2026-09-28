@@ -50,7 +50,7 @@ const InRoomGuestPortal = lazyWithRetry(() => import('./components/InRoomGuestPo
 import { INITIAL_ROOMS_INVENTORY, ROOM_TIERS, INITIAL_FOLIO_TRANSACTIONS, CORPORATE_PARTNERS } from './data/hotelData';
 import { calculateAllTierMicroRates } from './utils/g3RmsEngine';
 import { FloatingDock } from '@/components/ui/floating-dock';
-import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale, MessageCircle, Terminal } from 'lucide-react';
+import { Hotel, Layers, Compass, Utensils, ShieldCheck, Sparkles, Scale, MessageCircle, Terminal, Database } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState(() => {
@@ -63,6 +63,12 @@ export default function App() {
   });
   const [rooms, setRooms] = useState(INITIAL_ROOMS_INVENTORY);
   const [transactions, setTransactions] = useState(INITIAL_FOLIO_TRANSACTIONS);
+  const [pmsInitialTab, setPmsInitialTab] = useState('tape-chart');
+
+  const handleOpenD1Database = () => {
+    setPmsInitialTab('d1-database-explorer');
+    setCurrentView('pms');
+  };
 
   // Automatic SPA Freshness: Seamlessly detects new Cloudflare Pages deployments
   useEffect(() => {
@@ -900,6 +906,7 @@ export default function App() {
         onOpenStoreInventory={() => setStoreInventoryModalOpen(true)}
         onOpenDirectorPortal={() => setDirectorPortalOpen(true)}
         onOpenRevenueManagement={() => setRevenueModalOpen(true)}
+        onOpenD1Database={handleOpenD1Database}
         rooms={rooms}
         adminPinVerified={adminPinVerified}
         setAdminPinVerified={setAdminPinVerified}
@@ -950,6 +957,7 @@ export default function App() {
               rooms={rooms}
               bookings={bookings}
               transactions={transactions}
+              initialTab={pmsInitialTab}
               onAddTransaction={handleAddTransaction}
               onUpdateRoomStatus={handleUpdateRoomStatus}
               onNewBooking={handleBookingSuccess}
@@ -1213,6 +1221,11 @@ export default function App() {
             title: "Cannon Kitchen POS",
             icon: <Utensils className="h-5 w-5" />,
             onClick: () => setPosModalOpen(true)
+          },
+          {
+            title: "D1 Database (68 Tables)",
+            icon: <Database className="h-5 w-5 text-amber-400" />,
+            onClick: handleOpenD1Database
           },
 
           {

@@ -57,12 +57,19 @@ export default function ReceptionAdmin({
   onOpenDirectorPortal,
   onOpenRevenueManagement,
   foodOrders: propFoodOrders,
-  onUpdateOrderStatus: propUpdateOrderStatus
+  onUpdateOrderStatus: propUpdateOrderStatus,
+  initialTab
 }) {
   // The 3 Authorized Roles & 5 Department Console (Owner Video 2 Requirement)
   const [activeRole, setActiveRole] = useState('owner'); // 'owner' (Eswara MD), 'receptionist' (Front Desk), 'accounts' (Accounts Lead)
   const [activeDepartment, setActiveDepartment] = useState('reception'); // 'reception', 'restaurant', 'accounts', 'store', 'housekeeping'
-  const [activeTab, setActiveTab] = useState('tape-chart'); // 'tape-chart', 'cashier-audit', 'housekeeping', 'police-register', 'dpdp'
+  const [activeTab, setActiveTab] = useState(initialTab || 'tape-chart'); // 'tape-chart', 'd1-database-explorer', 'cashier-audit', etc.
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [tapeChartViewMode, setTapeChartViewMode] = useState('table'); // 'table' (Master Tabular Ledger), 'mysoft' (Legacy Tape Matrix), or 'modern' (Cards)
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -2371,6 +2378,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       }}>
         {[
           { id: 'tape-chart', label: '📊 39-Room Tape Chart Matrix' },
+          { id: 'd1-database-explorer', label: '🗄️ Master Database Hub (All 68 Tables)', isHub: true },
           { id: 'operations-settings', label: '⚙️ Operations & Policy Settings' },
           { id: 'transit-dayuse', label: '🚆 Transit & Station Transfer' },
           { id: 'shift-logbook', label: '📋 Shift Handover & Logbook' },
@@ -2384,14 +2392,24 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           { id: 'linen-assets', label: '🧺 Linen & Room Assets (Part 3)' },
           { id: 'staff-payroll', label: '👥 Staff Attendance & Payroll (Part 1)' },
           { id: 'police-register', label: '🚨 Sarai Act Police Register' },
-          { id: 'dpdp', label: '🛡️ DPDP Act 2023 Compliance' },
-          { id: 'd1-database-explorer', label: '🗄️ D1 Live DB Explorer (SQL Tables)' }
+          { id: 'dpdp', label: '🛡️ DPDP Act 2023 Compliance' }
         ].map(tab => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={`enterprise-tab-pill ${activeTab === tab.id ? 'active' : ''}`}
+            style={tab.isHub ? {
+              background: activeTab === tab.id 
+                ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(14, 165, 233, 0.3))' 
+                : 'linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(14, 165, 233, 0.1))',
+              border: activeTab === tab.id 
+                ? '1.5px solid #38bdf8' 
+                : '1px solid rgba(56, 189, 248, 0.5)',
+              color: activeTab === tab.id ? '#ffffff' : '#38bdf8',
+              fontWeight: 800,
+              boxShadow: activeTab === tab.id ? '0 0 16px rgba(56, 189, 248, 0.4)' : 'none'
+            } : undefined}
           >
             {tab.label}
           </button>
