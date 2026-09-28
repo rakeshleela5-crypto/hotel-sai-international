@@ -1719,6 +1719,20 @@ export default function AccountsLedgerModal({
           <UniversalDateFilterBar
             fromDate={fomFromDate}
             toDate={fomToDate}
+            moduleType={
+              activeTab === 'gst-fom-report' ? 'gst' :
+              activeTab === 'day-book' ? 'daybook' :
+              activeTab === 'corp-ledger' ? 'corporate' :
+              activeTab === 'tally-erp' ? 'tally' :
+              'accounts'
+            }
+            auditItems={
+              activeTab === 'gst-fom-report' ? filteredGstRecords :
+              activeTab === 'day-book' ? filteredPettyCashEntries :
+              activeTab === 'corp-ledger' ? (corporateLedger[selectedCorporate] || []) :
+              activeTab === 'tally-erp' ? (tallyDayBook || []) :
+              []
+            }
             onDateChange={(from, to) => {
               setFomFromDate(from);
               setFomToDate(to);

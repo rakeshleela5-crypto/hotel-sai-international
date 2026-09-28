@@ -1178,6 +1178,8 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                 <UniversalDateFilterBar
                   fromDate={salesFromDate}
                   toDate={salesToDate}
+                  moduleType="pos"
+                  auditItems={currentOrders}
                   onDateChange={(from, to) => {
                     setSalesFromDate(from);
                     setSalesToDate(to);
@@ -4235,6 +4237,8 @@ Thank you for dining at Cannon Kitchen! 🙏`;
               <UniversalDateFilterBar
                 fromDate={salesFromDate}
                 toDate={salesToDate}
+                moduleType="pos"
+                auditItems={dailySalesItems}
                 onDateChange={(from, to) => {
                   setSalesFromDate(from);
                   setSalesToDate(to);

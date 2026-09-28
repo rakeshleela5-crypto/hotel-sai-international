@@ -436,6 +436,8 @@ export default function StoreInventoryModal({
           <UniversalDateFilterBar
             fromDate={filterFromDate}
             toDate={filterToDate}
+            moduleType="store"
+            auditItems={activeTab === 'purchases' ? filteredPurchases : filteredRequisitions}
             onDateChange={(from, to) => {
               setFilterFromDate(from);
               setFilterToDate(to);

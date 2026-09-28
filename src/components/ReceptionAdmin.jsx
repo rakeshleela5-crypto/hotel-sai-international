@@ -2673,7 +2673,23 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         <UniversalDateFilterBar
           fromDate={filterFromDate}
           toDate={filterToDate}
-          auditRooms={projectedRooms}
+          moduleType={
+            activeTab === 'police-register' ? 'police' :
+            activeTab === 'cashier-audit' ? 'cashier' :
+            activeTab === 'lost-and-found' ? 'lost-found' :
+            activeTab === 'maintenance-ooo' ? 'maintenance' :
+            activeTab === 'transit-dayuse' ? 'transit' :
+            null
+          }
+          auditItems={
+            activeTab === 'police-register' ? filteredBookings :
+            activeTab === 'cashier-audit' ? filteredSettlements :
+            activeTab === 'lost-and-found' ? filteredLostAndFound :
+            activeTab === 'maintenance-ooo' ? filteredMaintenance :
+            activeTab === 'transit-dayuse' ? filteredTransitStays :
+            null
+          }
+          auditRooms={activeTab === 'tape-chart' ? projectedRooms : []}
           onDateChange={(from, to) => {
             setFilterFromDate(from);
             setFilterToDate(to);
@@ -3482,6 +3498,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 <UniversalDateFilterBar
                   fromDate={filterFromDate}
                   toDate={filterToDate}
+                  moduleType="rooms"
                   auditRooms={filteredRooms.length > 0 ? filteredRooms : projectedRooms}
                   onDateChange={(from, to) => {
                     setFilterFromDate(from);

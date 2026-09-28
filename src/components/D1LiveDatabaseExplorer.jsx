@@ -968,6 +968,9 @@ export default function D1LiveDatabaseExplorer({ localContextData = {}, fromDate
             <UniversalDateFilterBar
               fromDate={filterFromDate}
               toDate={filterToDate}
+              moduleType="d1"
+              auditItems={displayedRows}
+              columns={tableData.columns.map(c => ({ key: c.name, label: c.name.toUpperCase() }))}
               onDateChange={(from, to) => {
                 setFilterFromDate(from);
                 setFilterToDate(to);
@@ -977,7 +980,7 @@ export default function D1LiveDatabaseExplorer({ localContextData = {}, fromDate
                 setFilterToDate(to);
                 setIsDateFilterActive(true);
               }}
-              title={selectedTable.replace(/_/g, ' ').toUpperCase()}
+              title={`CLOUDFLARE D1: ${selectedTable.replace(/_/g, ' ').toUpperCase()}`}
               totalCount={displayedRows.length}
               totalAmount={totalAmountSum}
               onExportCSV={handleExportCSV}

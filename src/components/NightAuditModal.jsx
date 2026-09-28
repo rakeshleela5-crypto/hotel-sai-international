@@ -338,6 +338,9 @@ export default function NightAuditModal({
           <UniversalDateFilterBar
             fromDate={auditFromDate}
             toDate={auditToDate}
+            moduleType="rooms"
+            rooms={rooms}
+            auditItems={transactions}
             onDateChange={(from, to) => {
               setAuditFromDate(from);
               setAuditToDate(to);

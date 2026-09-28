@@ -24,7 +24,12 @@ export default function UniversalDateFilterBar({
   compact = false,
   extraStats = null,
   auditRooms = [],
-  auditItems = null
+  rooms = [],
+  auditItems = null,
+  moduleType = null,
+  columns = null,
+  kpis = null,
+  subtitle = ""
 }) {
   const [internalFrom, setInternalFrom] = useState(fromDate || new Date().toISOString().slice(0, 10));
   const [internalTo, setInternalTo] = useState(toDate || new Date().toISOString().slice(0, 10));
@@ -431,8 +436,12 @@ export default function UniversalDateFilterBar({
         fromDate={internalFrom}
         toDate={internalTo}
         title={title ? `${title} (AUDIT SNAPSHOT)` : "REAL-TIME AUDIT WINDOW SNAPSHOT"}
-        rooms={auditRooms}
+        subtitle={subtitle}
+        moduleType={moduleType}
+        rooms={auditRooms && auditRooms.length > 0 ? auditRooms : rooms}
         auditItems={auditItems}
+        columns={columns}
+        kpis={kpis}
         totalCount={totalCount}
         totalAmount={totalAmount}
         onExportCSV={onExportCSV}

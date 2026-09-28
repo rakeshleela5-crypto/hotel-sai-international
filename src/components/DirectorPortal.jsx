@@ -219,6 +219,24 @@ export default function DirectorPortal({
           <UniversalDateFilterBar
             fromDate={filterFromDate}
             toDate={filterToDate}
+            moduleType="generic"
+            auditItems={[
+              { metric: 'City Desk', value: activeCity, category: 'Location' },
+              { metric: 'Room Revenue', value: `₹${currentRoomRevenue}`, category: 'Accommodation' },
+              { metric: 'F&B Food & Beverage Revenue', value: `₹${currentFnbRevenue}`, category: 'Dining' },
+              { metric: 'Gross Sales Turnover', value: `₹${currentGrossSales}`, category: 'Revenue' },
+              { metric: 'Gross Collections Realized', value: `₹${currentGrossCollection}`, category: 'Cash Flow' },
+              { metric: 'Bank UPI Collections', value: `₹${currentUpiBank}`, category: 'Digital Tender' },
+              { metric: 'Cash In Drawer', value: `₹${currentCashInDrawer}`, category: 'Physical Tender' },
+              { metric: 'Occupancy Rate', value: `${occupancyPct}%`, category: 'Performance' },
+              { metric: 'Average Daily Rate (ADR)', value: `₹${currentAdr}`, category: 'Performance' },
+              { metric: 'RevPAR', value: `₹${currentRevpar}`, category: 'Performance' }
+            ]}
+            columns={[
+              { key: 'metric', label: 'EXECUTIVE METRIC' },
+              { key: 'category', label: 'CATEGORY' },
+              { key: 'value', label: 'VALUE / COLLECTION', align: 'right' }
+            ]}
             onDateChange={(from, to) => {
               setFilterFromDate(from);
               setFilterToDate(to);

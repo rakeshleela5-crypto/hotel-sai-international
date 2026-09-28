@@ -1338,6 +1338,17 @@ export default function TallyConsoleModal({
               <UniversalDateFilterBar
                 fromDate={filterFromDate}
                 toDate={filterToDate}
+                moduleType="daybook"
+                auditItems={filteredVouchers.flatMap(v => (v.lines || []).map(l => ({
+                  voucherNo: v.voucherNo,
+                  date: v.date,
+                  type: l.drCr === 'Dr' ? 'debit' : 'credit',
+                  drCr: l.drCr,
+                  accountHead: l.ledgerName,
+                  particulars: `${v.type} - ${l.ledgerName}`,
+                  amount: l.amount,
+                  balance: l.amount
+                })))}
                 onDateChange={(from, to) => {
                   setFilterFromDate(from);
                   setFilterToDate(to);

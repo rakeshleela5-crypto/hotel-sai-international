@@ -490,6 +490,23 @@ export default function RevenueManagementModal({
             <UniversalDateFilterBar
               fromDate={rmsFromDate}
               toDate={rmsToDate}
+              moduleType="generic"
+              auditItems={festiveRules.map(r => ({
+                rule: r.name,
+                period: r.period,
+                category: r.category,
+                surge: `+${((r.multiplier - 1) * 100).toFixed(0)}%`,
+                minNights: `${r.minNights} Night(s)`,
+                status: r.isActive ? 'Active Surge' : 'Inactive'
+              }))}
+              columns={[
+                { key: 'rule', label: 'PRICING SURGE EVENT' },
+                { key: 'period', label: 'AUDIT DATES / SEASON' },
+                { key: 'category', label: 'DEMAND CATEGORY' },
+                { key: 'surge', label: 'RATE MULTIPLIER', align: 'right' },
+                { key: 'minNights', label: 'MIN STAY', align: 'center' },
+                { key: 'status', label: 'ENGINE STATUS' }
+              ]}
               onDateChange={(from, to) => {
                 setRmsFromDate(from);
                 setRmsToDate(to);
