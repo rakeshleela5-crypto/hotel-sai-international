@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Download, Printer, FileSpreadsheet, RefreshCw, FileText, ExternalLink, SlidersHorizontal, Eye } from 'lucide-react';
 import DateRangeSelectionModal from './DateRangeSelectionModal';
+import DateAuditSnapshotModal from './DateAuditSnapshotModal';
 
 /**
  * UniversalDateFilterBar
@@ -21,11 +22,14 @@ export default function UniversalDateFilterBar({
   onPrint = null,
   showPresets = true,
   compact = false,
-  extraStats = null
+  extraStats = null,
+  auditRooms = [],
+  auditItems = null
 }) {
   const [internalFrom, setInternalFrom] = useState(fromDate || new Date().toISOString().slice(0, 10));
   const [internalTo, setInternalTo] = useState(toDate || new Date().toISOString().slice(0, 10));
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isDisplaying, setIsDisplaying] = useState(false);
 
   React.useEffect(() => {
@@ -44,7 +48,7 @@ export default function UniversalDateFilterBar({
     }
   };
 
-  const handleApply = (fromVal = internalFrom, toVal = internalTo) => {
+  const handleApply = (fromVal = internalFrom, toVal = internalTo, openPopView = true) => {
     setIsDisplaying(true);
     setTimeout(() => setIsDisplaying(false), 900);
     if (onDateChange) {
@@ -52,6 +56,10 @@ export default function UniversalDateFilterBar({
     }
     if (onDisplay) {
       onDisplay(fromVal, toVal);
+    }
+    // Launch Pop View Modal when Display is triggered
+    if (openPopView) {
+      setIsAuditModalOpen(true);
     }
   };
 
@@ -86,7 +94,7 @@ export default function UniversalDateFilterBar({
 
     setInternalFrom(f);
     setInternalTo(t);
-    handleApply(f, t);
+    handleApply(f, t, false);
   };
 
   return (
@@ -412,8 +420,24 @@ export default function UniversalDateFilterBar({
         onApply={(f, t) => {
           setInternalFrom(f);
           setInternalTo(t);
-          handleApply(f, t);
+          handleApply(f, t, true);
         }}
+      />
+
+      {/* Real-Time Audit Snapshot Pop View Modal */}
+      <DateAuditSnapshotModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
+        fromDate={internalFrom}
+        toDate={internalTo}
+        title={title ? `${title} (AUDIT SNAPSHOT)` : "REAL-TIME AUDIT WINDOW SNAPSHOT"}
+        rooms={auditRooms}
+        auditItems={auditItems}
+        totalCount={totalCount}
+        totalAmount={totalAmount}
+        onExportCSV={onExportCSV}
+        onExportExcel={onExportExcel}
+        onPrint={onPrint}
       />
     </div>
   );

@@ -2673,6 +2673,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         <UniversalDateFilterBar
           fromDate={filterFromDate}
           toDate={filterToDate}
+          auditRooms={projectedRooms}
           onDateChange={(from, to) => {
             setFilterFromDate(from);
             setFilterToDate(to);
@@ -3481,6 +3482,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 <UniversalDateFilterBar
                   fromDate={filterFromDate}
                   toDate={filterToDate}
+                  auditRooms={filteredRooms.length > 0 ? filteredRooms : projectedRooms}
                   onDateChange={(from, to) => {
                     setFilterFromDate(from);
                     setFilterToDate(to);
