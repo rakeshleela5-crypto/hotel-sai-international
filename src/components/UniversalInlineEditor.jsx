@@ -177,6 +177,24 @@ export function useUniversalInlineEdit({
               const currentEdits = JSON.parse(localStorage.getItem(`${storagePrefix}_edits`) || '{}');
               currentEdits[key] = newText;
               localStorage.setItem(`${storagePrefix}_edits`, JSON.stringify(currentEdits));
+
+              // Sync inline cell override to Cloudflare D1 universal_inline_overrides table
+              fetch('/api/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'save_inline_override',
+                  payload: {
+                    storagePrefix,
+                    tableName: target.closest('[data-table-name]')?.dataset.tableName || 'universal_matrix',
+                    rowKey: key,
+                    columnKey: target.dataset.field || target.dataset.editField || 'text_content',
+                    originalValue: oldText,
+                    overriddenValue: newText,
+                    editedBy: localStorage.getItem('hsi_staff_user') || 'Front Desk Cashier'
+                  }
+                })
+              }).catch(() => {});
             }
           } catch (err) {
             console.warn('Error saving inline edit:', err);

@@ -543,6 +543,12 @@ export default function App() {
             }));
             setTransactions(mappedTxs);
           }
+          if (data.data.foodOrders && data.data.foodOrders.length > 0) {
+            setFoodOrders(data.data.foodOrders);
+          }
+          if (data.data.roomServiceRequests && data.data.roomServiceRequests.length > 0) {
+            setRoomServices(data.data.roomServiceRequests);
+          }
         }
       })
       .catch(err => {

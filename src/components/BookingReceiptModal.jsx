@@ -206,6 +206,23 @@ export default function BookingReceiptModal({
   if (!isOpen || !booking) return null;
 
   const handlePrint = () => {
+    // Record Rule 48 Multi-Copy Statutory Print Audit Log in Cloudflare D1
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'log_invoice_print',
+        payload: {
+          invoiceNo: booking?.billNo || `INV-${booking?.roomNumber || 'GEN'}-${Date.now().toString().slice(-4)}`,
+          bookingId: booking?.bookingId || booking?.id || null,
+          roomNumber: String(booking?.roomNumber || ''),
+          guestOrCompany: booking?.companyName || booking?.guestName || 'Valued Guest',
+          rule48Copy: rule48Copy || 'ORIGINAL FOR RECIPIENT',
+          documentType: isNonGstBill ? 'Non-GST Bill of Supply (SAC 996311)' : 'Tax Invoice (SAC 996311)'
+        }
+      })
+    }).catch(() => {});
+
     window.print();
   };
 

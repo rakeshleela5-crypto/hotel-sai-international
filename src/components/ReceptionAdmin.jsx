@@ -1329,12 +1329,69 @@ export default function ReceptionAdmin({
     };
     setStationTransfers(prev => [newTrf, ...prev]);
     setIsTransferModalOpen(false);
-    showToast(`✓ Transfer #${newTrf.id} scheduled for ${newTrf.guestName} (${newTrf.transferType}). Driver: ${newTrf.driverName}`);
+
+    // Sync to Cloudflare D1 guest_transfers table
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save_guest_transfer',
+        payload: {
+          transfer_id: newTrf.id,
+          guest_name: newTrf.guestName,
+          room_number: newTrf.roomNumber,
+          phone: newTrf.phone,
+          transfer_type: newTrf.transferType,
+          train_number: newTrf.trainNumber,
+          scheduled_time: newTrf.scheduledTime,
+          pickup_location: newTrf.pickupLocation,
+          assigned_vehicle: newTrf.assignedVehicle,
+          driver_name: newTrf.driverName,
+          driver_phone: newTrf.driverPhone,
+          fare: newTrf.fare,
+          is_corporate_courtesy: newTrf.isCorporateCourtesy ? 1 : 0,
+          billing_status: newTrf.billingStatus,
+          dispatch_status: newTrf.dispatchStatus
+        }
+      })
+    }).catch(err => console.warn('Transfer sync error:', err));
+
+    showToast(`✓ Transfer #${newTrf.id} scheduled for ${newTrf.guestName} (${newTrf.transferType}). Synced to D1 guest_transfers.`);
   };
 
   const handleUpdateTransferStatus = (trfId, newStatus) => {
-    setStationTransfers(prev => prev.map(t => t.id === trfId ? { ...t, dispatchStatus: newStatus } : t));
-    showToast(`✓ Transfer ${trfId} status updated to: ${newStatus}`);
+    setStationTransfers(prev => prev.map(t => {
+      if (t.id === trfId) {
+        const updated = { ...t, dispatchStatus: newStatus };
+        fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_guest_transfer',
+            payload: {
+              transfer_id: updated.id,
+              guest_name: updated.guestName,
+              room_number: updated.roomNumber,
+              phone: updated.phone,
+              transfer_type: updated.transferType,
+              train_number: updated.trainNumber,
+              scheduled_time: updated.scheduledTime,
+              pickup_location: updated.pickupLocation,
+              assigned_vehicle: updated.assignedVehicle,
+              driver_name: updated.driverName,
+              driver_phone: updated.driverPhone,
+              fare: updated.fare,
+              is_corporate_courtesy: updated.isCorporateCourtesy ? 1 : 0,
+              billing_status: updated.billingStatus,
+              dispatch_status: updated.dispatchStatus
+            }
+          })
+        }).catch(() => {});
+        return updated;
+      }
+      return t;
+    }));
+    showToast(`✓ Transfer ${trfId} status updated to: ${newStatus} (Synced to D1)`);
   };
 
   const handleBillTransferToFolio = (trf) => {

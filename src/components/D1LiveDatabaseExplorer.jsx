@@ -206,7 +206,18 @@ export default function D1LiveDatabaseExplorer({ localContextData = {} }) {
   };
 
   // Filter tables by category
-  const categories = ['All', 'Front Desk & Rooms', 'Billing & Accounts', 'F&B & Restaurant', 'Housekeeping & Ops', 'Statutory & Compliance', 'HR & Staff'];
+  const categories = [
+    'All',
+    'Front Desk & Rooms',
+    'Billing & Accounts',
+    'Accounting & ERP',
+    'F&B & Restaurant',
+    'Housekeeping & Ops',
+    'Statutory & Compliance',
+    'HR & Staff',
+    'Configuration',
+    'General System Tables'
+  ];
 
   const filteredTables = useMemo(() => {
     if (selectedCategory === 'All') return tablesDirectory;
