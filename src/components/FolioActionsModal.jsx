@@ -7,6 +7,7 @@ import {
   Receipt, Clock, Lock, CheckCheck, Sparkles, Layers, ShieldAlert, Printer, MessageCircle
 } from 'lucide-react';
 import { HOTEL_CONFIG, POST_CHARGE_CATEGORIES, CORPORATE_PARTNERS } from '../data/hotelData';
+import { SheetsColumnHeader, SheetsToolbarLegend, SheetsEditableCell } from './UniversalInlineEditor';
 
 export default function FolioActionsModal({
   isOpen,
@@ -134,6 +135,24 @@ export default function FolioActionsModal({
       setFolioTransactions(getInitialTxs());
     }
   }, [transactions, room.roomNumber]);
+
+  // Live Folio Interactive Spreadsheet Edit Mode
+  const [isFolioEditMode, setIsFolioEditMode] = useState(true);
+
+  // Spreadsheet Cell Update Handler (Recalculates debits, credits, and Net Outstanding dynamically)
+  const handleUpdateLedgerCell = (txId, field, newVal) => {
+    const updated = folioTransactions.map(tx => {
+      if (tx.id === txId) {
+        return { ...tx, [field]: newVal };
+      }
+      return tx;
+    });
+    setFolioTransactions(updated);
+    if (onUpdateFolio) {
+      onUpdateFolio(room.roomNumber, { transactions: updated });
+    }
+    showFeedback(`✓ Updated transaction ${txId} [${field}]: ${newVal}`);
+  };
 
   // Reversal Dialog State
   const [reversingTx, setReversingTx] = useState(null);
@@ -754,13 +773,81 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
               <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', border: '1px solid #60a5fa', fontWeight: 700 }}>
                 ENTERPRISE FOLIO CONTROLS
               </span>
+              <span
+                onClick={() => setIsFolioEditMode(!isFolioEditMode)}
+                title="Toggle Live Spreadsheet Grid Inline Editing"
+                style={{
+                  background: isFolioEditMode ? 'rgba(52, 211, 153, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                  color: isFolioEditMode ? '#34d399' : 'var(--text-muted)',
+                  border: isFolioEditMode ? '1px solid rgba(52, 211, 153, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
+                  padding: '2px 9px',
+                  borderRadius: '12px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  boxShadow: isFolioEditMode ? '0 0 10px rgba(52, 211, 153, 0.25)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: isFolioEditMode ? '#34d399' : '#94a3b8',
+                  boxShadow: isFolioEditMode ? '0 0 6px #34d399' : 'none'
+                }} />
+                <span>✏️ Live Spreadsheet Edit: {isFolioEditMode ? 'ACTIVE' : 'OFF'}</span>
+              </span>
               <h2 style={{ fontSize: '1.2rem', color: '#fff', margin: 0, fontWeight: 700, whiteSpace: 'nowrap' }}>
                 Room {room.roomNumber} Folio Operations
               </h2>
             </div>
-            <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Guest: <strong style={{ color: '#fff' }}>{guestName}</strong> • Company: <strong style={{ color: '#fbbf24' }}>{guestCompany}</strong> • Net Outstanding: <strong style={{ color: netOutstanding > 0 ? '#f87171' : '#34d399', fontSize: '0.95rem' }}>₹{netOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
-            </p>
+            <div style={{ margin: '0.35rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span>Guest:</span>
+              <SheetsEditableCell
+                tag="span"
+                value={guestName}
+                onChange={(val) => {
+                  setGuestName(val);
+                  if (onUpdateFolio) onUpdateFolio(room.roomNumber, { guestName: val });
+                }}
+                disabled={!isFolioEditMode}
+                style={{ color: '#fff', fontWeight: 700, padding: '1px 6px', background: isFolioEditMode ? 'rgba(56, 189, 248, 0.08)' : 'transparent', borderRadius: '4px' }}
+                tooltip="Click to edit guest name inline"
+              />
+              <span>• Company:</span>
+              <SheetsEditableCell
+                tag="span"
+                value={guestCompany}
+                onChange={(val) => {
+                  setGuestCompany(val);
+                  if (onUpdateFolio) onUpdateFolio(room.roomNumber, { company: val });
+                }}
+                disabled={!isFolioEditMode}
+                style={{ color: '#fbbf24', fontWeight: 700, padding: '1px 6px', background: isFolioEditMode ? 'rgba(251, 191, 36, 0.08)' : 'transparent', borderRadius: '4px' }}
+                tooltip="Click to edit corporate billing entity inline"
+              />
+              <span>• Phone:</span>
+              <SheetsEditableCell
+                tag="span"
+                value={guestPhone}
+                onChange={(val) => {
+                  setGuestPhone(val);
+                  if (onUpdateFolio) onUpdateFolio(room.roomNumber, { phone: val });
+                }}
+                disabled={!isFolioEditMode}
+                style={{ color: '#93c5fd', fontWeight: 600, padding: '1px 6px', background: isFolioEditMode ? 'rgba(147, 197, 253, 0.08)' : 'transparent', borderRadius: '4px' }}
+                tooltip="Click to edit guest phone inline"
+              />
+              <span>• Net Outstanding:</span>
+              <strong style={{ color: netOutstanding > 0 ? '#f87171' : '#34d399', fontSize: '0.95rem' }}>
+                ₹{netOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </strong>
+            </div>
           </div>
 
           {/* SEARCH BAR 1: Universal Room & Guest Quick-Switcher */}
@@ -1194,16 +1281,22 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
                   </div>
                 </div>
 
-                {/* Ledger Table */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
+                {/* Google Sheets Interactive Folio Ledger Toolbar & Legend */}
+                <SheetsToolbarLegend 
+                  tableName={`Room ${room.roomNumber} Itemized Folio Ledger & Reversals`} 
+                  subtitle={isFolioEditMode ? "Live Interactive Google Sheets Mode • Click any cell with ✏️ to edit inline • Enter or Tab to commit" : "Read-Only Mode (Click 'Live Spreadsheet Edit: ACTIVE' above to enable)"}
+                />
+
+                {/* Interactive Sheets Ledger Table */}
+                <table className="sheets-grid-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                      <th style={{ padding: '0.7rem' }}>Date / Tx #</th>
-                      <th style={{ padding: '0.7rem' }}>Description &amp; Details</th>
-                      <th style={{ padding: '0.7rem', textAlign: 'center' }}>SAC</th>
-                      <th style={{ padding: '0.7rem', textAlign: 'right' }}>Debit (₹)</th>
-                      <th style={{ padding: '0.7rem', textAlign: 'right' }}>Credit (₹)</th>
-                      <th style={{ padding: '0.7rem', textAlign: 'center' }}>Action</th>
+                      <SheetsColumnHeader title="Date / Tx #" badge="locked" align="left" style={{ padding: '0.7rem' }} />
+                      <SheetsColumnHeader title="Description & Details" badge={isFolioEditMode ? "editable" : "locked"} align="left" style={{ padding: '0.7rem' }} />
+                      <SheetsColumnHeader title="SAC" badge={isFolioEditMode ? "editable" : "locked"} align="center" style={{ padding: '0.7rem', width: '90px' }} />
+                      <SheetsColumnHeader title="Debit (₹)" badge={isFolioEditMode ? "editable" : "locked"} align="right" style={{ padding: '0.7rem', width: '125px' }} />
+                      <SheetsColumnHeader title="Credit (₹)" badge={isFolioEditMode ? "editable" : "locked"} align="right" style={{ padding: '0.7rem', width: '125px' }} />
+                      <SheetsColumnHeader title="Action" badge="locked" align="center" style={{ padding: '0.7rem', width: '110px' }} />
                     </tr>
                   </thead>
                   <tbody>
@@ -1242,25 +1335,51 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
                         }}>
                           <td style={{ padding: '0.7rem' }}>
                             <div style={{ fontWeight: 600, color: '#fff' }}>{tx.date}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{tx.id}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{tx.id}</div>
                           </td>
-                          <td style={{ padding: '0.7rem' }}>
-                            <div style={{ fontWeight: 600, color: isReversal ? '#f43f5e' : '#f8fafc' }}>
-                              {tx.desc}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                              Operator: {tx.operator}
-                            </div>
-                          </td>
-                          <td style={{ padding: '0.7rem', textAlign: 'center', fontFamily: 'monospace', color: '#fbbf24' }}>
-                            {tx.sac}
-                          </td>
-                          <td style={{ padding: '0.7rem', textAlign: 'right', fontWeight: 600, color: tx.debit > 0 ? '#f87171' : 'var(--text-muted)' }}>
-                            {tx.debit > 0 ? `₹${tx.debit.toFixed(2)}` : '-'}
-                          </td>
-                          <td style={{ padding: '0.7rem', textAlign: 'right', fontWeight: 600, color: tx.credit > 0 ? '#34d399' : 'var(--text-muted)' }}>
-                            {tx.credit > 0 ? `₹${tx.credit.toFixed(2)}` : '-'}
-                          </td>
+                          <SheetsEditableCell
+                            value={tx.desc}
+                            onChange={(newDesc) => handleUpdateLedgerCell(tx.id, 'desc', newDesc)}
+                            disabled={!isFolioEditMode || tx.isReversed}
+                            style={{ padding: '0.7rem' }}
+                            formatDisplay={(val) => (
+                              <div>
+                                <div style={{ fontWeight: 600, color: isReversal ? '#f43f5e' : '#f8fafc' }}>
+                                  {val}
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                  Operator: {tx.operator}
+                                </div>
+                              </div>
+                            )}
+                            tooltip="Click to edit item description"
+                          />
+                          <SheetsEditableCell
+                            value={tx.sac || '-'}
+                            onChange={(newSac) => handleUpdateLedgerCell(tx.id, 'sac', newSac)}
+                            disabled={!isFolioEditMode || tx.isReversed}
+                            align="center"
+                            style={{ padding: '0.7rem', fontFamily: 'monospace', color: '#fbbf24' }}
+                            tooltip="Click to edit GST SAC Code"
+                          />
+                          <SheetsEditableCell
+                            value={tx.debit || 0}
+                            type="currency"
+                            onChange={(newDebit) => handleUpdateLedgerCell(tx.id, 'debit', Number(newDebit) || 0)}
+                            disabled={!isFolioEditMode || tx.isReversed || tx.type === 'REVERSAL' || tx.type === 'SETTLEMENT'}
+                            align="right"
+                            style={{ padding: '0.7rem', fontWeight: 600, color: tx.debit > 0 ? '#f87171' : 'var(--text-muted)' }}
+                            tooltip="Click to edit debit amount (Net Outstanding recalculates dynamically)"
+                          />
+                          <SheetsEditableCell
+                            value={tx.credit || 0}
+                            type="currency"
+                            onChange={(newCredit) => handleUpdateLedgerCell(tx.id, 'credit', Number(newCredit) || 0)}
+                            disabled={!isFolioEditMode || tx.isReversed}
+                            align="right"
+                            style={{ padding: '0.7rem', fontWeight: 600, color: tx.credit > 0 ? '#34d399' : 'var(--text-muted)' }}
+                            tooltip="Click to edit credit/advance amount (Net Outstanding recalculates dynamically)"
+                          />
                           <td style={{ padding: '0.7rem', textAlign: 'center' }}>
                             {tx.isReversed ? (
                               <span style={{
@@ -1338,7 +1457,7 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
                   <tfoot>
                     <tr style={{ background: 'rgba(212, 175, 55, 0.08)', fontWeight: 800 }}>
                       <td colSpan="3" style={{ padding: '0.75rem', color: 'var(--gold-glow)' }}>
-                        CURRENT NET OUTSTANDING (INR):
+                        CURRENT NET OUTSTANDING (INR) <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#38bdf8', marginLeft: '6px' }}>FX ⚡ Σ(DEBITS) - Σ(CREDITS)</span>:
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171' }}>
                         ₹{totalDebits.toFixed(2)}
