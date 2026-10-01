@@ -1845,3 +1845,97 @@ th:not(.sheets-grid-th):not(.th-no-edit):hover::after {
 @media print {
   th::after { display: none !important; }
 }
+
+
+/* ==========================================================================
+   EDIT ENGINE v2 — Document-Centric Cell Editing States
+   Applied by editEngine.js singleton (src/editEngine.js).
+   No toggle class needed — engine is always on.
+   ========================================================================== */
+
+/*
+ * Hover state: any <td> the engine can manage gets a subtle green glow.
+ * Excludes: .sheets-editable-cell (self-managed), .no-inline-edit, disabled cells.
+ */
+td:not(.sheets-editable-cell):not(.no-inline-edit):not([data-no-edit]):hover {
+  background-color: rgba(16, 185, 129, 0.06) !important;
+  cursor: text;
+  outline: 1px dashed rgba(52, 211, 153, 0.30);
+  outline-offset: -1px;
+  transition: background-color 0.12s ease, outline 0.12s ease;
+}
+
+/*
+ * Active editing state — injected by engine when cell is contentEditable.
+ */
+td.hsi-editing {
+  outline: 2px solid #34d399 !important;
+  outline-offset: -2px;
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #f0fdf4 !important;
+  caret-color: #34d399;
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.25),
+              0 0 12px rgba(52, 211, 153, 0.15);
+  border-radius: 2px;
+  transition: none; /* instant activation, no flicker */
+}
+
+td.hsi-editing:focus {
+  outline: 2px solid #34d399 !important;
+}
+
+/*
+ * Save-success flash — green pulse after committing an edit.
+ * Used by both editEngine.js (plain td) and SheetsEditableCell.
+ */
+@keyframes hsi-flash-save {
+  0%   { background-color: rgba(52, 211, 153, 0.40); box-shadow: 0 0 10px rgba(52,211,153,0.5); }
+  60%  { background-color: rgba(52, 211, 153, 0.18); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+
+.hsi-save-success-flash {
+  animation: hsi-flash-save 1.2s ease forwards !important;
+}
+
+/*
+ * InlineEditorBanner pulse animation (always-on status chip).
+ */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.75), 0 0 16px rgba(243,198,76,0.35); }
+  50%       { box-shadow: 0 8px 32px rgba(0,0,0,0.75), 0 0 28px rgba(243,198,76,0.60); }
+}
+
+/*
+ * InlineText editable span — subtle yellow dashed outline when active.
+ */
+.hsi-inline-editable {
+  cursor: text;
+  outline: 1px dashed rgba(243, 198, 76, 0.4);
+  outline-offset: 2px;
+  border-radius: 3px;
+  transition: outline 0.12s ease, background-color 0.12s ease;
+}
+
+.hsi-inline-editable:focus {
+  outline: 2px solid var(--gold-glow, #f3c64c) !important;
+  background-color: rgba(6, 14, 26, 0.95);
+  color: #fff;
+}
+
+/*
+ * Suppress engine hover on cells that are explicitly read-only.
+ */
+td.th-no-edit:hover,
+td[data-no-edit]:hover {
+  background-color: inherit !important;
+  outline: none !important;
+  cursor: default !important;
+}
+
+@media print {
+  td.hsi-editing,
+  td:hover,
+  .hsi-save-success-flash { outline: none !important; box-shadow: none !important; animation: none !important; }
+  .hsi-inline-banner, .sheets-toolbar-legend { display: none !important; }
+}

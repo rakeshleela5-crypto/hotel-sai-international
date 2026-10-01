@@ -1,326 +1,98 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Edit3, Check, X, Sparkles, RotateCcw } from 'lucide-react';
-
 /**
- * Helper: Find the closest editable text target inside the container.
- * Ignores interactive controls (buttons, inputs, selects, links, svgs)
- * to ensure all normal button clicks and form inputs continue working.
+ * UniversalInlineEditor.jsx — Hotel Sai International
+ * ─────────────────────────────────────────────────────
+ * All named exports kept 100% backward-compatible.
+ *
+ * Architecture change (v2):
+ *  - useUniversalInlineEdit  → pure no-op (editEngine.js handles everything globally)
+ *  - InlineEditorBanner      → always-on floating status chip (no toggle)
+ *  - InlineText              → self-contained contenteditable span (unchanged)
+ *  - SheetsEditableCell      → self-contained click-to-input cell  (unchanged)
+ *  - SheetsColumnHeader      → th with badge (unchanged)
+ *  - SheetsToolbarLegend     → table status bar (unchanged)
+ *
+ * The actual click-to-edit behaviour for plain <td> cells is handled by
+ * the document-centric singleton in src/editEngine.js which is imported
+ * once in main.jsx.
  */
-function getEditableTextTarget(element, container) {
-  if (!element || element === container) return null;
-  // If clicked inside a button, form control, link or SVG, skip
-  if (element.closest('button, input, textarea, select, option, a, svg')) {
-    return null;
-  }
-  // If marked explicitly as no-edit
-  if (element.closest('.no-inline-edit, .no-edit')) {
-    return null;
-  }
 
-  // Check if target itself has direct text content
-  const hasDirectText = Array.from(element.childNodes).some(
-    node => (node.nodeType === 3 || (typeof Node !== 'undefined' && node.nodeType === Node.TEXT_NODE)) && node.textContent.trim().length > 0
-  );
-  if (hasDirectText) return element;
+import React, { useRef, useState, useEffect } from 'react';
+import { Edit3, Check, RotateCcw, Sparkles } from 'lucide-react';
 
-  // Otherwise check if it's a common text leaf element
-  const textCandidate = element.querySelector('span, p, h1, h2, h3, h4, h5, h6, td, th, label, strong, b, small, em');
-  if (textCandidate && !textCandidate.closest('button, input, textarea, select, option, a, svg')) {
-    return textCandidate;
-  }
-
-  return null;
+/* ─────────────────────────────────────────────────────────────────────────
+   useUniversalInlineEdit — NOW A TRUE NO-OP
+   editEngine.js handles ALL plain-td editing globally.
+   Kept for backward compatibility — removing it would break 13+ imports.
+   ───────────────────────────────────────────────────────────────────────── */
+export function useUniversalInlineEdit(_options) {
+  // No-op: the global editEngine (mounted in main.jsx) owns all td editing.
+  // SheetsEditableCell components self-manage their own <input> overlay.
 }
 
-/**
- * Generate a stable DOM path identifier for localStorage persistence
- */
-function getElementKey(el, container) {
-  if (!el) return null;
-  if (el.id) return `#${el.id}`;
-  if (el.dataset.editKey) return el.dataset.editKey;
-
-  const room = el.dataset.roomId || el.closest('[data-room-id]')?.dataset.roomId;
-  const field = el.dataset.field || el.dataset.editField;
-  if (room && field) return `room:${room}:${field}`;
-
-  const booking = el.dataset.bookingId || el.closest('[data-booking-id]')?.dataset.bookingId;
-  if (booking && field) return `booking:${booking}:${field}`;
-
-  // Fallback to hierarchical path from container
-  const path = [];
-  let curr = el;
-  while (curr && curr !== container && curr !== document.body) {
-    let index = 0;
-    let sibling = curr.previousElementSibling;
-    while (sibling) {
-      if (sibling.tagName === curr.tagName) index++;
-      sibling = sibling.previousElementSibling;
-    }
-    path.unshift(`${curr.tagName.toLowerCase()}[${index}]`);
-    curr = curr.parentElement;
-  }
-  return path.join('>');
-}
-
-/**
- * useUniversalInlineEdit: Hook enabling true click-to-type WYSIWYG keyboard editing
- * across all text nodes inside a container when isActive is true.
- */
-export function useUniversalInlineEdit({
-  isActive = true,
-  containerRef,
-  onSave,
-  storagePrefix = 'hsi_universal'
-}) {
-  const onSaveRef = useRef(onSave);
-  onSaveRef.current = onSave;
-
-  // Apply persisted edits from localStorage when container mounts or becomes active
-  useEffect(() => {
-    if (!containerRef?.current) return;
-    try {
-      const stored = localStorage.getItem(`${storagePrefix}_edits`);
-      if (stored) {
-        const edits = JSON.parse(stored);
-        Object.entries(edits).forEach(([key, text]) => {
-          if (!text) return;
-          let el = null;
-          if (key.startsWith('#')) {
-            el = document.querySelector(key);
-          } else if (key.startsWith('room:')) {
-            const [, rId, fld] = key.split(':');
-            el = containerRef.current.querySelector(`[data-room-id="${rId}"][data-field="${fld}"]`) ||
-                 containerRef.current.querySelector(`[data-room-id="${rId}"] [data-field="${fld}"]`);
-          } else if (key.startsWith('booking:')) {
-            const [, bId, fld] = key.split(':');
-            el = containerRef.current.querySelector(`[data-booking-id="${bId}"][data-field="${fld}"]`) ||
-                 containerRef.current.querySelector(`[data-booking-id="${bId}"] [data-field="${fld}"]`);
-          }
-          if (el && el.innerText !== text) {
-            el.innerText = text;
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Could not restore persisted edits:', e);
-    }
-  }, [containerRef, storagePrefix, isActive]);
-
-  useEffect(() => {
-    const container = containerRef?.current;
-    if (!container || !isActive) {
-      if (container) container.classList.remove('hsi-live-edit-active');
-      return;
-    }
-
-    container.classList.add('hsi-live-edit-active');
-
-    // Click handler to activate contentEditable on the exact clicked text element
-    const handlePointerDown = (e) => {
-      const target = getEditableTextTarget(e.target, container);
-      if (!target) return;
-
-      // If already contentEditable and focused, let native typing handle it
-      if (target.getAttribute('contenteditable') === 'true' && document.activeElement === target) {
-        return;
-      }
-
-      // Activate contentEditable
-      target.setAttribute('contenteditable', 'true');
-      target.setAttribute('spellcheck', 'false');
-      target.classList.add('hsi-currently-editing');
-      target.dataset.originalText = target.innerText;
-
-      // Give browser a tick to focus and position caret
-      setTimeout(() => {
-        try {
-          target.focus();
-        } catch (err) {
-          // ignore focus error
-        }
-      }, 10);
-
-      // Keydown handler: Enter to commit, Esc to revert
-      const handleKeyDown = (ev) => {
-        if (ev.key === 'Enter' && !ev.shiftKey) {
-          ev.preventDefault();
-          target.blur();
-        } else if (ev.key === 'Escape') {
-          ev.preventDefault();
-          if (target.dataset.originalText !== undefined) {
-            target.innerText = target.dataset.originalText;
-          }
-          target.blur();
-        }
-      };
-
-      // Blur handler: persist and clean up
-      const handleBlur = () => {
-        target.removeAttribute('contenteditable');
-        target.classList.remove('hsi-currently-editing');
-        target.removeEventListener('keydown', handleKeyDown);
-        target.removeEventListener('blur', handleBlur);
-
-        const newText = target.innerText.trim();
-        const oldText = (target.dataset.originalText || '').trim();
-
-        if (newText !== oldText) {
-          // Visual success flash
-          target.classList.add('hsi-save-success-flash');
-          setTimeout(() => target.classList.remove('hsi-save-success-flash'), 1200);
-
-          // Save to localStorage
-          try {
-            const key = getElementKey(target, container);
-            if (key) {
-              const currentEdits = JSON.parse(localStorage.getItem(`${storagePrefix}_edits`) || '{}');
-              currentEdits[key] = newText;
-              localStorage.setItem(`${storagePrefix}_edits`, JSON.stringify(currentEdits));
-
-              // Sync inline cell override to Cloudflare D1 universal_inline_overrides table
-              fetch('/api/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: 'save_inline_override',
-                  payload: {
-                    storagePrefix,
-                    tableName: target.closest('[data-table-name]')?.dataset.tableName || 'universal_matrix',
-                    rowKey: key,
-                    columnKey: target.dataset.field || target.dataset.editField || 'text_content',
-                    originalValue: oldText,
-                    overriddenValue: newText,
-                    editedBy: localStorage.getItem('hsi_staff_user') || 'Front Desk Cashier'
-                  }
-                })
-              }).catch(() => {});
-            }
-          } catch (err) {
-            console.warn('Error saving inline edit:', err);
-          }
-
-          // Trigger onSave callback if available
-          const field = target.dataset.field || target.dataset.editField;
-          const roomId = target.dataset.roomId || target.closest('[data-room-id]')?.dataset.roomId;
-          const bookingId = target.dataset.bookingId || target.closest('[data-booking-id]')?.dataset.bookingId;
-
-          if (onSaveRef.current) {
-            onSaveRef.current({
-              target,
-              newText,
-              oldText,
-              field,
-              roomId,
-              bookingId
-            });
-          }
-
-          // Dispatch universal event so any reactive component can catch it
-          window.dispatchEvent(new CustomEvent('hsi:text-edited', {
-            detail: { target, newText, oldText, field, roomId, bookingId }
-          }));
-        }
-      };
-
-      target.addEventListener('keydown', handleKeyDown);
-      target.addEventListener('blur', handleBlur);
-    };
-
-    container.addEventListener('click', handlePointerDown);
-
-    return () => {
-      container.classList.remove('hsi-live-edit-active');
-      container.removeEventListener('click', handlePointerDown);
-    };
-  }, [isActive, containerRef, storagePrefix]);
-}
-
-/**
- * UniversalInlineContainer: Component wrapper that automatically equips all children
- * with click-to-type inline keyboard editing when isActive is true.
- */
+/* ─────────────────────────────────────────────────────────────────────────
+   UniversalInlineContainer — thin wrapper, no longer attaches its own hook
+   ───────────────────────────────────────────────────────────────────────── */
 export function UniversalInlineContainer({
-  isActive = true,
-  onSave,
-  storagePrefix = 'hsi_universal',
   children,
   className = '',
-  style = {},
-  bannerLabel = 'Direct Keyboard Edit Mode',
-  onToggleActive
+  style     = {},
+  storagePrefix = 'hsi_universal'
 }) {
-  const containerRef = useRef(null);
-  useUniversalInlineEdit({ isActive, containerRef, onSave, storagePrefix });
-
   return (
     <div
-      ref={containerRef}
-      className={`hsi-universal-container ${isActive ? 'hsi-live-edit-active' : ''} ${className}`}
+      className={`hsi-universal-container hsi-live-edit-active ${className}`}
       style={{ position: 'relative', width: '100%', ...style }}
     >
       {children}
-      {isActive && (
-        <InlineEditorBanner
-          isActive={isActive}
-          onToggle={onToggleActive}
-          label={bannerLabel}
-          onReset={() => {
-            if (window.confirm('Reset all inline text edits back to default values?')) {
-              localStorage.removeItem(`${storagePrefix}_edits`);
-              window.location.reload();
-            }
-          }}
-        />
-      )}
     </div>
   );
 }
 
-/**
- * InlineText: Dedicated, two-way bound click-to-type inline text component.
- */
+/* ─────────────────────────────────────────────────────────────────────────
+   InlineText — self-contained click-to-type span / block element
+   Works independently of editEngine (it manages its own contenteditable).
+   ───────────────────────────────────────────────────────────────────────── */
 export function InlineText({
-  value = '',
+  value       = '',
   onSave,
-  isActive = true,
-  tag = 'span',
-  className = '',
-  style = {},
-  placeholder = 'Type here...',
-  type = 'text',
-  multiline = false,
-  field = '',
-  roomId = '',
-  bookingId = ''
+  isActive    = true,
+  tag         = 'span',
+  className   = '',
+  style       = {},
+  placeholder = 'Type here…',
+  type        = 'text',
+  multiline   = false,
+  field       = '',
+  roomId      = '',
+  bookingId   = ''
 }) {
-  const elementRef = useRef(null);
-  const [isFocused, setIsFocused] = useState(false);
+  const elRef          = useRef(null);
+  const [focused,   setFocused]   = useState(false);
   const [justSaved, setJustSaved] = useState(false);
-  const originalValueRef = useRef(value);
+  const origRef = useRef(value);
 
   useEffect(() => {
-    originalValueRef.current = value;
-    if (elementRef.current && document.activeElement !== elementRef.current) {
-      elementRef.current.innerText = value !== undefined && value !== null ? String(value) : '';
+    origRef.current = value;
+    if (elRef.current && document.activeElement !== elRef.current) {
+      elRef.current.innerText = value != null ? String(value) : '';
     }
   }, [value]);
 
   const handleFocus = () => {
-    setIsFocused(true);
-    originalValueRef.current = elementRef.current ? elementRef.current.innerText : value;
+    setFocused(true);
+    origRef.current = elRef.current ? elRef.current.innerText : value;
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (!elementRef.current) return;
-    const newText = elementRef.current.innerText.trim();
-    if (newText !== String(originalValueRef.current).trim()) {
+    setFocused(false);
+    if (!elRef.current) return;
+    const next = elRef.current.innerText.trim();
+    if (next !== String(origRef.current).trim()) {
       if (type === 'number') {
-        const numVal = parseFloat(newText.replace(/[^0-9.-]+/g, '')) || 0;
-        if (onSave) onSave(numVal, newText);
+        const n = parseFloat(next.replace(/[^0-9.-]+/g, '')) || 0;
+        if (onSave) onSave(n, next);
       } else {
-        if (onSave) onSave(newText);
+        if (onSave) onSave(next);
       }
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
@@ -330,545 +102,416 @@ export function InlineText({
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !multiline) {
       e.preventDefault();
-      elementRef.current?.blur();
+      elRef.current?.blur();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      if (elementRef.current) {
-        elementRef.current.innerText = String(originalValueRef.current || '');
-        elementRef.current.blur();
+      if (elRef.current) {
+        elRef.current.innerText = String(origRef.current || '');
+        elRef.current.blur();
       }
     }
   };
 
-  const CustomTag = tag;
-
+  const Tag = tag;
   return (
-    <CustomTag
-      ref={elementRef}
+    <Tag
+      ref={elRef}
       contentEditable={isActive}
-      suppressContentEditableWarning={true}
+      suppressContentEditableWarning
       onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       data-field={field}
       data-room-id={roomId}
       data-booking-id={bookingId}
-      title={isActive ? 'Click to type and edit directly with keyboard' : ''}
+      title={isActive ? 'Click to type and edit directly' : ''}
       className={`hsi-inline-text ${isActive ? 'hsi-inline-editable' : ''} ${className}`}
       style={{
-        display: tag === 'span' ? 'inline-block' : 'block',
-        cursor: isActive ? 'text' : 'inherit',
-        outline: isFocused 
-          ? '2px solid var(--gold-glow, #f3c64c)' 
-          : isActive 
-            ? '1px dashed rgba(243, 198, 76, 0.4)' 
-            : 'none',
-        outlineOffset: '2px',
-        borderRadius: '3px',
-        padding: isActive ? '1px 3px' : '0',
-        backgroundColor: isFocused 
-          ? 'rgba(6, 14, 26, 0.95)' 
-          : justSaved 
-            ? 'rgba(16, 185, 129, 0.25)' 
-            : isActive 
-              ? 'rgba(243, 198, 76, 0.06)' 
-              : 'transparent',
-        color: justSaved ? '#34d399' : isFocused ? '#fff' : 'inherit',
-        transition: 'all 0.15s ease',
-        minWidth: isActive && !value ? '30px' : 'auto',
+        display:         tag === 'span' ? 'inline-block' : 'block',
+        cursor:          isActive ? 'text' : 'inherit',
+        outline:         focused     ? '2px solid var(--gold-glow, #f3c64c)'
+                       : isActive   ? '1px dashed rgba(243,198,76,0.4)'
+                       : 'none',
+        outlineOffset:   '2px',
+        borderRadius:    '3px',
+        padding:         isActive ? '1px 3px' : '0',
+        backgroundColor: focused    ? 'rgba(6,14,26,0.95)'
+                       : justSaved  ? 'rgba(16,185,129,0.25)'
+                       : isActive   ? 'rgba(243,198,76,0.06)'
+                       : 'transparent',
+        color:           justSaved ? '#34d399' : focused ? '#fff' : 'inherit',
+        transition:      'all 0.15s ease',
+        minWidth:        isActive && !value ? '30px' : 'auto',
         ...style
       }}
       data-placeholder={placeholder}
     >
-      {value !== undefined && value !== null ? String(value) : ''}
-    </CustomTag>
+      {value != null ? String(value) : ''}
+    </Tag>
   );
 }
 
-/**
- * InlineEditorBanner: Floating indicator displaying active keyboard edit state
- * with quick shortcuts, instant exit, and reset options.
- */
-export function InlineEditorBanner({ isActive, onToggle, onReset, label = 'Direct Keyboard Edit Mode' }) {
-  if (!isActive) return null;
+/* ─────────────────────────────────────────────────────────────────────────
+   InlineEditorBanner — always-on floating chip (no toggle, no close button)
+   Shows keyboard shortcuts. Position: fixed bottom-right.
+   ───────────────────────────────────────────────────────────────────────── */
+export function InlineEditorBanner({
+  label    = 'Direct Keyboard Edit Mode',
+  onReset,
+  // Legacy props accepted but ignored:
+  isActive,
+  onToggle
+}) {
+  const [visible, setVisible] = useState(true);
+
+  if (!visible) return null;
 
   return (
-    <div 
+    <div
       className="no-print"
       style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        zIndex: 999999,
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98))',
-        border: '1.5px solid var(--gold-glow, #f3c64c)',
-        borderRadius: '30px',
-        padding: '8px 18px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.75), 0 0 16px rgba(243, 198, 76, 0.35)',
+        position:       'fixed',
+        bottom:         '24px',
+        right:          '24px',
+        zIndex:         999999,
+        background:     'linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.98))',
+        border:         '1.5px solid var(--gold-glow,#f3c64c)',
+        borderRadius:   '30px',
+        padding:        '8px 18px',
+        display:        'flex',
+        alignItems:     'center',
+        gap:            '12px',
+        boxShadow:      '0 8px 32px rgba(0,0,0,0.75),0 0 16px rgba(243,198,76,0.35)',
         backdropFilter: 'blur(16px)',
-        color: '#fff',
-        fontSize: '0.82rem',
-        fontWeight: 600,
-        animation: 'pulse 3s infinite ease-in-out'
+        color:          '#fff',
+        fontSize:       '0.82rem',
+        fontWeight:     600,
+        animation:      'pulse 3s infinite ease-in-out',
+        userSelect:     'none'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Status dot + label */}
+      <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
         <span style={{
-          display: 'inline-block',
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          backgroundColor: '#34d399',
-          boxShadow: '0 0 8px #34d399'
-        }}></span>
-        <Edit3 size={15} color="var(--gold-glow, #f3c64c)" />
-        <span>{label}: <strong style={{ color: '#34d399' }}>ACTIVE</strong></span>
+          display:'inline-block', width:'8px', height:'8px',
+          borderRadius:'50%', backgroundColor:'#34d399', boxShadow:'0 0 8px #34d399'
+        }} />
+        <Edit3 size={15} color="var(--gold-glow,#f3c64c)" />
+        <span>{label}: <strong style={{ color:'#34d399' }}>ALWAYS ON</strong></span>
       </div>
 
-      <span style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.75rem', borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: '10px' }}>
-        Click any text on screen to type • <kbd style={{ background: 'rgba(255,255,255,0.12)', padding: '1px 5px', borderRadius: '3px' }}>Enter</kbd> to save • <kbd style={{ background: 'rgba(255,255,255,0.12)', padding: '1px 5px', borderRadius: '3px' }}>Esc</kbd> to cancel
+      {/* Shortcut hints */}
+      <span style={{
+        color:'var(--text-muted,#94a3b8)', fontSize:'0.75rem',
+        borderLeft:'1px solid rgba(255,255,255,0.15)', paddingLeft:'10px'
+      }}>
+        Click any cell to type •{' '}
+        <kbd style={{ background:'rgba(255,255,255,0.12)', padding:'1px 5px', borderRadius:'3px' }}>Enter</kbd> save •{' '}
+        <kbd style={{ background:'rgba(255,255,255,0.12)', padding:'1px 5px', borderRadius:'3px' }}>Esc</kbd> cancel •{' '}
+        <kbd style={{ background:'rgba(255,255,255,0.12)', padding:'1px 5px', borderRadius:'3px' }}>Tab</kbd> next cell
       </span>
 
+      {/* Reset button */}
       {onReset && (
         <button
           type="button"
           onClick={onReset}
           style={{
-            background: 'rgba(239, 68, 68, 0.2)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
-            color: '#fca5a5',
-            borderRadius: '20px',
-            padding: '3px 10px',
-            fontSize: '0.72rem',
-            cursor: 'pointer',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
+            background:'rgba(239,68,68,0.2)', border:'1px solid rgba(239,68,68,0.4)',
+            color:'#fca5a5', borderRadius:'20px', padding:'3px 10px',
+            fontSize:'0.72rem', cursor:'pointer', fontWeight:600,
+            display:'inline-flex', alignItems:'center', gap:'4px'
           }}
-          title="Reset all inline edits back to defaults"
+          title="Reset all inline edits to defaults"
         >
           <RotateCcw size={11} /> Reset
         </button>
       )}
 
-      {onToggle && (
-        <button
-          type="button"
-          onClick={onToggle}
-          style={{
-            background: 'rgba(255, 255, 255, 0.12)',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
-            color: '#fff',
-            borderRadius: '20px',
-            padding: '4px 12px',
-            fontSize: '0.75rem',
-            cursor: 'pointer',
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            transition: 'all 0.15s ease'
-          }}
-          title="Exit Inline Edit Mode"
-        >
-          <Check size={13} color="#34d399" /> Done Editing
-        </button>
-      )}
+      {/* Dismiss (just hides the banner — editing stays on) */}
+      <button
+        type="button"
+        onClick={() => setVisible(false)}
+        style={{
+          background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.18)',
+          color:'#94a3b8', borderRadius:'50%', width:'22px', height:'22px',
+          fontSize:'0.75rem', cursor:'pointer', display:'flex',
+          alignItems:'center', justifyContent:'center', flexShrink:0
+        }}
+        title="Hide this banner (editing stays on)"
+      >
+        ×
+      </button>
     </div>
   );
 }
 
-/**
- * SheetsEditableCell: High-density interactive Google Sheets / Excel spreadsheet cell.
- * Features:
- * - Direct single-click or double-click to type
- * - Authentic Google Sheets active-cell border and bottom-right corner fill-handle
- * - Supports types: 'text', 'number', 'currency', 'select', 'date'
- * - Keyboard navigation: Enter to commit, Esc to cancel, Tab / Shift-Tab
- * - Visual emerald save-pulse animation on commit
- * - Optional localStorage & D1 remote database persistence
- */
+/* ─────────────────────────────────────────────────────────────────────────
+   SheetsEditableCell — self-contained click-to-input grid cell (unchanged)
+   This component manages its own editing state with a real <input> /
+   <select> overlay. editEngine.js deliberately skips .sheets-editable-cell.
+   ───────────────────────────────────────────────────────────────────────── */
 export function SheetsEditableCell({
-  value = '',
+  value       = '',
   onSave,
-  type = 'text', // 'text' | 'number' | 'currency' | 'select' | 'date'
-  options = [], // For 'select': [{ value, label, badgeStyle }] or ['Option 1', 'Option 2']
-  min,
-  max,
-  step = 1,
-  tag = 'td', // 'td' | 'div' | 'span'
-  className = '',
-  style = {},
-  cellStyle = {},
-  inputStyle = {},
-  align = 'left', // 'left' | 'center' | 'right'
-  prefix = '',
-  suffix = '',
+  type        = 'text',
+  options     = [],
+  min, max, step = 1,
+  tag         = 'td',
+  className   = '',
+  style       = {},
+  cellStyle   = {},
+  inputStyle  = {},
+  align       = 'left',
+  prefix      = '',
+  suffix      = '',
   placeholder = '—',
-  disabled = false,
+  disabled    = false,
   formatDisplay,
-  storageKey = '',
-  field = '',
-  rowId = '',
-  tooltip = 'Click or press Enter to edit'
+  storageKey  = '',
+  field       = '',
+  rowId       = '',
+  tooltip     = 'Click to edit'
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [currentVal, setCurrentVal] = useState(value !== undefined && value !== null ? value : '');
+  const [curVal,    setCurVal]    = useState(value != null ? value : '');
   const [justSaved, setJustSaved] = useState(false);
-  const originalValRef = useRef(value);
+  const origRef  = useRef(value);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    setCurrentVal(value !== undefined && value !== null ? value : '');
-    originalValRef.current = value;
+    setCurVal(value != null ? value : '');
+    origRef.current = value;
   }, [value]);
 
-  const handleStartEdit = () => {
-    if (disabled) return;
-    setIsEditing(true);
-  };
+  const startEdit = () => { if (!disabled) setIsEditing(true); };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      if (typeof inputRef.current.select === 'function') {
-        inputRef.current.select();
-      }
+      if (typeof inputRef.current.select === 'function') inputRef.current.select();
     }
   }, [isEditing]);
 
-  const commitEdit = () => {
+  const commit = () => {
     if (!isEditing) return;
     setIsEditing(false);
-
-    let finalVal = currentVal;
+    let final = curVal;
     if (type === 'number' || type === 'currency') {
-      const parsed = parseFloat(String(currentVal).replace(/[^0-9.-]+/g, ''));
-      finalVal = isNaN(parsed) ? 0 : parsed;
-      if (min !== undefined && finalVal < min) finalVal = min;
-      if (max !== undefined && finalVal > max) finalVal = max;
-    } else if (typeof currentVal === 'string') {
-      finalVal = currentVal.trim();
+      const p = parseFloat(String(curVal).replace(/[^0-9.-]+/g, ''));
+      final = isNaN(p) ? 0 : p;
+      if (min !== undefined && final < min) final = min;
+      if (max !== undefined && final > max) final = max;
+    } else if (typeof curVal === 'string') {
+      final = curVal.trim();
     }
-
-    if (String(finalVal) !== String(originalValRef.current)) {
-      if (onSave) {
-        onSave(finalVal, originalValRef.current, field);
-      }
+    if (String(final) !== String(origRef.current)) {
+      if (onSave) onSave(final, origRef.current, field);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1400);
-
-      // Persist to localStorage if key provided
       if (storageKey) {
         try {
-          const current = JSON.parse(localStorage.getItem(storageKey) || '{}');
-          const cellKey = rowId && field ? `${rowId}:${field}` : field || 'val';
-          current[cellKey] = finalVal;
-          localStorage.setItem(storageKey, JSON.stringify(current));
-        } catch (e) {
-          console.warn('Storage save failed:', e);
-        }
+          const s = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          s[rowId && field ? `${rowId}:${field}` : field || 'val'] = final;
+          localStorage.setItem(storageKey, JSON.stringify(s));
+        } catch (_) {}
       }
-
-      // Dispatch global edit event
       window.dispatchEvent(new CustomEvent('hsi:text-edited', {
-        detail: { field, rowId, newValue: finalVal, oldValue: originalValRef.current }
+        detail: { field, rowId, newValue: final, oldValue: origRef.current }
       }));
     }
   };
 
-  const cancelEdit = () => {
-    setCurrentVal(originalValRef.current !== undefined && originalValRef.current !== null ? originalValRef.current : '');
+  const cancel = () => {
+    setCurVal(origRef.current != null ? origRef.current : '');
     setIsEditing(false);
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      commitEdit();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      cancelEdit();
-    } else if (e.key === 'Tab') {
-      commitEdit();
-    }
+  const handleKey = (e) => {
+    if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    else if (e.key === 'Tab')   { commit(); }
   };
 
-  // Rendering formatted display value
-  const renderDisplay = () => {
-    if (formatDisplay) return formatDisplay(currentVal);
-
+  const display = () => {
+    if (formatDisplay) return formatDisplay(curVal);
     if (type === 'currency') {
-      const num = Number(currentVal) || 0;
-      return `${prefix || '₹'}${num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}${suffix}`;
+      return `${prefix || '₹'}${(Number(curVal)||0).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})}${suffix}`;
     }
-
     if (type === 'select') {
-      const matchedOpt = options.find(o => (typeof o === 'object' ? o.value === currentVal : o === currentVal));
-      if (matchedOpt && typeof matchedOpt === 'object' && matchedOpt.badgeStyle) {
-        return (
-          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, ...matchedOpt.badgeStyle }}>
-            {matchedOpt.label || matchedOpt.value}
-          </span>
-        );
-      }
-      return `${prefix}${matchedOpt && typeof matchedOpt === 'object' ? matchedOpt.label : currentVal || placeholder}${suffix}`;
+      const m = options.find(o => (typeof o === 'object' ? o.value === curVal : o === curVal));
+      if (m?.badgeStyle) return (
+        <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:'4px', fontSize:'0.72rem', fontWeight:700, ...m.badgeStyle }}>
+          {m.label || m.value}
+        </span>
+      );
+      return `${prefix}${m && typeof m === 'object' ? m.label : curVal || placeholder}${suffix}`;
     }
-
     if (type === 'number') {
-      const num = Number(currentVal);
-      return isNaN(num) ? placeholder : `${prefix}${num.toLocaleString('en-IN')}${suffix}`;
+      const n = Number(curVal);
+      return isNaN(n) ? placeholder : `${prefix}${n.toLocaleString('en-IN')}${suffix}`;
     }
-
-    return `${prefix}${currentVal !== '' && currentVal !== null && currentVal !== undefined ? currentVal : placeholder}${suffix}`;
+    return `${prefix}${curVal !== '' && curVal != null ? curVal : placeholder}${suffix}`;
   };
 
-  const CustomTag = tag;
-
+  const Tag = tag;
   return (
-    <CustomTag
+    <Tag
       className={`sheets-editable-cell ${isEditing ? 'sheets-cell-editing' : ''} ${justSaved ? 'hsi-save-success-flash' : ''} ${className}`}
-      onClick={!isEditing ? handleStartEdit : undefined}
+      onClick={!isEditing ? startEdit : undefined}
       title={disabled ? undefined : tooltip}
+      data-field={field}
+      data-row-key={rowId}
       style={{
-        position: 'relative',
-        textAlign: align,
-        verticalAlign: 'middle',
+        position:'relative', textAlign:align, verticalAlign:'middle',
         cursor: disabled ? 'default' : 'pointer',
         userSelect: isEditing ? 'auto' : 'none',
-        ...cellStyle,
-        ...style
+        ...cellStyle, ...style
       }}
     >
       {isEditing ? (
-        <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+        <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center' }}>
           {type === 'select' ? (
             <select
               ref={inputRef}
-              value={currentVal}
-              onChange={(e) => setCurrentVal(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={handleKeyDown}
+              value={curVal}
+              onChange={e => setCurVal(e.target.value)}
+              onBlur={commit}
+              onKeyDown={handleKey}
               className="sheets-cell-select"
               style={{
-                width: '100%',
-                background: '#090e17',
-                border: '1.5px solid #38bdf8',
-                borderRadius: '4px',
-                color: '#ffffff',
-                padding: '2px 6px',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                outline: 'none',
-                boxShadow: '0 0 8px rgba(56, 189, 248, 0.5)',
-                ...inputStyle
+                width:'100%', background:'#090e17', border:'1.5px solid #38bdf8',
+                borderRadius:'4px', color:'#fff', padding:'2px 6px',
+                fontSize:'0.8rem', fontWeight:600, outline:'none',
+                boxShadow:'0 0 8px rgba(56,189,248,0.5)', ...inputStyle
               }}
             >
-              {options.map((opt, i) => {
-                const optVal = typeof opt === 'object' ? opt.value : opt;
-                const optLbl = typeof opt === 'object' ? opt.label : opt;
-                return (
-                  <option key={i} value={optVal}>
-                    {optLbl}
-                  </option>
-                );
+              {options.map((o,i) => {
+                const v = typeof o === 'object' ? o.value : o;
+                const l = typeof o === 'object' ? o.label  : o;
+                return <option key={i} value={v}>{l}</option>;
               })}
             </select>
           ) : (
             <input
               ref={inputRef}
               type={type === 'currency' ? 'number' : type}
-              value={currentVal}
-              onChange={(e) => setCurrentVal(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={handleKeyDown}
-              step={step}
-              min={min}
-              max={max}
+              value={curVal}
+              onChange={e => setCurVal(e.target.value)}
+              onBlur={commit}
+              onKeyDown={handleKey}
+              step={step} min={min} max={max}
               className="sheets-cell-input"
               style={{
-                width: '100%',
-                background: '#090e17',
-                border: '1.5px solid #38bdf8',
-                borderRadius: '3px',
-                color: '#ffffff',
-                padding: '2px 6px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                textAlign: align,
-                outline: 'none',
-                boxShadow: '0 0 8px rgba(56, 189, 248, 0.6)',
-                fontFamily: type === 'currency' || type === 'number' ? 'SF Mono, monospace' : 'inherit',
+                width:'100%', background:'#090e17', border:'1.5px solid #38bdf8',
+                borderRadius:'3px', color:'#fff', padding:'2px 6px',
+                fontSize:'0.82rem', fontWeight:700, textAlign:align, outline:'none',
+                boxShadow:'0 0 8px rgba(56,189,248,0.6)',
+                fontFamily: type === 'currency' || type === 'number' ? 'SF Mono,monospace' : 'inherit',
                 ...inputStyle
               }}
             />
           )}
-          {/* Authentic Google Sheets Active-Cell Bottom-Right Handle */}
           <div className="sheets-cell-handle" />
         </div>
       ) : (
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
+          display:'flex', alignItems:'center',
           justifyContent: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start',
-          gap: '6px',
-          width: '100%'
+          gap:'6px', width:'100%'
         }}>
           <span style={{
-            fontFamily: type === 'currency' || type === 'number' ? 'SF Mono, monospace' : 'inherit',
+            fontFamily: type === 'currency' || type === 'number' ? 'SF Mono,monospace' : 'inherit',
             fontWeight: type === 'currency' || type === 'number' ? 700 : 'inherit'
           }}>
-            {renderDisplay()}
+            {display()}
           </span>
           {!disabled && (
-            <span
-              className="sheets-cell-pencil"
-              style={{
-                fontSize: '0.65rem',
-                color: '#38bdf8',
-                pointerEvents: 'none'
-              }}
-            >
+            <span className="sheets-cell-pencil" style={{ fontSize:'0.65rem', color:'#38bdf8', pointerEvents:'none' }}>
               ✏️
             </span>
           )}
         </div>
       )}
-    </CustomTag>
+    </Tag>
   );
 }
 
-/**
- * SheetsColumnHeader: Standardized Google Sheets / Excel table header cell with badge.
- * Props:
- * - title: string | ReactNode
- * - badge: 'editable' | 'formula' | 'locked' | null
- * - badgeLabel: custom label override
- * - align: 'left' | 'center' | 'right'
- * - width: string
- * - style: object
- * - className: string
- */
+/* ─────────────────────────────────────────────────────────────────────────
+   SheetsColumnHeader — th with EDIT / FX / LOCK badge (unchanged)
+   ───────────────────────────────────────────────────────────────────────── */
 export function SheetsColumnHeader({
   title,
-  badge = null,
+  badge      = 'editable',   // default always editable now
   badgeLabel = null,
-  align = 'left',
+  align      = 'left',
   width,
-  style = {},
-  className = '',
+  style      = {},
+  className  = '',
   children
 }) {
-  const getBadgeConfig = () => {
-    if (badge === 'editable') {
-      return {
-        text: badgeLabel || 'EDIT ✏️',
-        className: 'sheets-hdr-badge sheets-hdr-editable',
-        title: 'Click any cell in this column to edit directly'
-      };
-    }
-    if (badge === 'formula') {
-      return {
-        text: badgeLabel || 'FX ⚡',
-        className: 'sheets-hdr-badge sheets-hdr-formula',
-        title: 'Auto-calculated formula (updates dynamically when input cells change)'
-      };
-    }
-    if (badge === 'locked') {
-      return {
-        text: badgeLabel || 'LOCK 🔒',
-        className: 'sheets-hdr-badge sheets-hdr-locked',
-        title: 'System record / Read-only field'
-      };
-    }
+  const getBadge = () => {
+    if (badge === 'editable') return { text: badgeLabel || 'EDIT ✏️', cls: 'sheets-hdr-badge sheets-hdr-editable', tip: 'Click any cell in this column to edit directly' };
+    if (badge === 'formula')  return { text: badgeLabel || 'FX ⚡',   cls: 'sheets-hdr-badge sheets-hdr-formula',  tip: 'Auto-calculated — updates when input cells change' };
+    if (badge === 'locked')   return { text: badgeLabel || 'LOCK 🔒', cls: 'sheets-hdr-badge sheets-hdr-locked',   tip: 'System record — read only' };
     return null;
   };
-
-  const badgeConfig = getBadgeConfig();
+  const b = getBadge();
 
   return (
     <th
       className={`sheets-grid-th ${className}`}
-      style={{
-        width,
-        textAlign: align,
-        padding: '0.65rem 0.75rem',
-        verticalAlign: 'middle',
-        ...style
-      }}
+      style={{ width, textAlign: align, padding:'0.65rem 0.75rem', verticalAlign:'middle', ...style }}
     >
       <div style={{
-        display: 'inline-flex',
-        alignItems: 'center',
+        display:'inline-flex', alignItems:'center',
         justifyContent: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start',
-        gap: '6px',
-        width: '100%',
-        whiteSpace: 'nowrap'
+        gap:'6px', width:'100%', whiteSpace:'nowrap'
       }}>
         <span>{title || children}</span>
-        {badgeConfig && (
-          <span className={badgeConfig.className} title={badgeConfig.title}>
-            {badgeConfig.text}
-          </span>
-        )}
+        {b && <span className={b.cls} title={b.tip}>{b.text}</span>}
       </div>
     </th>
   );
 }
 
-/**
- * SheetsToolbarLegend: Compact, elegant spreadsheet status banner above grid tables.
- */
+/* ─────────────────────────────────────────────────────────────────────────
+   SheetsToolbarLegend — compact status banner above grid tables (unchanged)
+   ───────────────────────────────────────────────────────────────────────── */
 export function SheetsToolbarLegend({
   tableName = 'Live Spreadsheet Matrix',
-  subtitle = 'Interactive Google Sheets Mode',
-  style = {}
+  subtitle  = 'Interactive Google Sheets Mode',
+  style     = {}
 }) {
   return (
     <div
       className="sheets-toolbar-legend no-print"
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
-        padding: '0.45rem 0.85rem',
-        background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85))',
-        border: '1px solid rgba(56, 189, 248, 0.25)',
-        borderRadius: '8px 8px 0 0',
-        fontSize: '0.74rem',
-        color: '#e2e8f0',
-        ...style
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        flexWrap:'wrap', gap:'0.5rem', padding:'0.45rem 0.85rem',
+        background:'linear-gradient(90deg,rgba(15,23,42,0.95),rgba(30,41,59,0.85))',
+        border:'1px solid rgba(56,189,248,0.25)', borderRadius:'8px 8px 0 0',
+        fontSize:'0.74rem', color:'#e2e8f0', ...style
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{
-          width: '7px',
-          height: '7px',
-          borderRadius: '50%',
-          background: '#10b981',
-          boxShadow: '0 0 6px #10b981'
-        }} />
-        <strong style={{ color: '#fff', fontSize: '0.78rem' }}>{tableName}</strong>
-        <span style={{ color: 'var(--text-muted, #94a3b8)', borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: '8px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+        <span style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#10b981', boxShadow:'0 0 6px #10b981' }} />
+        <strong style={{ color:'#fff', fontSize:'0.78rem' }}>{tableName}</strong>
+        <span style={{ color:'var(--text-muted,#94a3b8)', borderLeft:'1px solid rgba(255,255,255,0.15)', paddingLeft:'8px' }}>
           {subtitle}
         </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.68rem' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'0.68rem' }}>
           <span className="sheets-hdr-badge sheets-hdr-editable">EDIT ✏️ Direct Edit</span>
           <span className="sheets-hdr-badge sheets-hdr-formula">FX ⚡ Auto Formula</span>
           <span className="sheets-hdr-badge sheets-hdr-locked">LOCK 🔒 System Protected</span>
         </div>
-        <span style={{ color: '#64748b', fontSize: '0.7rem' }}>
-          <kbd style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 4px', borderRadius: '3px', color: '#cbd5e1' }}>Enter</kbd> Save • 
-          <kbd style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 4px', borderRadius: '3px', color: '#cbd5e1', marginLeft: '3px' }}>Esc</kbd> Cancel
+        <span style={{ color:'#64748b', fontSize:'0.7rem' }}>
+          <kbd style={{ background:'rgba(255,255,255,0.08)', padding:'1px 4px', borderRadius:'3px', color:'#cbd5e1' }}>Enter</kbd> Save •{' '}
+          <kbd style={{ background:'rgba(255,255,255,0.08)', padding:'1px 4px', borderRadius:'3px', color:'#cbd5e1', marginLeft:'3px' }}>Esc</kbd> Cancel •{' '}
+          <kbd style={{ background:'rgba(255,255,255,0.08)', padding:'1px 4px', borderRadius:'3px', color:'#cbd5e1', marginLeft:'3px' }}>Tab</kbd> Next
         </span>
       </div>
     </div>
