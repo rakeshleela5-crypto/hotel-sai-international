@@ -1813,27 +1813,26 @@ button:focus-visible, .btn:focus-visible {
 
 th:not(.sheets-grid-th):not(.th-no-edit) {
   position: relative;
-  white-space: nowrap;
+  /* no white-space: nowrap — let column names wrap freely */
 }
 
 th:not(.sheets-grid-th):not(.th-no-edit)::after {
   content: "EDIT";
-  display: inline-flex;
-  align-items: center;
-  margin-left: 6px;
-  font-size: 0.56rem;
+  display: block;           /* sits on its OWN LINE below the column name */
+  margin-top: 4px;
+  font-size: 0.54rem;
   font-weight: 800;
   color: #34d399;
   background: rgba(16, 185, 129, 0.13);
   border: 1px solid rgba(16, 185, 129, 0.32);
   border-radius: 3px;
-  padding: 1px 5px;
-  vertical-align: middle;
-  letter-spacing: 0.04em;
-  line-height: 1.4;
+  padding: 1px 6px;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
   user-select: none;
   text-transform: uppercase;
   pointer-events: none;
+  width: fit-content;       /* badge only as wide as its text — never stretches */
 }
 
 th:not(.sheets-grid-th):not(.th-no-edit):hover::after {
