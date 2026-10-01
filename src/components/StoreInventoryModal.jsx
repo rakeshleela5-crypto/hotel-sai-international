@@ -118,7 +118,6 @@ export default function StoreInventoryModal({
     { id: 4, name: 'Pooja Grocery & Spices Wholesale', cat: 'Basmati Rice, Dal, Edible Oil, Spices', contact: 'Suresh Agarwal (+91 94370 22105)', supplies: 35900, paid: 20000 },
     { id: 5, name: 'Rayagada Commercial Gas Agency', cat: 'Commercial 19kg LPG Cylinders', contact: 'Delivery Desk (+91 06856 22214)', supplies: 12450, paid: 7400 }
   ]);
-  const [isStoreEditMode, setIsStoreEditMode] = useState(true);
 
   // Sync live D1 store purchases and kitchen requisitions on open
   useEffect(() => {
@@ -326,29 +325,6 @@ export default function StoreInventoryModal({
               <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: '1px solid #10b981' }}>
                 FOOD COST CONTROL
               </span>
-              <button
-                type="button"
-                onClick={() => setIsStoreEditMode(prev => !prev)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: isStoreEditMode ? '#10b981' : '#475569',
-                  color: '#ffffff',
-                  border: 'none',
-                  boxShadow: isStoreEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
-                  transition: 'all 0.2s ease',
-                  textTransform: 'uppercase'
-                }}
-                title="Toggle Live Spreadsheet Edit Mode for Store Inventory Grids"
-              >
-                <span>✏️</span> Live Spreadsheet Edit: <strong>{isStoreEditMode ? 'ACTIVE' : 'OFF'}</strong>
-              </button>
               <h2 style={{ fontSize: '1.3rem', color: '#fff', margin: 0, fontWeight: 700 }}>
                 Store Inventory &amp; Mandi Raw Material Purchases
               </h2>
@@ -764,7 +740,7 @@ export default function StoreInventoryModal({
                 Stock transferred from Main Store to Head Chef Jagabandhu Sahu to prevent raw material pilferage.
               </p>
 
-              <SheetsToolbarLegend isEditMode={isStoreEditMode} style={{ marginBottom: '0.6rem' }} />
+              <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
               <div className="enterprise-data-table-container">
                 <table className="enterprise-data-table sheets-grid-table">
                   <thead>

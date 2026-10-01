@@ -40,7 +40,6 @@ export default function MasterFolioModal({
   }, [initialRoomNumber, isOpen]);
 
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger', 'sub-folios', 'split-bills', 'multi-settle'
-  const [isMasterFolioEditMode, setIsMasterFolioEditMode] = useState(true);
 
   // Operational Notification Toast Banner
   const [toastMessage, setToastMessage] = useState('');
@@ -655,37 +654,6 @@ Includes 12% GST on Room & 5% GST on Restaurant dining.
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <span className="badge" style={{ background: 'rgba(212, 175, 55, 0.2)', color: 'var(--gold-glow)', border: '1px solid var(--gold-primary)' }}>
-                IDS NEXT STANDARD
-              </span>
-              <span
-                onClick={() => setIsMasterFolioEditMode(!isMasterFolioEditMode)}
-                title="Toggle Live Spreadsheet Grid Inline Editing"
-                style={{
-                  background: isMasterFolioEditMode ? 'rgba(52, 211, 153, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                  color: isMasterFolioEditMode ? '#34d399' : 'var(--text-muted)',
-                  border: isMasterFolioEditMode ? '1px solid rgba(52, 211, 153, 0.5)' : '1px solid rgba(255, 255, 255, 0.15)',
-                  padding: '2px 9px',
-                  borderRadius: '12px',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  boxShadow: isMasterFolioEditMode ? '0 0 10px rgba(52, 211, 153, 0.25)' : 'none',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <span style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: isMasterFolioEditMode ? '#34d399' : '#94a3b8',
-                  boxShadow: isMasterFolioEditMode ? '0 0 6px #34d399' : 'none'
-                }} />
-                <span>✏️ Live Spreadsheet Edit: {isMasterFolioEditMode ? 'ACTIVE' : 'OFF'}</span>
               </span>
               <h2 style={{ fontSize: '1.4rem', color: '#fff', margin: 0, fontWeight: 700 }}>
                 Master Guest Folio &amp; Split Billing Console
@@ -1055,18 +1023,18 @@ Includes 12% GST on Room & 5% GST on Restaurant dining.
             <div style={{ overflowX: 'auto' }}>
               <SheetsToolbarLegend 
                 tableName={`Master Folio Multi-Room & Group Ledger • Room ${selectedRoom}`} 
-                subtitle={isMasterFolioEditMode ? "Live Interactive Google Sheets Mode • Click any cell with ✏️ to edit inline • Enter to save" : "Read-Only Mode (Toggle Live Edit above)"}
+                subtitle="Live Interactive Google Sheets Mode • Click any cell to edit inline • Enter to save"
               />
               <table className="sheets-grid-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left' }}>
                     <SheetsColumnHeader title="Txn ID / Time" badge="locked" style={{ padding: '0.75rem 1rem' }} />
                     <SheetsColumnHeader title="Outlet / Type" badge="locked" style={{ padding: '0.75rem 1rem' }} />
-                    <SheetsColumnHeader title="Description" badge={isMasterFolioEditMode ? "editable" : "locked"} style={{ padding: '0.75rem 1rem' }} />
-                    <SheetsColumnHeader title="SAC / HSN" badge={isMasterFolioEditMode ? "editable" : "locked"} align="center" style={{ padding: '0.75rem 1rem', width: '95px' }} />
-                    <SheetsColumnHeader title="GST Rate" badge={isMasterFolioEditMode ? "editable" : "locked"} align="center" style={{ padding: '0.75rem 1rem', width: '100px' }} />
-                    <SheetsColumnHeader title="Debit (₹)" badge={isMasterFolioEditMode ? "editable" : "locked"} align="right" style={{ padding: '0.75rem 1rem', width: '120px' }} />
-                    <SheetsColumnHeader title="Credit (₹)" badge={isMasterFolioEditMode ? "editable" : "locked"} align="right" style={{ padding: '0.75rem 1rem', width: '120px' }} />
+                    <SheetsColumnHeader title="Description" badge="editable" style={{ padding: '0.75rem 1rem' }} />
+                    <SheetsColumnHeader title="SAC / HSN" badge="editable" align="center" style={{ padding: '0.75rem 1rem', width: '95px' }} />
+                    <SheetsColumnHeader title="GST Rate" badge="editable" align="center" style={{ padding: '0.75rem 1rem', width: '100px' }} />
+                    <SheetsColumnHeader title="Debit (₹)" badge="editable" align="right" style={{ padding: '0.75rem 1rem', width: '120px' }} />
+                    <SheetsColumnHeader title="Credit (₹)" badge="editable" align="right" style={{ padding: '0.75rem 1rem', width: '120px' }} />
                     <SheetsColumnHeader title="Audit Status" badge="locked" align="center" style={{ padding: '0.75rem 1rem', width: '120px' }} />
                     <SheetsColumnHeader title="Action" badge="locked" align="center" style={{ padding: '0.75rem 1rem', width: '100px' }} />
                   </tr>
@@ -1108,7 +1076,6 @@ Includes 12% GST on Room & 5% GST on Restaurant dining.
                           value={txn.sacCode || '-'}
                           type="text"
                           align="center"
-                          disabled={!isMasterFolioEditMode}
                           cellStyle={{ padding: '0.85rem 1rem', fontFamily: 'monospace', color: '#fbbf24' }}
                           onSave={(newVal) => {
                             txn.sacCode = newVal;

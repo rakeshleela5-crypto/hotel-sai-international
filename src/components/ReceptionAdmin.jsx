@@ -82,7 +82,7 @@ export default function ReceptionAdmin({
   const [filterToDate, setFilterToDate] = useState(todayStr);
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
 
-  const [isInlineEditActive, setIsInlineEditActive] = useState(false);
+  const isInlineEditActive = true; // Always-on — no toggle needed
   const searchInputRef = useRef(null);
   const receptionContainerRef = useRef(null);
 
@@ -93,7 +93,7 @@ export default function ReceptionAdmin({
   };
 
   useUniversalInlineEdit({
-    isActive: isInlineEditActive,
+    isActive: true,
     containerRef: receptionContainerRef,
     onSave: handleInlineSave,
     storagePrefix: 'hsi_pms'
@@ -2178,7 +2178,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
     <section 
       id="reception-admin-container" 
       ref={receptionContainerRef} 
-      className={`reception-admin-root ${isInlineEditActive ? 'hsi-live-edit-active' : ''}`} 
+      className="reception-admin-root hsi-live-edit-active" 
       style={{ padding: '2rem 1.5rem 4rem 1.5rem', maxWidth: 1580, margin: '0 auto', position: 'relative' }}
     >
       {/* 5-DEPARTMENT CONSOLE & 3-ROLE AUTHORIZATION BAR (Owner Video Requirement) */}
@@ -2916,28 +2916,26 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           ))}
         </div>
 
-        {/* Quick Edit Mode & Operational Modals Shortcuts */}
+        {/* Operational Modals Shortcuts */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setIsInlineEditActive(!isInlineEditActive)}
+          {/* Inline Edit Mode badge — always on, no toggle */}
+          <span
             style={{
-              background: isInlineEditActive ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.06)',
-              border: isInlineEditActive ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.15)',
-              color: isInlineEditActive ? '#38bdf8' : '#cbd5e1',
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              color: '#38bdf8',
               borderRadius: '6px',
               padding: '5px 12px',
               fontSize: '0.75rem',
               fontWeight: 700,
-              cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '5px',
-              transition: 'all 0.15s ease'
+              userSelect: 'none'
             }}
           >
-            <Edit3 size={13} /> {isInlineEditActive ? '✏️ Inline Edit Mode: ON' : 'Inline Edit Mode: OFF'}
-          </button>
+            <Edit3 size={13} /> ✏️ Click any cell to edit
+          </span>
           <button
             type="button"
             onClick={() => {
@@ -3221,7 +3219,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </span>
               </div>
 
-              <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
+              <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', color: '#94a3b8' }}>
@@ -3291,7 +3289,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </span>
               </div>
 
-              <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
+              <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', color: '#94a3b8' }}>
@@ -3359,7 +3357,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </span>
               </div>
 
-              <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
+              <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', color: '#94a3b8' }}>
@@ -4090,14 +4088,12 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               flexDirection: 'column',
                               justifyContent: 'space-between',
                               minHeight: 110,
-                              cursor: isInlineEditActive ? 'default' : 'pointer',
+                              cursor: 'default',
                               position: 'relative',
                               transition: 'transform 0.15s ease, box-shadow 0.15s ease'
                             }}
                             onClick={() => {
-                              if (isInlineEditActive) {
-                                return; // Allow in-place text editing without popping up modals
-                              }
+                              // Inline editing always active — clicking card opens folio for occupied rooms
                               if (isVacant) {
                                 setWalkInRoom(room.roomNumber);
                                 setWalkInRate(room.tariff);
@@ -4171,7 +4167,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                               </div>
 
                               <div style={{ marginTop: '0.35rem', fontSize: '0.75rem', lineHeight: '1.2' }}>
-                                {isInlineEditActive && isOccupied ? (
+                                {isOccupied ? (
                                   <div style={{ marginTop: '0.2rem' }} onClick={(e) => e.stopPropagation()}>
                                     <input
                                       type="text"
@@ -4194,21 +4190,15 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                         fontWeight: 700
                                       }}
                                     />
-                                  </div>
-                                ) : isOccupied ? (
-                                  <>
-                                    <div style={{ color: '#fff', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {room.currentGuestName || 'Guest In-House'}
-                                    </div>
                                     <div style={{ color: '#fb923c', fontWeight: 800, marginTop: '2px', fontSize: '0.8rem' }}>
                                       ₹{(room.outstandingBalance || room.tariff || 0).toLocaleString('en-IN')}
                                     </div>
-                                  </>
+                                  </div>
                                 ) : isMaint ? (
                                   <div style={{ color: '#f87171', fontWeight: 700 }}>
                                     ⚠️ {room.currentGuestName || 'AC PRBLM'}
                                   </div>
-                                ) : isInlineEditActive ? (
+                                ) : (
                                   <div style={{ marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
                                     <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>₹</span>
                                     <input
@@ -4231,10 +4221,6 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                                         fontWeight: 700
                                       }}
                                     />
-                                  </div>
-                                ) : (
-                                  <div style={{ color: '#34d399', fontSize: '0.72rem' }}>
-                                    ₹{room.tariff} • Ready
                                   </div>
                                 )}
                               </div>
@@ -5834,7 +5820,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </button>
             </div>
 
-            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
+            <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
             <div className="enterprise-data-table-container">
               <table className="enterprise-data-table sheets-grid-table">
                 <thead>
@@ -6444,7 +6430,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             {/* Transfer Dispatch Table */}
-            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
+            <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
@@ -6900,7 +6886,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               Live Rate Parity Inspection &amp; Direct Price Guarantee
             </h4>
 
-            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
+            <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
@@ -7197,7 +7183,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
 
           {/* Work Orders Table */}
           <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
-            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
+            <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
@@ -9685,8 +9671,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       )}
       {/* UNIVERSAL INLINE KEYBOARD EDIT MODE FLOATING HUD BANNER */}
       <InlineEditorBanner
-        isActive={isInlineEditActive}
-        onToggle={() => setIsInlineEditActive(false)}
+        isActive={true}
+        onToggle={null}
         label="PMS Universal Keyboard Edit Mode"
         onReset={() => {
           if (window.confirm('Reset all inline text edits back to default values?')) {

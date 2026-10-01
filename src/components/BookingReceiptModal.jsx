@@ -46,7 +46,7 @@ export default function BookingReceiptModal({
   // View modes: 'a4' (Consolidated), 'room-split' (Page 3), 'food-split' (Page 2), 'grc' (Page 1), 'money-receipt' (Page 5), 'pos' (Thermal), 'keycard' (3D RFID)
   const [invoiceType, setInvoiceType] = useState(initialType || 'a4');
   const [isNonGstBill, setIsNonGstBill] = useState(Boolean(booking?.isNonGstBill));
-  const [isLiveEditMode, setIsLiveEditMode] = useState(booking?.isLiveEditMode !== undefined ? Boolean(booking.isLiveEditMode) : true);
+  const isLiveEditMode = true; // Always-on inline editing
   const [includeLetterhead, setIncludeLetterhead] = useState(true);
   const [rule48Copy, setRule48Copy] = useState('ORIGINAL FOR RECIPIENT');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -454,7 +454,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
     <div className="official-invoice-overlay" onClick={onClose}>
       <div 
         ref={receiptContainerRef} 
-        className={`official-invoice-modal-content ${isLiveEditMode ? 'hsi-live-edit-active' : ''}`} 
+        className={'official-invoice-modal-content hsi-live-edit-active'} 
         style={{ maxWidth: 1040, width: '100%', position: 'relative' }} 
         onClick={(e) => e.stopPropagation()}
       >
@@ -543,31 +543,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
             scrollbarWidth: 'none'
           }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-              {invoiceType !== 'keycard' && (
-                <button
-                  type="button"
-                  onClick={() => setIsLiveEditMode(!isLiveEditMode)}
-                  style={{
-                    background: isLiveEditMode ? '#10b981' : '#475569',
-                    border: 'none',
-                    color: '#ffffff',
-                    boxShadow: isLiveEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
-                    borderRadius: '6px',
-                    padding: '5px 10px',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    whiteSpace: 'nowrap',
-                    textTransform: 'uppercase'
-                  }}
-                  title="Toggle Live Spreadsheet Edit Mode for Receipt Lines"
-                >
-                  <span>✏️</span> Live Spreadsheet Edit: <strong>{isLiveEditMode ? 'ACTIVE' : 'OFF'}</strong>
-                </button>
-              )}
+              
 
               {invoiceType !== 'keycard' && (
                 <button
@@ -1241,7 +1217,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
 
             {/* Sheet 1: Explicit Taxable vs Non-Taxable Columns & Dynamic Line Item Editor */}
             <div className="no-print" style={{ margin: '0.4rem 0' }}>
-              <SheetsToolbarLegend isEditMode={isLiveEditMode} />
+              <SheetsToolbarLegend />
             </div>
             <table className="ledger-table sheets-grid-table">
               <thead>
@@ -1254,7 +1230,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                   <th className="th-amount" style={{ width: '95px' }}><SheetsColumnHeader label="Taxable Val (₹)" type="formula" align="right" /></th>
                   <th className="th-amount" style={{ width: '105px' }}><SheetsColumnHeader label="Non-Taxable (₹)" type="editable" align="right" /></th>
                   <th className="th-amount" style={{ width: '95px' }}><SheetsColumnHeader label="Line Total (₹)" type="formula" align="right" /></th>
-                  {isLiveEditMode && <th style={{ width: '30px' }} className="no-print"><SheetsColumnHeader label="Act" type="locked" align="center" /></th>}
+                  {<th style={{ width: '30px' }} className="no-print"><SheetsColumnHeader label="Act" type="locked" align="center" /></th>}
                 </tr>
               </thead>
               <tbody>
@@ -1334,7 +1310,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                       <td className="text-right" style={{ fontWeight: 600 }}>
                         ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-                      {isLiveEditMode && (
+                      {(
                         <td style={{ textAlign: 'center' }} className="no-print">
                           <button
                             type="button"
@@ -1351,7 +1327,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                 })}
 
                 {/* In edit mode, provide quick add line item trigger */}
-                {isLiveEditMode && (
+                {(
                   <tr className="no-print" style={{ background: '#f8fafc' }}>
                     <td colSpan="9" style={{ padding: '6px 8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1398,91 +1374,91 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Taxable Base (₹):</td>
+                  <td colSpan={7} style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Taxable Base (₹):</td>
                   <td className="text-right" style={{ fontWeight: 'bold' }}>
                     ₹{netTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
-                  {isLiveEditMode && <td className="no-print"></td>}
+                  {<td className="no-print"></td>}
                 </tr>
                 <tr>
-                  <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Non-Taxable / Exempt Base (₹):</td>
+                  <td colSpan={7} style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Non-Taxable / Exempt Base (₹):</td>
                   <td className="text-right" style={{ fontWeight: 'bold', color: isNonGstBill ? '#0284c7' : '#64748b' }}>
                     ₹{exemptBase.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
-                  {isLiveEditMode && <td className="no-print"></td>}
+                  {<td className="no-print"></td>}
                 </tr>
 
                 {discountAmount > 0 && (
                   <tr>
-                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', color: '#b45309' }}>
+                    <td colSpan={7} style={{ textAlign: 'right', color: '#b45309' }}>
                       Approved Discount / Tariff Concession ({discountReason}):
                     </td>
                     <td className="text-right" style={{ color: '#b45309', fontWeight: 600 }}>
                       -₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    {isLiveEditMode && <td className="no-print"></td>}
+                    {<td className="no-print"></td>}
                   </tr>
                 )}
 
                 {!isNonGstBill && taxType === 'intra' && (
                   <>
                     <tr>
-                      <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right' }}>
+                      <td colSpan={7} style={{ textAlign: 'right' }}>
                         Central GST (CGST @ {cgstRate}%):
                       </td>
                       <td className="text-right">₹{cgstAmount.toFixed(2)}</td>
-                      {isLiveEditMode && <td className="no-print"></td>}
+                      {<td className="no-print"></td>}
                     </tr>
                     <tr>
-                      <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right' }}>
+                      <td colSpan={7} style={{ textAlign: 'right' }}>
                         Odisha State GST (SGST @ {sgstRate}%):
                       </td>
                       <td className="text-right">₹{sgstAmount.toFixed(2)}</td>
-                      {isLiveEditMode && <td className="no-print"></td>}
+                      {<td className="no-print"></td>}
                     </tr>
                   </>
                 )}
 
                 {!isNonGstBill && taxType === 'inter' && (
                   <tr>
-                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right' }}>
+                    <td colSpan={7} style={{ textAlign: 'right' }}>
                       Integrated GST (IGST @ {igstRate}% - Interstate Supply):
                     </td>
                     <td className="text-right">₹{igstAmount.toFixed(2)}</td>
-                    {isLiveEditMode && <td className="no-print"></td>}
+                    {<td className="no-print"></td>}
                   </tr>
                 )}
 
                 {isNonGstBill && (
                   <tr>
-                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', color: '#64748b', fontStyle: 'italic', fontSize: '9.5px' }}>
+                    <td colSpan={7} style={{ textAlign: 'right', color: '#64748b', fontStyle: 'italic', fontSize: '9.5px' }}>
                       GST Exemption: Exempt / Non-GST Supply under Section 11 of CGST Act
                     </td>
                     <td className="text-right" style={{ color: '#64748b' }}>₹0.00 (Exempt)</td>
-                    {isLiveEditMode && <td className="no-print"></td>}
+                    {<td className="no-print"></td>}
                   </tr>
                 )}
 
                 {effectiveRoundOff !== 0 && (
                   <tr>
-                    <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontSize: '9.5px', color: '#64748b' }}>
+                    <td colSpan={7} style={{ textAlign: 'right', fontSize: '9.5px', color: '#64748b' }}>
                       Rounding Adjustment (Rule 26/GST):
                     </td>
                     <td className="text-right" style={{ fontSize: '9.5px', color: '#64748b' }}>
                       {effectiveRoundOff >= 0 ? '+' : ''}₹{effectiveRoundOff.toFixed(2)}
                     </td>
-                    {isLiveEditMode && <td className="no-print"></td>}
+                    {<td className="no-print"></td>}
                   </tr>
                 )}
 
                 <tr className="tfoot-round">
-                  <td colSpan={isLiveEditMode ? 7 : 7} style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>
+                  <td colSpan={7} style={{ textAlign: 'right', fontWeight: 900, fontSize: '12px' }}>
                     {isNonGstBill ? 'NON-GST BILL TOTAL (INR):' : 'CONSOLIDATED TOTAL (INR):'}
                   </td>
                   <td className="text-right text-net-amount">
                     ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
-                  {isLiveEditMode && <td className="no-print"></td>}
+                  {<td className="no-print"></td>}
                 </tr>
               </tfoot>
             </table>
@@ -2192,7 +2168,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
         )}
         {/* UNIVERSAL INLINE KEYBOARD EDIT MODE FLOATING HUD BANNER */}
         <InlineEditorBanner
-          isActive={isLiveEditMode}
+          isActive={true}
           onToggle={() => setIsLiveEditMode(false)}
           label="Folio & Receipt Keyboard Edit Mode"
           onReset={() => {

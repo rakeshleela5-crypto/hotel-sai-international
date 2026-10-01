@@ -80,7 +80,7 @@ export default function AccountsLedgerModal({
   // Universal Accounts Search & Quick Edit Mode (Active across all 9 tabs)
   const [accountsSearchQuery, setAccountsSearchQuery] = useState('');
   const [accountsQuickFilter, setAccountsQuickFilter] = useState('ALL');
-  const [isAccountsEditActive, setIsAccountsEditActive] = useState(true);
+  const isAccountsEditActive = true; // Always-on inline editing — no toggle needed
   const accountsSearchInputRef = React.useRef(null);
   const ledgerContainerRef = React.useRef(null);
 
@@ -1279,7 +1279,7 @@ export default function AccountsLedgerModal({
     }}>
       <div 
         ref={ledgerContainerRef}
-        className={`glass-panel printable-ledger printable-sheet ${isAccountsEditActive ? 'hsi-live-edit-active' : ''}`} 
+        className={'glass-panel printable-ledger printable-sheet hsi-live-edit-active'} 
         style={{
         width: '100%',
         maxWidth: 1360,
@@ -1687,14 +1687,14 @@ export default function AccountsLedgerModal({
                 alignItems: 'center',
                 gap: '0.45rem',
                 background: isAccountsEditActive ? 'rgba(52, 211, 153, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                color: isAccountsEditActive ? '#34d399' : 'var(--text-muted)',
+                color: '#34d399',
                 border: isAccountsEditActive ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.12)',
-                boxShadow: isAccountsEditActive ? '0 0 10px rgba(52, 211, 153, 0.2)' : 'none'
+                boxShadow: '0 0 10px rgba(52, 211, 153, 0.2)'
               }}
               title="Toggle Direct Keyboard Editing on all ledger rows and vouchers (Ctrl+E)"
             >
               <Edit3 size={14} />
-              {isAccountsEditActive ? '✏️ Edit Mode: ACTIVE' : '✏️ Direct Ledger Edit'}
+              {'✏️ Direct Edit — Always Active'}
             </button>
 
             <button
@@ -1983,7 +1983,7 @@ export default function AccountsLedgerModal({
                 <Scale size={18} color="var(--gold-glow)" /> Side-by-Side Operational Reconciliation Ledger (Date: 20/09/2026)
               </h4>
 
-              <SheetsToolbarLegend isEditMode={isAccountsEditActive} style={{ marginBottom: '0.75rem' }} />
+              <SheetsToolbarLegend style={{ marginBottom: '0.75rem' }} />
 
               <div className="enterprise-data-table-container">
                 <table className="enterprise-data-table sheets-grid-table">
@@ -3011,7 +3011,7 @@ export default function AccountsLedgerModal({
               </div>
 
               {/* Itemized Table */}
-              <SheetsToolbarLegend isEditMode={isAccountsEditActive} style={{ marginBottom: '0.75rem' }} />
+              <SheetsToolbarLegend style={{ marginBottom: '0.75rem' }} />
               <div className="enterprise-data-table-container" style={{ overflowX: 'auto', maxHeight: '55vh' }}>
                 <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.82rem' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgb(20, 24, 40)' }}>

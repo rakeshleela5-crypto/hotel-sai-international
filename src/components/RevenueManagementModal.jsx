@@ -150,7 +150,6 @@ export default function RevenueManagementModal({
     }
   ]);
   const [compSetList, setCompSetList] = useState(RAYAGADA_COMP_SET);
-  const [isRmsEditMode, setIsRmsEditMode] = useState(true);
 
   // The Investigator State
   const [investigatorTier, setInvestigatorTier] = useState('standard-deluxe');
@@ -336,29 +335,6 @@ export default function RevenueManagementModal({
               }}>
                 TAJ & ACCOR STANDARD
               </span>
-              <button
-                type="button"
-                onClick={() => setIsRmsEditMode(prev => !prev)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: isRmsEditMode ? '#10b981' : '#475569',
-                  color: '#ffffff',
-                  border: 'none',
-                  boxShadow: isRmsEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
-                  transition: 'all 0.2s ease',
-                  textTransform: 'uppercase'
-                }}
-                title="Toggle Live Spreadsheet Edit Mode for RMS Grids"
-              >
-                <span>✏️</span> Live Spreadsheet Edit: <strong>{isRmsEditMode ? 'ACTIVE' : 'OFF'}</strong>
-              </button>
             </div>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
               Autonomous continuous dynamic micro-rate yielding, corporate RFP MAR solver, and unconstrained demand modeling for Hotel Sai International (40 Rooms).
@@ -1471,7 +1447,7 @@ export default function RevenueManagementModal({
                   <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
                     📋 Evaluated RFPs History (Audit Trail)
                   </div>
-                  <SheetsToolbarLegend isEditMode={isRmsEditMode} style={{ marginBottom: '0.6rem' }} />
+                  <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                       <thead>
@@ -1948,7 +1924,7 @@ export default function RevenueManagementModal({
                   </div>
                 </div>
 
-                <SheetsToolbarLegend isEditMode={isRmsEditMode} style={{ marginBottom: '0.6rem' }} />
+                <SheetsToolbarLegend style={{ marginBottom: '0.6rem' }} />
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>

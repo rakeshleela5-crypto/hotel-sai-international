@@ -68,7 +68,7 @@ function getElementKey(el, container) {
  * across all text nodes inside a container when isActive is true.
  */
 export function useUniversalInlineEdit({
-  isActive = false,
+  isActive = true,
   containerRef,
   onSave,
   storagePrefix = 'hsi_universal'
@@ -241,7 +241,7 @@ export function useUniversalInlineEdit({
  * with click-to-type inline keyboard editing when isActive is true.
  */
 export function UniversalInlineContainer({
-  isActive = false,
+  isActive = true,
   onSave,
   storagePrefix = 'hsi_universal',
   children,

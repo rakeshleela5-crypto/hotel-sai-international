@@ -127,7 +127,6 @@ export default function TallyConsoleModal({
   const [ledgers, setLedgers] = useState(DEFAULT_CHART_OF_ACCOUNTS);
   const [vouchers, setVouchers] = useState(INITIAL_DAYBOOK_VOUCHERS);
   const [selectedVoucherForView, setSelectedVoucherForView] = useState(null);
-  const [isTallyEditMode, setIsTallyEditMode] = useState(true);
 
   const parseDateToIso = (dStr) => {
     if (!dStr || typeof dStr !== 'string') return null;
@@ -536,29 +535,6 @@ export default function TallyConsoleModal({
           <span style={{ backgroundColor: '#f59e0b', color: '#000', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 900 }}>
             TALLY PRIME CONSOLE
           </span>
-          <button
-            type="button"
-            onClick={() => setIsTallyEditMode(prev => !prev)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '2px 8px',
-              borderRadius: '4px',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: isTallyEditMode ? '#10b981' : '#475569',
-              color: '#ffffff',
-              border: 'none',
-              boxShadow: isTallyEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
-              transition: 'all 0.2s ease',
-              textTransform: 'uppercase'
-            }}
-            title="Toggle Live Spreadsheet Edit Mode for Tally Grids"
-          >
-            <span>✏️</span> Live Spreadsheet Edit: <strong>{isTallyEditMode ? 'ACTIVE' : 'OFF'}</strong>
-          </button>
           <span>Gateway of Tally • {HOTEL_CONFIG.legalName} • FY 2026-2027</span>
         </div>
 
@@ -1041,7 +1017,7 @@ export default function TallyConsoleModal({
                 backgroundColor: '#07162c',
                 overflowY: 'auto'
               }}>
-                <SheetsToolbarLegend isEditMode={isTallyEditMode} style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
+                <SheetsToolbarLegend style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#0c2240', borderBottom: '2px solid #0284c7', color: '#38bdf8' }}>
@@ -1410,7 +1386,7 @@ export default function TallyConsoleModal({
                 backgroundColor: '#07162c',
                 overflowY: 'auto'
               }}>
-                <SheetsToolbarLegend isEditMode={isTallyEditMode} style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
+                <SheetsToolbarLegend style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#0c2240', borderBottom: '2px solid #0284c7', color: '#38bdf8' }}>
@@ -1523,7 +1499,7 @@ export default function TallyConsoleModal({
                 backgroundColor: '#07162c',
                 overflowY: 'auto'
               }}>
-                <SheetsToolbarLegend isEditMode={isTallyEditMode} style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
+                <SheetsToolbarLegend style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#0c2240', borderBottom: '2px solid #0284c7', color: '#38bdf8' }}>
