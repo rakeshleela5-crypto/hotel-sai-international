@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Users, Calendar, Clock, DollarSign, CheckCircle2, 
-  AlertCircle, Download, Printer, Plus, RefreshCw, UserCheck, ShieldCheck
+  AlertCircle, Download, Printer, Plus, RefreshCw, UserCheck, ShieldCheck, X
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';

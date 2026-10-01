@@ -538,7 +538,7 @@ export default function RevenueManagementModal({
               fromDate={rmsFromDate}
               toDate={rmsToDate}
               moduleType="generic"
-              auditItems={festiveRules.map(r => ({
+              auditItems={seasonalRules.map(r => ({
                 rule: r.name,
                 period: r.period,
                 category: r.category,

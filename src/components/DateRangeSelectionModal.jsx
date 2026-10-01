@@ -8,10 +8,17 @@ export default function DateRangeSelectionModal({
   toDate,
   onApply
 }) {
-  if (!isOpen) return null;
-
   const [tempFrom, setTempFrom] = useState(fromDate || new Date().toISOString().slice(0, 10));
   const [tempTo, setTempTo] = useState(toDate || new Date().toISOString().slice(0, 10));
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (fromDate) setTempFrom(fromDate);
+      if (toDate) setTempTo(toDate);
+    }
+  }, [isOpen, fromDate, toDate]);
+
+  if (!isOpen) return null;
 
   const formatFriendlyDate = (dateStr) => {
     if (!dateStr) return '';

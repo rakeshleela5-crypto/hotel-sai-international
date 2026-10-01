@@ -5,7 +5,7 @@ import {
   UtensilsCrossed, AlertTriangle, Plus, X, ChevronRight, Lock,
   MessageCircle, Edit2, Trash2, Tag, Percent, ArrowRightLeft,
   ArrowRight, ShieldAlert, Check, HelpCircle, Layers, CheckCheck,
-  Landmark, ReceiptText, RefreshCw, Building2
+  Landmark, ReceiptText, RefreshCw, Building2, Users
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS } from '../data/hotelData';
 import { SheetsColumnHeader, SheetsToolbarLegend, SheetsEditableCell } from './UniversalInlineEditor';

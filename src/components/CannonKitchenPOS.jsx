@@ -1192,7 +1192,10 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   }}
                   title="CANNON KITCHEN ORDER TRACKER &amp; KDS REGISTER"
                   onUpdateItem={(item, field, newVal) => {
-                    setCurrentOrders(prev => prev.map(o => (o.id === item.id || o.orderId === item.orderId) ? { ...o, [field]: newVal } : o));
+                    setLocalFoodOrders(prev => prev.map(o => (o.id === item.id || o.orderId === item.orderId) ? { ...o, [field]: newVal } : o));
+                    if (propUpdateOrderStatus && field === 'status') {
+                      propUpdateOrderStatus(item.orderId || item.id, newVal);
+                    }
                   }}
                   totalCount={currentOrders.length}
                   totalAmount={currentOrders.reduce((sum, o) => sum + (o.items?.reduce((s, it) => s + (it.price * it.quantity), 0) || 0), 0)}

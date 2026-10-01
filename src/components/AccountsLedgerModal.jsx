@@ -5,7 +5,7 @@ import {
   TrendingUp, CreditCard, Clock, AlertTriangle, Search,
   Zap, PieChart, Info, Check, ArrowUpRight, Edit3, PlusCircle,
   Briefcase, Percent, Scale, UtensilsCrossed, Award, CheckCheck, FileSpreadsheet,
-  FilePlus, RefreshCw, FileCheck, Send, Mail, BookOpen, Terminal, Layers
+  FilePlus, RefreshCw, FileCheck, Send, Mail, BookOpen, Terminal, Layers, Plus
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_SALES_REPORT_2026_09_24, GST_FOM_RECORDS_2026_09_25 } from '../data/hotelData';
 import BookingReceiptModal from './BookingReceiptModal';
@@ -1191,7 +1191,7 @@ export default function AccountsLedgerModal({
           gross_turnover: Number(payload.gt || 0),
           b2b_invoices_count: Array.isArray(payload.b2b) ? payload.b2b.length : 0,
           b2b_taxable_value: totalTaxableRoom + totalTaxableFood,
-          b2b_total_tax: totalGstAmount,
+          b2b_total_tax: totalGstCollected,
           b2cs_taxable_value: 0,
           b2cs_total_tax: 0,
           hsn_items_count: Array.isArray(payload.hsn?.data) ? payload.hsn.data.length : 0,
@@ -1755,7 +1755,7 @@ export default function AccountsLedgerModal({
               activeTab === 'gst-fom-report' || activeTab === 'corp-gst' ? filteredGstRecords :
               activeTab === 'day-book' ? filteredPettyCashEntries :
               activeTab === 'corp-ledger' ? (corporateLedger[selectedCorporate] || []) :
-              activeTab === 'tally-erp' ? (tallyDayBook || []) :
+              activeTab === 'tally-erp' ? (dayBookData?.collections || []) :
               activeTab === 'outstanding' ? [
                 { client: 'Ashok Leyland Rayagada Unit', debit: 214500, credit: 150000, balanceDue: 64500, aging30: 45000, aging60: 19500, status: 'Active' },
                 { client: 'JK Paper Mills Ltd', debit: 185000, credit: 185000, balanceDue: 0, aging30: 0, aging60: 0, status: 'Settled' },
@@ -5645,7 +5645,7 @@ export default function AccountsLedgerModal({
 
                         <div style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3))', padding: '1rem', borderRadius: '10px', border: '2px solid #10b981' }}>
                           <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Net Bank Remittance Due</span>
-                          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>₹{netPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff' }}>₹{netReceivable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                           <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 600 }}>Payable via RTGS / NEFT</span>
                         </div>
                       </div>

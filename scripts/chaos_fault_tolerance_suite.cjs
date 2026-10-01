@@ -53,16 +53,19 @@ async function main() {
       await page.setRequestInterception(true);
       
       const interceptor = (req) => {
-        const url = req.url();
-        if (url.includes('/api/sync') || url.includes('/api/d1-tables')) {
-          req.respond({
-            status: 500,
-            contentType: 'application/json',
-            body: JSON.stringify({ success: false, error: "Simulated Chaos: D1 Database Unavailable" })
-          });
-        } else {
-          req.continue();
-        }
+        try {
+          if (req.isInterceptResolutionHandled && req.isInterceptResolutionHandled()) return;
+          const url = req.url();
+          if (url.includes('/api/sync') || url.includes('/api/d1-tables')) {
+            req.respond({
+              status: 500,
+              contentType: 'application/json',
+              body: JSON.stringify({ success: false, error: "Simulated Chaos: D1 Database Unavailable" })
+            }).catch(() => {});
+          } else {
+            req.continue().catch(() => {});
+          }
+        } catch {}
       };
 
       page.on('request', interceptor);
@@ -150,15 +153,18 @@ async function main() {
       await page.setRequestInterception(true);
       
       const corruptInterceptor = (req) => {
-        if (req.url().includes('/api/d1-tables')) {
-          req.respond({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ success: true, database: "hotel-sai-international-db", tables: null, rows: undefined })
-          });
-        } else {
-          req.continue();
-        }
+        try {
+          if (req.isInterceptResolutionHandled && req.isInterceptResolutionHandled()) return;
+          if (req.url().includes('/api/d1-tables')) {
+            req.respond({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({ success: true, database: "hotel-sai-international-db", tables: null, rows: undefined })
+            }).catch(() => {});
+          } else {
+            req.continue().catch(() => {});
+          }
+        } catch {}
       };
 
       page.on('request', corruptInterceptor);

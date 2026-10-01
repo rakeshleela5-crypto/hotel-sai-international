@@ -41,6 +41,7 @@ export default function CorporatePortalModal({ isOpen, onClose }) {
   const [contactEmail, setContactEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [estimatedRooms, setEstimatedRooms] = useState('5-10 rooms/month');
+  const [customTariffOverride, setCustomTariffOverride] = useState(null);
 
   if (!isOpen) return null;
 
@@ -56,7 +57,6 @@ export default function CorporatePortalModal({ isOpen, onClose }) {
   // Safely normalize ROOM_TIERS whether array or object
   const tierList = Array.isArray(ROOM_TIERS) ? ROOM_TIERS : Object.values(ROOM_TIERS || []);
   const selectedTier = tierList.find(t => t.id === roomTierId) || tierList[0] || { id: 'standard-deluxe', name: 'Standard Deluxe', tariff: 1699 };
-  const [customTariffOverride, setCustomTariffOverride] = useState(null);
   const baseRatePerNight = customTariffOverride !== null ? customTariffOverride : (selectedTier.tariff || selectedTier.baseRate || 1699);
   const discountRate = selectedPartner.contractDiscount || 0;
   const effectiveRoomRate = Math.round(baseRatePerNight * (1 - discountRate / 100));

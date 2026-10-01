@@ -19,7 +19,7 @@ function getEditableTextTarget(element, container) {
 
   // Check if target itself has direct text content
   const hasDirectText = Array.from(element.childNodes).some(
-    node => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0
+    node => (node.nodeType === 3 || (typeof Node !== 'undefined' && node.nodeType === Node.TEXT_NODE)) && node.textContent.trim().length > 0
   );
   if (hasDirectText) return element;
 

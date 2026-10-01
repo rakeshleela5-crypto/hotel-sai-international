@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Layers, Package, ShieldCheck, RefreshCw, AlertTriangle, 
-  CheckCircle2, Plus, ArrowUpRight, ArrowDownLeft, Trash2, Printer
+  CheckCircle2, Plus, ArrowUpRight, ArrowDownLeft, Trash2, Printer, X
 } from 'lucide-react';
 import { SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 

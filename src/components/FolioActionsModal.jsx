@@ -22,14 +22,15 @@ export default function FolioActionsModal({
   onOpenSplitInvoice,
   onOpenMasterFolio
 }) {
-  if (!isOpen || !propRoom) return null;
-
-  // Active Room State (Enables Universal Room & Guest Switcher without closing modal)
-  const [activeRoomState, setActiveRoomState] = useState(propRoom);
+  // Safe room fallback so hooks initialize deterministically even when modal is closed
+  const safePropRoom = propRoom || (rooms && rooms[0]) || { roomNumber: '402', tier: 'Executive Room' };
+  const [activeRoomState, setActiveRoomState] = useState(safePropRoom);
   React.useEffect(() => {
-    setActiveRoomState(propRoom);
+    if (propRoom) {
+      setActiveRoomState(propRoom);
+    }
   }, [propRoom]);
-  const room = activeRoomState || propRoom;
+  const room = activeRoomState || safePropRoom;
 
   // Search Bar 1: Room & Guest Switcher State
   const [roomSearchTerm, setRoomSearchTerm] = useState('');
@@ -733,6 +734,8 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
       (tx.sac && tx.sac.toLowerCase().includes(term))
     );
   });
+
+  if (!isOpen || !propRoom) return null;
 
   return (
     <div style={{

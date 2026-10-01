@@ -6,7 +6,7 @@ import {
   Check, X, ChevronRight, Lock, Bed, Send, Ban, Wrench, Eye,
   Calculator, ClipboardList, Utensils, ShoppingBag, Receipt, Sparkle,
   ArrowRightLeft, Edit3, MessageCircle, TrendingUp, QrCode, Database,
-  BellRing, Car, Globe, Radio, Bell, Sliders, LogOut, Coffee, Briefcase
+  BellRing, Car, Globe, Radio, Bell, Sliders, LogOut, Coffee, Briefcase, PlusCircle
 } from 'lucide-react';
 import { HOTEL_CONFIG, ROOM_TIERS, GST_FOM_RECORDS_2026_09_25 } from '../data/hotelData';
 import { maskAadhaar } from '../utils/security';
@@ -759,12 +759,15 @@ export default function ReceptionAdmin({
       });
     }
 
-    setFoodOrdersList(prev => prev.map(o => {
+    setInternalFoodOrdersList(prev => prev.map(o => {
       if ((o.order_id || o.orderId) === payload.orderId) {
         return { ...o, payment_status: 'Billed to Room', status: 'Delivered' };
       }
       return o;
     }));
+    if (propUpdateOrderStatus) {
+      propUpdateOrderStatus(payload.orderId, 'Delivered');
+    }
 
     setFeedbackToast(`KOT #${payload.orderId} (₹${payload.totalAmount}) billed to Room ${payload.roomNumber} folio!`);
   };
@@ -2630,7 +2633,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
       }}>
         {[
           { id: 'tape-chart', label: '📊 39-Room Tape Chart Matrix' },
-          { id: 'd1-database-explorer', label: '🗄️ Master Database Hub (All 68 Tables)', isHub: true },
+          { id: 'd1-database-explorer', label: '🗄️ D1 Live DB Explorer (Master Hub - All 68 Tables)', isHub: true },
           { id: 'operations-settings', label: '⚙️ Operations & Policy Settings' },
           { id: 'transit-dayuse', label: '🚆 Transit & Station Transfer' },
           { id: 'shift-logbook', label: '📋 Shift Handover & Logbook' },
@@ -6016,7 +6019,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                       onSave={(newVal) => {
                         b.guest_name = newVal;
                         b.guestName = newVal;
-                        setBookings([...bookings]);
+                        if (onUpdateBooking) onUpdateBooking(b);
                       }}
                     />
                     <SheetsEditableCell
@@ -6026,7 +6029,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                       onSave={(newVal) => {
                         b.guest_phone = newVal;
                         b.guestPhone = newVal;
-                        setBookings([...bookings]);
+                        if (onUpdateBooking) onUpdateBooking(b);
                       }}
                     />
                     <SheetsEditableCell
@@ -6036,7 +6039,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                       onSave={(newVal) => {
                         b.id_proof_masked = newVal;
                         b.idProofMasked = newVal;
-                        setBookings([...bookings]);
+                        if (onUpdateBooking) onUpdateBooking(b);
                       }}
                     />
                     <SheetsEditableCell
@@ -6048,7 +6051,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                         b.stateOfOrigin = newVal;
                         b.is_interstate = newVal.toLowerCase() !== 'odisha';
                         b.isInterstate = newVal.toLowerCase() !== 'odisha';
-                        setBookings([...bookings]);
+                        if (onUpdateBooking) onUpdateBooking(b);
                       }}
                     />
                     <td style={{ textAlign: 'center' }}>
