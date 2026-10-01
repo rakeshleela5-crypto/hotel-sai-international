@@ -28,7 +28,7 @@ import OperationsSettingsTab from './OperationsSettingsTab';
 import D1LiveDatabaseExplorer from './D1LiveDatabaseExplorer';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
 import DateRangeSelectionModal from './DateRangeSelectionModal';
-import { useUniversalInlineEdit, InlineEditorBanner, InlineText } from './UniversalInlineEditor';
+import { useUniversalInlineEdit, InlineEditorBanner, InlineText, SheetsEditableCell } from './UniversalInlineEditor';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
 const FREQUENT_VIP_GUESTS = [
@@ -3605,97 +3605,93 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                             {room.tier}
                           </td>
 
-                          {/* Status Badge */}
-                          <td style={{ textAlign: 'center' }}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.72rem',
-                              fontWeight: 800,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.03em',
-                              background: isOccupied 
-                                ? 'rgba(234, 88, 12, 0.22)' 
-                                : isMaint 
-                                  ? 'rgba(100, 116, 139, 0.28)' 
-                                  : isCleaning 
-                                    ? 'rgba(234, 179, 8, 0.22)' 
-                                    : 'rgba(16, 185, 129, 0.22)',
-                              color: isOccupied 
-                                ? '#fb923c' 
-                                : isMaint 
-                                  ? '#cbd5e1' 
-                                  : isCleaning 
-                                    ? '#facc15' 
-                                    : '#34d399',
-                              border: isOccupied 
-                                ? '1px solid rgba(249, 115, 22, 0.5)' 
-                                : isMaint 
-                                  ? '1px solid rgba(148, 163, 184, 0.5)' 
-                                  : isCleaning 
-                                    ? '1px solid rgba(234, 179, 8, 0.5)' 
-                                    : '1px solid rgba(16, 185, 129, 0.5)'
-                            }}>
-                              {room.effectiveStatus}
-                            </span>
-                          </td>
+                          {/* Status Badge - Google Sheets Inline Select Cell */}
+                          <SheetsEditableCell
+                            value={room.effectiveStatus}
+                            type="select"
+                            align="center"
+                            options={[
+                              { value: 'Available', label: 'AVAILABLE', badgeStyle: { background: 'rgba(16, 185, 129, 0.22)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)' } },
+                              { value: 'Occupied', label: 'OCCUPIED', badgeStyle: { background: 'rgba(234, 88, 12, 0.22)', color: '#fb923c', border: '1px solid rgba(249, 115, 22, 0.5)' } },
+                              { value: 'Cleaning', label: 'CLEANING', badgeStyle: { background: 'rgba(234, 179, 8, 0.22)', color: '#facc15', border: '1px solid rgba(234, 179, 8, 0.5)' } },
+                              { value: 'Maintenance', label: 'MAINTENANCE', badgeStyle: { background: 'rgba(100, 116, 139, 0.28)', color: '#cbd5e1', border: '1px solid rgba(148, 163, 184, 0.5)' } }
+                            ]}
+                            onSave={(newStatus) => {
+                              if (onUpdateRoomStatus) {
+                                onUpdateRoomStatus(room.roomNumber, newStatus, room.effectiveGuestName, room.effectiveTariff);
+                              }
+                            }}
+                          />
 
-                          {/* Guest Name */}
-                          <td>
-                            {isInlineEditActive && isOccupied ? (
-                              <input
-                                type="text"
-                                defaultValue={room.effectiveGuestName || ''}
-                                onBlur={(e) => {
-                                  const newName = e.target.value.trim();
-                                  if (newName && onUpdateRoomStatus) {
-                                    onUpdateRoomStatus(room.roomNumber, room.effectiveStatus, newName, room.effectiveTariff);
-                                  }
-                                }}
-                                placeholder="Guest Name..."
-                                style={{
-                                  width: '100%',
-                                  padding: '3px 6px',
-                                  fontSize: '0.8rem',
-                                  background: 'rgba(0,0,0,0.6)',
-                                  border: '1px solid #38bdf8',
-                                  borderRadius: '4px',
-                                  color: '#ffffff',
-                                  fontWeight: 700
-                                }}
-                              />
-                            ) : (
-                              <div style={{ fontWeight: isOccupied ? 700 : 500, color: isOccupied ? '#ffffff' : '#64748b' }}>
-                                {isOccupied ? (room.effectiveGuestName || matchedBooking.guestName || 'In-House Guest') : '—'}
-                              </div>
-                            )}
-                          </td>
+                          {/* Guest Name - Google Sheets Inline Text Cell */}
+                          <SheetsEditableCell
+                            value={isOccupied ? (room.effectiveGuestName || matchedBooking.guestName || '') : ''}
+                            type="text"
+                            placeholder={isOccupied ? 'Guest In-House' : '— (Available)'}
+                            disabled={!isOccupied}
+                            tooltip={isOccupied ? 'Click to edit in-house guest name' : 'Room available for check-in'}
+                            onSave={(newName) => {
+                              if (onUpdateRoomStatus) {
+                                onUpdateRoomStatus(room.roomNumber, room.effectiveStatus, newName, room.effectiveTariff);
+                              }
+                            }}
+                          />
 
-                          {/* Phone */}
-                          <td style={{ color: '#cbd5e1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                            {isOccupied ? (matchedBooking.guestPhone || room.effectivePhone || '+91 94370 22555') : '—'}
-                          </td>
+                          {/* Phone - Google Sheets Inline Cell */}
+                          <SheetsEditableCell
+                            value={isOccupied ? (matchedBooking.guestPhone || room.effectivePhone || '') : ''}
+                            type="text"
+                            placeholder="—"
+                            disabled={!isOccupied}
+                            onSave={(newPhone) => {
+                              if (room.matchedBooking) room.matchedBooking.guestPhone = newPhone;
+                              room.effectivePhone = newPhone;
+                            }}
+                          />
 
-                          {/* Company */}
-                          <td style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
-                            {isOccupied ? (matchedBooking.company || room.effectiveCompany || 'Direct Corporate') : '—'}
-                          </td>
+                          {/* Company - Google Sheets Inline Cell */}
+                          <SheetsEditableCell
+                            value={isOccupied ? (matchedBooking.company || room.effectiveCompany || '') : ''}
+                            type="text"
+                            placeholder="—"
+                            disabled={!isOccupied}
+                            onSave={(newComp) => {
+                              if (room.matchedBooking) room.matchedBooking.company = newComp;
+                              room.effectiveCompany = newComp;
+                            }}
+                          />
 
                           {/* Stay Period */}
                           <td style={{ color: '#94a3b8', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                             {room.effectiveStayPeriod}
                           </td>
 
-                          {/* Tariff */}
-                          <td className="cell-num" style={{ color: '#38bdf8' }}>
-                            ₹{(room.effectiveTariff || 2199).toLocaleString('en-IN')}
-                          </td>
+                          {/* Tariff (₹) - Google Sheets Currency Cell */}
+                          <SheetsEditableCell
+                            value={room.effectiveTariff || 2199}
+                            type="currency"
+                            align="right"
+                            className="cell-num"
+                            cellStyle={{ color: '#38bdf8' }}
+                            onSave={(newTariff) => {
+                              if (onUpdateRoomStatus) {
+                                onUpdateRoomStatus(room.roomNumber, room.effectiveStatus, room.effectiveGuestName, Number(newTariff));
+                              }
+                              room.effectiveTariff = Number(newTariff);
+                            }}
+                          />
 
-                          {/* Balance Due */}
-                          <td className="cell-num" style={{ color: (room.effectiveBalanceDue) ? '#f87171' : '#34d399' }}>
-                            ₹{(room.effectiveBalanceDue || 0).toLocaleString('en-IN')}
-                          </td>
+                          {/* Balance Due (₹) - Google Sheets Currency Cell */}
+                          <SheetsEditableCell
+                            value={room.effectiveBalanceDue || 0}
+                            type="currency"
+                            align="right"
+                            className="cell-num"
+                            cellStyle={{ color: (room.effectiveBalanceDue) ? '#f87171' : '#34d399' }}
+                            onSave={(newBalance) => {
+                              room.effectiveBalanceDue = Number(newBalance);
+                            }}
+                          />
 
                           {/* Key / HK */}
                           <td style={{ textAlign: 'center', fontSize: '0.74rem' }}>
@@ -5101,9 +5097,27 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                       <td>
                         <span style={{ fontWeight: 700, color: '#38bdf8' }}>Room {s.roomNumber}</span>
                       </td>
-                      <td style={{ fontWeight: 600, color: '#fff' }}>{s.guestName}</td>
+                      <SheetsEditableCell
+                        value={s.guestName}
+                        type="text"
+                        cellStyle={{ fontWeight: 600, color: '#fff' }}
+                        onSave={(newVal) => {
+                          s.guestName = newVal;
+                          setRecentSettlements([...recentSettlements]);
+                        }}
+                      />
                       <td style={{ fontFamily: 'monospace', color: '#94a3b8', fontSize: '0.78rem' }}>{s.billNo}</td>
-                      <td className="cell-num" style={{ color: 'var(--gold-glow)' }}>₹{Number(s.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <SheetsEditableCell
+                        value={s.totalAmount}
+                        type="currency"
+                        align="right"
+                        className="cell-num"
+                        cellStyle={{ color: 'var(--gold-glow)', fontWeight: 700 }}
+                        onSave={(newVal) => {
+                          s.totalAmount = Number(newVal);
+                          setRecentSettlements([...recentSettlements]);
+                        }}
+                      />
                       <td>
                         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                           {s.tendersSummary?.map((t, i) => (

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
+import { SheetsEditableCell } from './UniversalInlineEditor';
 
 export const DEFAULT_CHART_OF_ACCOUNTS = [
   // Cash & Bank
@@ -1402,7 +1403,12 @@ export default function TallyConsoleModal({
 
                       return (
                         <tr key={v.voucherNo} style={{ borderBottom: '1px solid #1e293b' }}>
-                          <td style={{ padding: '0.6rem 0.8rem', color: '#94a3b8' }}>{v.date}</td>
+                          <SheetsEditableCell
+                            value={v.date}
+                            type="text"
+                            cellStyle={{ padding: '0.6rem 0.8rem', color: '#94a3b8' }}
+                            onSave={(newVal) => setVouchers(prev => prev.map(rec => rec.voucherNo === v.voucherNo ? { ...rec, date: newVal } : rec))}
+                          />
                           <td style={{ padding: '0.6rem 0.8rem', color: '#38bdf8', fontWeight: 700 }}>{v.voucherNo}</td>
                           <td style={{ padding: '0.6rem 0.8rem' }}>
                             <span style={{
@@ -1426,11 +1432,16 @@ export default function TallyConsoleModal({
                                   <span style={{ color: '#cbd5e1' }}>₹{l.amount.toFixed(2)}</span>
                                 </div>
                               ))}
-                              {v.narration && (
-                                <span style={{ color: '#64748b', fontSize: '0.72rem', fontStyle: 'italic', marginTop: '0.2rem' }}>
-                                  Narration: {v.narration}
-                                </span>
-                              )}
+                              <div style={{ marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ color: '#64748b', fontSize: '0.7rem' }}>Narration:</span>
+                                <SheetsEditableCell
+                                  value={v.narration || 'General Operational Expense'}
+                                  type="text"
+                                  tag="span"
+                                  cellStyle={{ color: '#94a3b8', fontSize: '0.72rem', fontStyle: 'italic' }}
+                                  onSave={(newVal) => setVouchers(prev => prev.map(rec => rec.voucherNo === v.voucherNo ? { ...rec, narration: newVal } : rec))}
+                                />
+                              </div>
                             </div>
                           </td>
                           <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 900, color: '#fef08a' }}>

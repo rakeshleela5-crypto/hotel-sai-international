@@ -11,7 +11,7 @@ import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_S
 import BookingReceiptModal from './BookingReceiptModal';
 import TallyConsoleModal from './TallyConsoleModal';
 import { generateOfficialGstr1Json, reconcileGstr2bWithPurchases, validateGstin } from '../utils/gstGovExport';
-import { useUniversalInlineEdit, InlineEditorBanner } from './UniversalInlineEditor';
+import { useUniversalInlineEdit, InlineEditorBanner, SheetsEditableCell } from './UniversalInlineEditor';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 export default function AccountsLedgerModal({
@@ -2307,18 +2307,32 @@ export default function AccountsLedgerModal({
                           <td style={{ padding: '0.6rem', fontWeight: 700, color: '#38bdf8' }}>{r.billNo}</td>
                           <td style={{ padding: '0.6rem', textAlign: 'center', color: '#cbd5e1' }}>{r.date}</td>
                           <td style={{ padding: '0.6rem', color: '#94a3b8', fontSize: '0.72rem' }}>{r.refNo}</td>
-                          <td style={{ padding: '0.6rem 0.7rem', fontWeight: 600, color: '#fff' }}>{r.guestName}</td>
-                          <td style={{ padding: '0.6rem', textAlign: 'center' }}>
-                            <span style={{ padding: '2px 7px', borderRadius: '4px', background: 'rgba(255,255,255,0.08)', fontWeight: 700, color: '#fff' }}>
-                              {r.roomNo}
-                            </span>
-                          </td>
-                          <td style={{ padding: '0.6rem 0.7rem', color: r.company === 'PRADAN' ? '#fbbf24' : '#fff', fontWeight: 600 }}>
-                            {r.company}
-                          </td>
-                          <td style={{ padding: '0.6rem', fontFamily: 'monospace', fontSize: '0.72rem', color: r.gstin ? '#34d399' : 'rgba(255,255,255,0.3)' }}>
-                            {r.gstin || '—'}
-                          </td>
+                          <SheetsEditableCell
+                            value={r.guestName}
+                            type="text"
+                            cellStyle={{ padding: '0.6rem 0.7rem', fontWeight: 600, color: '#fff' }}
+                            onSave={(newVal) => setGstFomRecords(prev => prev.map(rec => rec.billNo === r.billNo ? { ...rec, guestName: newVal } : rec))}
+                          />
+                          <SheetsEditableCell
+                            value={r.roomNo}
+                            type="text"
+                            align="center"
+                            cellStyle={{ padding: '0.6rem', color: '#fff', fontWeight: 700 }}
+                            onSave={(newVal) => setGstFomRecords(prev => prev.map(rec => rec.billNo === r.billNo ? { ...rec, roomNo: newVal } : rec))}
+                          />
+                          <SheetsEditableCell
+                            value={r.company}
+                            type="text"
+                            cellStyle={{ padding: '0.6rem 0.7rem', color: r.company === 'PRADAN' ? '#fbbf24' : '#fff', fontWeight: 600 }}
+                            onSave={(newVal) => setGstFomRecords(prev => prev.map(rec => rec.billNo === r.billNo ? { ...rec, company: newVal } : rec))}
+                          />
+                          <SheetsEditableCell
+                            value={r.gstin || ''}
+                            type="text"
+                            placeholder="—"
+                            cellStyle={{ padding: '0.6rem', fontFamily: 'monospace', fontSize: '0.72rem', color: r.gstin ? '#34d399' : 'rgba(255,255,255,0.3)' }}
+                            onSave={(newVal) => setGstFomRecords(prev => prev.map(rec => rec.billNo === r.billNo ? { ...rec, gstin: newVal.toUpperCase(), isB2B: !!newVal.trim() } : rec))}
+                          />
                           <td style={{ padding: '0.6rem', textAlign: 'center' }}>
                             {r.isB2B ? (
                               <span style={{
@@ -2346,12 +2360,40 @@ export default function AccountsLedgerModal({
                               </span>
                             )}
                           </td>
-                          <td style={{ padding: '0.6rem 0.7rem', textAlign: 'right', color: '#38bdf8', fontWeight: 600 }}>
-                            {r.taxable0 > 0 ? `₹${r.taxable0.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
-                          </td>
-                          <td style={{ padding: '0.6rem', textAlign: 'right', color: '#cbd5e1' }}>
-                            {r.taxable5 > 0 ? `₹${r.taxable5.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
-                          </td>
+                          <SheetsEditableCell
+                            value={r.taxable0 || 0}
+                            type="currency"
+                            align="right"
+                            className="cell-num"
+                            cellStyle={{ padding: '0.6rem 0.7rem', color: '#38bdf8', fontWeight: 600 }}
+                            onSave={(newVal) => {
+                              const num = Number(newVal);
+                              setGstFomRecords(prev => prev.map(rec => rec.billNo === r.billNo ? {
+                                ...rec,
+                                taxable0: num,
+                                totalAmount: +(num + (rec.taxable5 || 0) + (rec.sgst2_5 || 0) + (rec.cgst2_5 || 0)).toFixed(2)
+                              } : rec));
+                            }}
+                          />
+                          <SheetsEditableCell
+                            value={r.taxable5 || 0}
+                            type="currency"
+                            align="right"
+                            className="cell-num"
+                            cellStyle={{ padding: '0.6rem', color: '#cbd5e1' }}
+                            onSave={(newVal) => {
+                              const num = Number(newVal);
+                              const cgst = +(num * 0.025).toFixed(2);
+                              const sgst = +(num * 0.025).toFixed(2);
+                              setGstFomRecords(prev => prev.map(rec => rec.billNo === r.billNo ? {
+                                ...rec,
+                                taxable5: num,
+                                cgst2_5: cgst,
+                                sgst2_5: sgst,
+                                totalAmount: +((rec.taxable0 || 0) + num + cgst + sgst).toFixed(2)
+                              } : rec));
+                            }}
+                          />
                           <td style={{ padding: '0.6rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>
                             {r.sgst2_5 > 0 ? `₹${r.sgst2_5.toFixed(2)}` : '—'}
                           </td>
@@ -2361,9 +2403,14 @@ export default function AccountsLedgerModal({
                           <td style={{ padding: '0.6rem 0.75rem', textAlign: 'right', fontWeight: 800, color: '#fff', fontSize: '0.82rem' }}>
                             ₹{r.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
-                          <td style={{ padding: '0.6rem', textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
-                            {r.paymentMode}
-                          </td>
+                          <SheetsEditableCell
+                            value={r.paymentMode || 'Cash'}
+                            type="select"
+                            align="center"
+                            options={['Cash', 'UPI', 'Card', 'BTC']}
+                            cellStyle={{ padding: '0.6rem', fontSize: '0.72rem', color: '#94a3b8' }}
+                            onSave={(newVal) => setGstFomRecords(prev => prev.map(rec => rec.billNo === r.billNo ? { ...rec, paymentMode: newVal } : rec))}
+                          />
                           <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                               <button
@@ -3172,12 +3219,26 @@ export default function AccountsLedgerModal({
                   {filteredPettyCashEntries.map((e, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: '#fbbf24', fontWeight: 700 }}>{e.voucher}</td>
-                      <td style={{ padding: '0.75rem 1rem', color: '#fff' }}>
-                        <div>{e.item}</div>
-                        {e.category && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{e.category}</div>}
-                      </td>
-                      <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>{e.approvedBy || 'Accounts Mgr'}</td>
-                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#f87171', fontWeight: 700 }}>₹{Number(e.amount).toFixed(2)}</td>
+                      <SheetsEditableCell
+                        value={e.item}
+                        type="text"
+                        cellStyle={{ padding: '0.75rem 1rem', color: '#fff', fontWeight: 600 }}
+                        onSave={(newVal) => setPettyCashEntries(prev => prev.map(rec => rec.voucher === e.voucher ? { ...rec, item: newVal } : rec))}
+                      />
+                      <SheetsEditableCell
+                        value={e.approvedBy || 'Accounts Mgr'}
+                        type="text"
+                        cellStyle={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}
+                        onSave={(newVal) => setPettyCashEntries(prev => prev.map(rec => rec.voucher === e.voucher ? { ...rec, approvedBy: newVal } : rec))}
+                      />
+                      <SheetsEditableCell
+                        value={e.amount}
+                        type="currency"
+                        align="right"
+                        className="cell-num"
+                        cellStyle={{ padding: '0.75rem 1rem', color: '#f87171', fontWeight: 700 }}
+                        onSave={(newVal) => setPettyCashEntries(prev => prev.map(rec => rec.voucher === e.voucher ? { ...rec, amount: Number(newVal) } : rec))}
+                      />
                     </tr>
                   ))}
                 </tbody>
@@ -3365,16 +3426,28 @@ export default function AccountsLedgerModal({
                       <div style={{ fontWeight: 600, color: '#fff' }}>{e.date}</div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{e.bankRef !== '-' ? e.bankRef : e.invoiceNo}</div>
                     </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{e.type}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{e.description}</div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: e.debit > 0 ? '#f87171' : 'var(--text-muted)' }}>
-                      {e.debit > 0 ? `₹${e.debit.toLocaleString('en-IN')}` : '-'}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: e.credit > 0 ? '#34d399' : 'var(--text-muted)' }}>
-                      {e.credit > 0 ? `₹${e.credit.toLocaleString('en-IN')}` : '-'}
-                    </td>
+                    <SheetsEditableCell
+                      value={e.description}
+                      type="text"
+                      cellStyle={{ padding: '0.85rem 1rem', color: 'var(--text-primary)', fontWeight: 500 }}
+                      onSave={(newVal) => setCorporateLedger(prev => prev.map(rec => rec.entryId === e.entryId ? { ...rec, description: newVal } : rec))}
+                    />
+                    <SheetsEditableCell
+                      value={e.debit}
+                      type="currency"
+                      align="right"
+                      className="cell-num"
+                      cellStyle={{ padding: '0.85rem 1rem', color: e.debit > 0 ? '#f87171' : 'var(--text-muted)', fontWeight: 600 }}
+                      onSave={(newVal) => setCorporateLedger(prev => prev.map(rec => rec.entryId === e.entryId ? { ...rec, debit: Number(newVal) } : rec))}
+                    />
+                    <SheetsEditableCell
+                      value={e.credit}
+                      type="currency"
+                      align="right"
+                      className="cell-num"
+                      cellStyle={{ padding: '0.85rem 1rem', color: e.credit > 0 ? '#34d399' : 'var(--text-muted)', fontWeight: 600 }}
+                      onSave={(newVal) => setCorporateLedger(prev => prev.map(rec => rec.entryId === e.entryId ? { ...rec, credit: Number(newVal) } : rec))}
+                    />
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                       {e.tdsSection ? (
                         <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', fontSize: '0.75rem' }}>

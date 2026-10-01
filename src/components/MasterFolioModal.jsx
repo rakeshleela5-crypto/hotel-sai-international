@@ -8,6 +8,7 @@ import {
   Landmark, ReceiptText, RefreshCw, Building2
 } from 'lucide-react';
 import { HOTEL_CONFIG, CORPORATE_PARTNERS } from '../data/hotelData';
+import { SheetsEditableCell } from './UniversalInlineEditor';
 
 export default function MasterFolioModal({
   isOpen,
@@ -1061,15 +1062,14 @@ Includes 12% GST on Room & 5% GST on Restaurant dining.
                             {txn.outlet}
                           </span>
                         </td>
-                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-primary)' }}>
-                          <div style={{ fontWeight: 500 }}>{txn.description}</div>
-                          {txn.itemCode && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Code: {txn.itemCode}</div>}
-                          {isDisputed && (
-                            <div style={{ marginTop: '0.3rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.4)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.7rem', fontWeight: 600 }}>
-                              <ShieldAlert size={11} /> ESCROW HOLD: {disputedTxns[txn.transactionId].reason} ({disputedTxns[txn.transactionId].heldAt})
-                            </div>
-                          )}
-                        </td>
+                        <SheetsEditableCell
+                          value={txn.description}
+                          type="text"
+                          cellStyle={{ padding: '0.85rem 1rem', color: 'var(--text-primary)', fontWeight: 500 }}
+                          onSave={(newVal) => {
+                            txn.description = newVal;
+                          }}
+                        />
                         <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                           {txn.sacCode}
                         </td>
@@ -1082,12 +1082,28 @@ Includes 12% GST on Room & 5% GST on Restaurant dining.
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
                           )}
                         </td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: txn.debitAmount > 0 ? '#f87171' : 'var(--text-muted)' }}>
-                          {txn.debitAmount > 0 ? `₹${txn.debitAmount.toFixed(2)}` : '-'}
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 600, color: txn.creditAmount > 0 ? '#34d399' : 'var(--text-muted)' }}>
-                          {txn.creditAmount > 0 ? `₹${txn.creditAmount.toFixed(2)}` : '-'}
-                        </td>
+                        <SheetsEditableCell
+                          value={txn.debitAmount || 0}
+                          type="currency"
+                          align="right"
+                          className="cell-num"
+                          min={0}
+                          cellStyle={{ padding: '0.85rem 1rem', fontWeight: 600, color: txn.debitAmount > 0 ? '#f87171' : 'var(--text-muted)' }}
+                          onSave={(newVal) => {
+                            txn.debitAmount = Number(newVal);
+                          }}
+                        />
+                        <SheetsEditableCell
+                          value={txn.creditAmount || 0}
+                          type="currency"
+                          align="right"
+                          className="cell-num"
+                          min={0}
+                          cellStyle={{ padding: '0.85rem 1rem', fontWeight: 600, color: txn.creditAmount > 0 ? '#34d399' : 'var(--text-muted)' }}
+                          onSave={(newVal) => {
+                            txn.creditAmount = Number(newVal);
+                          }}
+                        />
                         <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                           {isDisputed ? (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#fbbf24', fontSize: '0.75rem', fontWeight: 700 }}>

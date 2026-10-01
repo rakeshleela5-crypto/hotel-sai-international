@@ -19,6 +19,7 @@ import {
 } from '../utils/g3RmsEngine';
 import { CORPORATE_PARTNERS } from '../data/hotelData';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
+import { SheetsEditableCell } from './UniversalInlineEditor';
 
 export default function RevenueManagementModal({
   isOpen,
@@ -127,6 +128,7 @@ export default function RevenueManagementModal({
   const [rfpBanquetSpend, setRfpBanquetSpend] = useState(35000);
   const [rfpHallRental, setRfpHallRental] = useState(15000);
   const [savedRfps, setSavedRfps] = useState([]);
+  const [compSetList, setCompSetList] = useState(RAYAGADA_COMP_SET);
 
   // The Investigator State
   const [investigatorTier, setInvestigatorTier] = useState('standard-deluxe');
@@ -1894,12 +1896,35 @@ export default function RevenueManagementModal({
                       </tr>
                     </thead>
                     <tbody>
-                      {RAYAGADA_COMP_SET.map(comp => (
+                      {compSetList.map(comp => (
                         <tr key={comp.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                           <td style={{ padding: '0.65rem', fontWeight: 700, color: '#f8fafc' }}>{comp.name}</td>
-                          <td style={{ padding: '0.65rem', color: '#38bdf8' }}>₹{comp.standardRate.toLocaleString()}</td>
-                          <td style={{ padding: '0.65rem', color: '#38bdf8' }}>₹{comp.executiveRate.toLocaleString()}</td>
-                          <td style={{ padding: '0.65rem' }}>{comp.occupancyEst}%</td>
+                          <SheetsEditableCell
+                            value={comp.standardRate}
+                            type="currency"
+                            align="right"
+                            min={0}
+                            cellStyle={{ padding: '0.65rem', color: '#38bdf8' }}
+                            onSave={(newVal) => setCompSetList(prev => prev.map(c => c.id === comp.id ? { ...c, standardRate: Number(newVal) } : c))}
+                          />
+                          <SheetsEditableCell
+                            value={comp.executiveRate}
+                            type="currency"
+                            align="right"
+                            min={0}
+                            cellStyle={{ padding: '0.65rem', color: '#38bdf8' }}
+                            onSave={(newVal) => setCompSetList(prev => prev.map(c => c.id === comp.id ? { ...c, executiveRate: Number(newVal) } : c))}
+                          />
+                          <SheetsEditableCell
+                            value={comp.occupancyEst}
+                            type="number"
+                            align="center"
+                            min={0}
+                            max={100}
+                            suffix="%"
+                            cellStyle={{ padding: '0.65rem' }}
+                            onSave={(newVal) => setCompSetList(prev => prev.map(c => c.id === comp.id ? { ...c, occupancyEst: Number(newVal) } : c))}
+                          />
                           <td style={{ padding: '0.65rem', color: '#94a3b8' }}>{(comp.weight * 100)}%</td>
                           <td style={{ padding: '0.65rem', color: 'var(--gold-glow)', fontWeight: 700 }}>
                             ₹{Math.round(comp.standardRate * (1 + compSetPegPercent / 100))} (+{compSetPegPercent}%)

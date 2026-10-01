@@ -5,6 +5,7 @@ import {
   ArrowRight, Sparkles, X, Check, Bed, Utensils, Receipt
 } from 'lucide-react';
 import { CORPORATE_PARTNERS, HOTEL_CONFIG, ROOM_TIERS } from '../data/hotelData';
+import { SheetsEditableCell } from './UniversalInlineEditor';
 
 export default function CorporatePortalModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('quotation'); // 'quotation' | 'onboarding'
@@ -55,7 +56,8 @@ export default function CorporatePortalModal({ isOpen, onClose }) {
   // Safely normalize ROOM_TIERS whether array or object
   const tierList = Array.isArray(ROOM_TIERS) ? ROOM_TIERS : Object.values(ROOM_TIERS || []);
   const selectedTier = tierList.find(t => t.id === roomTierId) || tierList[0] || { id: 'standard-deluxe', name: 'Standard Deluxe', tariff: 1699 };
-  const baseRatePerNight = selectedTier.tariff || selectedTier.baseRate || 1699;
+  const [customTariffOverride, setCustomTariffOverride] = useState(null);
+  const baseRatePerNight = customTariffOverride !== null ? customTariffOverride : (selectedTier.tariff || selectedTier.baseRate || 1699);
   const discountRate = selectedPartner.contractDiscount || 0;
   const effectiveRoomRate = Math.round(baseRatePerNight * (1 - discountRate / 100));
 
@@ -546,8 +548,25 @@ export default function CorporatePortalModal({ isOpen, onClose }) {
                         <span style={{ fontSize: '0.65rem', color: '#64748b' }}>Rate: ₹{effectiveRoomRate}/nt (Rack ₹{baseRatePerNight})</span>
                       </td>
                       <td style={{ textAlign: 'center', padding: '6px 4px', color: '#64748b' }}>996311</td>
-                      <td style={{ textAlign: 'center', padding: '6px 4px' }}>{roomCount * nightCount}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 6px', fontWeight: 700 }}>₹{totalRoomTariff.toLocaleString('en-IN')}</td>
+                      <SheetsEditableCell
+                        value={roomCount * nightCount}
+                        type="number"
+                        align="center"
+                        min={1}
+                        cellStyle={{ padding: '6px 4px' }}
+                        onSave={(newVal) => setRoomCount(Math.max(1, Math.round(Number(newVal) / (nightCount || 1))))}
+                      />
+                      <SheetsEditableCell
+                        value={totalRoomTariff}
+                        type="currency"
+                        align="right"
+                        min={0}
+                        cellStyle={{ padding: '6px 6px', fontWeight: 700 }}
+                        onSave={(newVal) => {
+                          const perNight = Math.round(Number(newVal) / ((roomCount || 1) * (nightCount || 1)));
+                          setCustomTariffOverride(perNight);
+                        }}
+                      />
                     </tr>
 
                     {totalMealTariff > 0 && (

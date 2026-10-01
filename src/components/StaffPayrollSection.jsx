@@ -4,6 +4,7 @@ import {
   AlertCircle, Download, Printer, Plus, RefreshCw, UserCheck, ShieldCheck
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
+import { SheetsEditableCell } from './UniversalInlineEditor';
 
 const DEFAULT_STAFF = [
   { id: 'STF-01', name: 'Ramesh Mohanty', role: 'Front Desk Lead / Receptionist', shift: 'Morning (07:00 - 15:00)', baseSalary: 18000, daysPresent: 28, advances: 2000, phone: '9861012345' },
@@ -394,11 +395,35 @@ export default function StaffPayrollSection({
                         <div style={{ color: '#fff' }}>{stf.name}</div>
                         <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stf.role}</div>
                       </td>
-                      <td style={{ padding: '10px', textAlign: 'right' }}>₹{stf.baseSalary.toLocaleString('en-IN')}</td>
-                      <td style={{ padding: '10px', textAlign: 'center', color: '#38bdf8', fontWeight: 700 }}>{stf.daysPresent} / 30</td>
-                      <td style={{ padding: '10px', textAlign: 'right', color: stf.advances > 0 ? '#f87171' : '#94a3b8' }}>
-                        ₹{stf.advances.toLocaleString('en-IN')}
-                      </td>
+                      <SheetsEditableCell
+                        value={stf.baseSalary}
+                        type="currency"
+                        align="right"
+                        className="cell-num"
+                        min={0}
+                        cellStyle={{ padding: '10px', color: '#fff', fontWeight: 700 }}
+                        onSave={(newVal) => setStaffList(prev => prev.map(s => s.id === stf.id ? { ...s, baseSalary: Number(newVal) } : s))}
+                      />
+                      <SheetsEditableCell
+                        value={stf.daysPresent}
+                        type="number"
+                        align="center"
+                        className="cell-num"
+                        min={0}
+                        max={31}
+                        suffix=" / 30"
+                        cellStyle={{ padding: '10px', color: '#38bdf8', fontWeight: 700 }}
+                        onSave={(newVal) => setStaffList(prev => prev.map(s => s.id === stf.id ? { ...s, daysPresent: Number(newVal) } : s))}
+                      />
+                      <SheetsEditableCell
+                        value={stf.advances}
+                        type="currency"
+                        align="right"
+                        className="cell-num"
+                        min={0}
+                        cellStyle={{ padding: '10px', color: stf.advances > 0 ? '#f87171' : '#94a3b8' }}
+                        onSave={(newVal) => setStaffList(prev => prev.map(s => s.id === stf.id ? { ...s, advances: Number(newVal) } : s))}
+                      />
                       <td style={{ padding: '10px', textAlign: 'right', color: '#34d399', fontWeight: 800, fontSize: '0.9rem' }}>
                         ₹{netPayable.toLocaleString('en-IN')}
                       </td>

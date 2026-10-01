@@ -482,4 +482,266 @@ export function InlineEditorBanner({ isActive, onToggle, onReset, label = 'Direc
   );
 }
 
+/**
+ * SheetsEditableCell: High-density interactive Google Sheets / Excel spreadsheet cell.
+ * Features:
+ * - Direct single-click or double-click to type
+ * - Authentic Google Sheets active-cell border and bottom-right corner fill-handle
+ * - Supports types: 'text', 'number', 'currency', 'select', 'date'
+ * - Keyboard navigation: Enter to commit, Esc to cancel, Tab / Shift-Tab
+ * - Visual emerald save-pulse animation on commit
+ * - Optional localStorage & D1 remote database persistence
+ */
+export function SheetsEditableCell({
+  value = '',
+  onSave,
+  type = 'text', // 'text' | 'number' | 'currency' | 'select' | 'date'
+  options = [], // For 'select': [{ value, label, badgeStyle }] or ['Option 1', 'Option 2']
+  min,
+  max,
+  step = 1,
+  tag = 'td', // 'td' | 'div' | 'span'
+  className = '',
+  style = {},
+  cellStyle = {},
+  inputStyle = {},
+  align = 'left', // 'left' | 'center' | 'right'
+  prefix = '',
+  suffix = '',
+  placeholder = '—',
+  disabled = false,
+  formatDisplay,
+  storageKey = '',
+  field = '',
+  rowId = '',
+  tooltip = 'Click or press Enter to edit'
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentVal, setCurrentVal] = useState(value !== undefined && value !== null ? value : '');
+  const [justSaved, setJustSaved] = useState(false);
+  const originalValRef = useRef(value);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    setCurrentVal(value !== undefined && value !== null ? value : '');
+    originalValRef.current = value;
+  }, [value]);
+
+  const handleStartEdit = () => {
+    if (disabled) return;
+    setIsEditing(true);
+  };
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      if (typeof inputRef.current.select === 'function') {
+        inputRef.current.select();
+      }
+    }
+  }, [isEditing]);
+
+  const commitEdit = () => {
+    if (!isEditing) return;
+    setIsEditing(false);
+
+    let finalVal = currentVal;
+    if (type === 'number' || type === 'currency') {
+      const parsed = parseFloat(String(currentVal).replace(/[^0-9.-]+/g, ''));
+      finalVal = isNaN(parsed) ? 0 : parsed;
+      if (min !== undefined && finalVal < min) finalVal = min;
+      if (max !== undefined && finalVal > max) finalVal = max;
+    } else if (typeof currentVal === 'string') {
+      finalVal = currentVal.trim();
+    }
+
+    if (String(finalVal) !== String(originalValRef.current)) {
+      if (onSave) {
+        onSave(finalVal, originalValRef.current, field);
+      }
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 1400);
+
+      // Persist to localStorage if key provided
+      if (storageKey) {
+        try {
+          const current = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          const cellKey = rowId && field ? `${rowId}:${field}` : field || 'val';
+          current[cellKey] = finalVal;
+          localStorage.setItem(storageKey, JSON.stringify(current));
+        } catch (e) {
+          console.warn('Storage save failed:', e);
+        }
+      }
+
+      // Dispatch global edit event
+      window.dispatchEvent(new CustomEvent('hsi:text-edited', {
+        detail: { field, rowId, newValue: finalVal, oldValue: originalValRef.current }
+      }));
+    }
+  };
+
+  const cancelEdit = () => {
+    setCurrentVal(originalValRef.current !== undefined && originalValRef.current !== null ? originalValRef.current : '');
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdit();
+    } else if (e.key === 'Tab') {
+      commitEdit();
+    }
+  };
+
+  // Rendering formatted display value
+  const renderDisplay = () => {
+    if (formatDisplay) return formatDisplay(currentVal);
+
+    if (type === 'currency') {
+      const num = Number(currentVal) || 0;
+      return `${prefix || '₹'}${num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}${suffix}`;
+    }
+
+    if (type === 'select') {
+      const matchedOpt = options.find(o => (typeof o === 'object' ? o.value === currentVal : o === currentVal));
+      if (matchedOpt && typeof matchedOpt === 'object' && matchedOpt.badgeStyle) {
+        return (
+          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, ...matchedOpt.badgeStyle }}>
+            {matchedOpt.label || matchedOpt.value}
+          </span>
+        );
+      }
+      return `${prefix}${matchedOpt && typeof matchedOpt === 'object' ? matchedOpt.label : currentVal || placeholder}${suffix}`;
+    }
+
+    if (type === 'number') {
+      const num = Number(currentVal);
+      return isNaN(num) ? placeholder : `${prefix}${num.toLocaleString('en-IN')}${suffix}`;
+    }
+
+    return `${prefix}${currentVal !== '' && currentVal !== null && currentVal !== undefined ? currentVal : placeholder}${suffix}`;
+  };
+
+  const CustomTag = tag;
+
+  return (
+    <CustomTag
+      className={`sheets-editable-cell ${isEditing ? 'sheets-cell-editing' : ''} ${justSaved ? 'hsi-save-success-flash' : ''} ${className}`}
+      onClick={!isEditing ? handleStartEdit : undefined}
+      title={disabled ? undefined : tooltip}
+      style={{
+        position: 'relative',
+        textAlign: align,
+        verticalAlign: 'middle',
+        cursor: disabled ? 'default' : 'pointer',
+        userSelect: isEditing ? 'auto' : 'none',
+        ...cellStyle,
+        ...style
+      }}
+    >
+      {isEditing ? (
+        <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+          {type === 'select' ? (
+            <select
+              ref={inputRef}
+              value={currentVal}
+              onChange={(e) => setCurrentVal(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={handleKeyDown}
+              className="sheets-cell-select"
+              style={{
+                width: '100%',
+                background: '#090e17',
+                border: '1.5px solid #38bdf8',
+                borderRadius: '4px',
+                color: '#ffffff',
+                padding: '2px 6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                outline: 'none',
+                boxShadow: '0 0 8px rgba(56, 189, 248, 0.5)',
+                ...inputStyle
+              }}
+            >
+              {options.map((opt, i) => {
+                const optVal = typeof opt === 'object' ? opt.value : opt;
+                const optLbl = typeof opt === 'object' ? opt.label : opt;
+                return (
+                  <option key={i} value={optVal}>
+                    {optLbl}
+                  </option>
+                );
+              })}
+            </select>
+          ) : (
+            <input
+              ref={inputRef}
+              type={type === 'currency' ? 'number' : type}
+              value={currentVal}
+              onChange={(e) => setCurrentVal(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={handleKeyDown}
+              step={step}
+              min={min}
+              max={max}
+              className="sheets-cell-input"
+              style={{
+                width: '100%',
+                background: '#090e17',
+                border: '1.5px solid #38bdf8',
+                borderRadius: '3px',
+                color: '#ffffff',
+                padding: '2px 6px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                textAlign: align,
+                outline: 'none',
+                boxShadow: '0 0 8px rgba(56, 189, 248, 0.6)',
+                fontFamily: type === 'currency' || type === 'number' ? 'SF Mono, monospace' : 'inherit',
+                ...inputStyle
+              }}
+            />
+          )}
+          {/* Authentic Google Sheets Active-Cell Bottom-Right Handle */}
+          <div className="sheets-cell-handle" />
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start',
+          gap: '6px',
+          width: '100%'
+        }}>
+          <span style={{
+            fontFamily: type === 'currency' || type === 'number' ? 'SF Mono, monospace' : 'inherit',
+            fontWeight: type === 'currency' || type === 'number' ? 700 : 'inherit'
+          }}>
+            {renderDisplay()}
+          </span>
+          {!disabled && (
+            <span
+              className="sheets-cell-pencil"
+              style={{
+                opacity: 0,
+                fontSize: '0.65rem',
+                color: '#38bdf8',
+                transition: 'opacity 0.15s ease',
+                pointerEvents: 'none'
+              }}
+            >
+              ✏️
+            </span>
+          )}
+        </div>
+      )}
+    </CustomTag>
+  );
+}
+
 export default InlineText;

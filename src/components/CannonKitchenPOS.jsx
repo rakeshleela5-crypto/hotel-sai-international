@@ -9,6 +9,7 @@ import {
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
 import { playOrderAlert, playSuccessChime } from '../utils/soundAlert';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
+import { SheetsEditableCell } from './UniversalInlineEditor';
 
 export default function CannonKitchenPOS({
   isOpen,
@@ -195,7 +196,7 @@ export default function CannonKitchenPOS({
   const [managerVoidPin, setManagerVoidPin] = useState('');
   const [managerPinError, setManagerPinError] = useState('');
 
-  const dailySalesItems = [
+  const [dailySalesItems, setDailySalesItems] = useState([
     { code: '102', name: 'Chicken Dum Biryani (Chef Special)', cat: 'Food (Non-Veg)', qty: 38, rate: 260, totalSales: 9880 },
     { code: '101', name: 'Butter Chicken Boneless', cat: 'Food (Non-Veg)', qty: 24, rate: 320, totalSales: 7680 },
     { code: '214', name: 'Mushroom Masala (Code 214)', cat: 'Food (Veg)', qty: 26, rate: 220, totalSales: 5720 },
@@ -208,7 +209,7 @@ export default function CannonKitchenPOS({
     { code: '103', name: 'Chilli Chicken Dry', cat: 'Food (Non-Veg)', qty: 18, rate: 240, totalSales: 4320 },
     { code: '401', name: 'Fresh Lime Soda (Sweet/Salt)', cat: 'Beverages', qty: 28, rate: 70, totalSales: 1960 },
     { code: '402', name: 'Packaged Mineral Water (1L)', cat: 'Beverages', qty: 45, rate: 30, totalSales: 1350 }
-  ];
+  ]);
 
   const handleDownloadDailySalesCSV = () => {
     const headers = ['Item Code', 'Item Description (వివరణ)', 'Category', 'Total Quantity Sold', 'Rate (INR)', 'Total Amount (INR)'];
@@ -4335,18 +4336,43 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                           <td style={{ padding: '0.65rem 0.85rem', fontFamily: 'monospace', color: 'var(--gold-glow)', fontWeight: 700 }}>
                             #{row.code}
                           </td>
-                          <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: '#fff' }}>
-                            {row.name}
-                          </td>
-                          <td style={{ padding: '0.65rem 0.85rem', color: '#cbd5e1' }}>
-                            {row.cat}
-                          </td>
-                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'center', fontWeight: 800, color: '#38bdf8', fontSize: '0.9rem' }}>
-                            {row.qty}
-                          </td>
-                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', color: '#cbd5e1' }}>
-                            ₹{row.rate.toFixed(2)}
-                          </td>
+                          <SheetsEditableCell
+                            value={row.name}
+                            type="text"
+                            cellStyle={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: '#fff' }}
+                            onSave={(newVal) => setDailySalesItems(prev => prev.map(item => item.code === row.code ? { ...item, name: newVal } : item))}
+                          />
+                          <SheetsEditableCell
+                            value={row.cat}
+                            type="select"
+                            options={['Food (Non-Veg)', 'Food (Veg)', 'Food (Rice & Breads)', 'Beverages', 'Satvik (No Onion/Garlic)']}
+                            cellStyle={{ padding: '0.65rem 0.85rem', color: '#cbd5e1' }}
+                            onSave={(newVal) => setDailySalesItems(prev => prev.map(item => item.code === row.code ? { ...item, cat: newVal } : item))}
+                          />
+                          <SheetsEditableCell
+                            value={row.qty}
+                            type="number"
+                            align="center"
+                            className="cell-num"
+                            min={0}
+                            cellStyle={{ padding: '0.65rem 0.85rem', color: '#38bdf8', fontWeight: 800, fontSize: '0.9rem' }}
+                            onSave={(newVal) => {
+                              const q = Number(newVal);
+                              setDailySalesItems(prev => prev.map(item => item.code === row.code ? { ...item, qty: q, totalSales: q * item.rate } : item));
+                            }}
+                          />
+                          <SheetsEditableCell
+                            value={row.rate}
+                            type="currency"
+                            align="right"
+                            className="cell-num"
+                            min={0}
+                            cellStyle={{ padding: '0.65rem 0.85rem', color: '#cbd5e1' }}
+                            onSave={(newVal) => {
+                              const r = Number(newVal);
+                              setDailySalesItems(prev => prev.map(item => item.code === row.code ? { ...item, rate: r, totalSales: item.qty * r } : item));
+                            }}
+                          />
                           <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>
                             ₹{row.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
@@ -4356,9 +4382,13 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   <tfoot>
                     <tr style={{ background: 'rgba(255,255,255,0.06)', fontWeight: 800 }}>
                       <td colSpan={3} style={{ padding: '0.75rem 0.85rem', color: 'var(--gold-glow)' }}>TOTALS</td>
-                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', color: '#38bdf8', fontSize: '0.95rem' }}>446</td>
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'center', color: '#38bdf8', fontSize: '0.95rem' }}>
+                        {dailySalesItems.reduce((acc, curr) => acc + (Number(curr.qty) || 0), 0)}
+                      </td>
                       <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>-</td>
-                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: 'var(--gold-glow)', fontSize: '0.95rem' }}>₹70,015.00</td>
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right', color: 'var(--gold-glow)', fontSize: '0.95rem' }}>
+                        ₹{dailySalesItems.reduce((acc, curr) => acc + (Number(curr.totalSales) || (Number(curr.qty) * Number(curr.rate)) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   </tfoot>
                 </table>

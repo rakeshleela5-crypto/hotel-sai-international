@@ -938,6 +938,47 @@ button:focus-visible, .btn:focus-visible {
   outline-offset: -1px;
 }
 
+/* Interactive Google Sheets Cell Behavior & Fill-Handle */
+.sheets-editable-cell {
+  position: relative !important;
+  cursor: pointer !important;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.sheets-editable-cell:hover:not(.sheets-cell-editing) {
+  background-color: rgba(56, 189, 248, 0.15) !important;
+  box-shadow: inset 0 0 0 1.5px rgba(56, 189, 248, 0.7) !important;
+}
+
+.sheets-editable-cell:hover:not(.sheets-cell-editing) .sheets-cell-pencil {
+  opacity: 1 !important;
+}
+
+.sheets-editable-cell.sheets-cell-editing {
+  background-color: #030712 !important;
+  box-shadow: inset 0 0 0 2px #38bdf8, 0 0 14px rgba(56, 189, 248, 0.45) !important;
+  z-index: 30 !important;
+}
+
+.sheets-cell-handle {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  background-color: #38bdf8;
+  border: 1px solid #ffffff;
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 35;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+.sheets-cell-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Numeric alignment in spreadsheet */
 .enterprise-data-table td.cell-num,
 .sheets-grid-table td.cell-num {

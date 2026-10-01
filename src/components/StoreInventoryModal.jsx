@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_STORE_PURCHASES, INITIAL_KITCHEN_REQUISITIONS } from '../data/hotelData';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
+import { SheetsEditableCell } from './UniversalInlineEditor';
 
 // Kitchen Recipe Bill of Materials (BOM) & Food Costing Data (Inspired by InvenTree & ERPNext)
 const KITCHEN_RECIPE_BOM = [
@@ -109,6 +110,7 @@ export default function StoreInventoryModal({
   const [selectedRecipeCode, setSelectedRecipeCode] = useState('215');
   const [depletionSimulated, setDepletionSimulated] = useState(false);
   const [voucherGenerated, setVoucherGenerated] = useState(false);
+  const [recipeBom, setRecipeBom] = useState(KITCHEN_RECIPE_BOM);
 
   // Sync live D1 store purchases and kitchen requisitions on open
   useEffect(() => {
@@ -513,25 +515,43 @@ export default function StoreInventoryModal({
                         <div style={{ fontWeight: 600, color: '#fff' }}>{p.purchaseId}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.date} • {p.invoiceNo}</div>
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{p.vendorName}</td>
+                      <SheetsEditableCell
+                        value={p.vendorName}
+                        type="text"
+                        cellStyle={{ padding: '0.85rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}
+                        onSave={(newVal) => setPurchases(prev => prev.map(rec => rec.purchaseId === p.purchaseId ? { ...rec, vendorName: newVal } : rec))}
+                      />
                       <td style={{ padding: '0.85rem 1rem' }}>
                         <span className="badge" style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                           {p.category}
                         </span>
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-primary)' }}>{p.itemsSummary}</td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>
-                        ₹{p.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                        <span className="badge" style={{
-                          background: p.paymentStatus === 'Credit Payable' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(52, 211, 153, 0.2)',
-                          color: p.paymentStatus === 'Credit Payable' ? '#f87171' : '#34d399',
-                          fontSize: '0.75rem'
-                        }}>
-                          {p.paymentStatus}
-                        </span>
-                      </td>
+                      <SheetsEditableCell
+                        value={p.itemsSummary}
+                        type="text"
+                        cellStyle={{ padding: '0.85rem 1rem', color: 'var(--text-primary)' }}
+                        onSave={(newVal) => setPurchases(prev => prev.map(rec => rec.purchaseId === p.purchaseId ? { ...rec, itemsSummary: newVal } : rec))}
+                      />
+                      <SheetsEditableCell
+                        value={p.totalAmount}
+                        type="currency"
+                        align="right"
+                        className="cell-num"
+                        cellStyle={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#38bdf8' }}
+                        onSave={(newVal) => setPurchases(prev => prev.map(rec => rec.purchaseId === p.purchaseId ? { ...rec, totalAmount: Number(newVal) } : rec))}
+                      />
+                      <SheetsEditableCell
+                        value={p.paymentStatus}
+                        type="select"
+                        align="center"
+                        options={[
+                          { value: 'Credit Payable', label: 'Credit Payable', badgeStyle: { background: 'rgba(239, 68, 68, 0.2)', color: '#f87171' } },
+                          { value: 'Paid In Cash', label: 'Paid In Cash', badgeStyle: { background: 'rgba(52, 211, 153, 0.2)', color: '#34d399' } },
+                          { value: 'UPI Transferred', label: 'UPI Transferred', badgeStyle: { background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' } }
+                        ]}
+                        cellStyle={{ padding: '0.85rem 1rem' }}
+                        onSave={(newVal) => setPurchases(prev => prev.map(rec => rec.purchaseId === p.purchaseId ? { ...rec, paymentStatus: newVal } : rec))}
+                      />
                     </tr>
                   ))}
                 </tbody>
@@ -711,7 +731,7 @@ export default function StoreInventoryModal({
                         </tr>
                       </thead>
                     <tbody>
-                      {KITCHEN_RECIPE_BOM.map(dish => (
+                      {recipeBom.map(dish => (
                         <tr 
                           key={dish.dishCode}
                           onClick={() => setSelectedRecipeCode(dish.dishCode)}
@@ -725,12 +745,22 @@ export default function StoreInventoryModal({
                             <div style={{ fontWeight: 700, color: '#fff' }}>{dish.dishName}</div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Code {dish.dishCode} • {dish.category}</div>
                           </td>
-                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 700, color: '#fff' }}>
-                            ₹{dish.sellingPrice}
-                          </td>
-                          <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171', fontWeight: 600 }}>
-                            ₹{dish.totalFoodCost}
-                          </td>
+                          <SheetsEditableCell
+                            value={dish.sellingPrice}
+                            type="currency"
+                            align="right"
+                            min={1}
+                            cellStyle={{ padding: '0.75rem', fontWeight: 700, color: '#fff' }}
+                            onSave={(newVal) => setRecipeBom(prev => prev.map(d => d.dishCode === dish.dishCode ? { ...d, sellingPrice: Number(newVal) } : d))}
+                          />
+                          <SheetsEditableCell
+                            value={dish.totalFoodCost}
+                            type="currency"
+                            align="right"
+                            min={1}
+                            cellStyle={{ padding: '0.75rem', color: '#f87171', fontWeight: 600 }}
+                            onSave={(newVal) => setRecipeBom(prev => prev.map(d => d.dishCode === dish.dishCode ? { ...d, totalFoodCost: Number(newVal) } : d))}
+                          />
                           <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                             <span style={{
                               background: (dish.totalFoodCost / dish.sellingPrice) < 0.45 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
