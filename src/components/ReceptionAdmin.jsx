@@ -3218,18 +3218,19 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </span>
               </div>
 
+              <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', color: '#94a3b8' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Date</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Day</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Total Rooms</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Occupied</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Vacant Clean</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Out of Order</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Occupancy %</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Room Rev (₹)</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>ADR (₹)</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}><SheetsColumnHeader label="Date" type="locked" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}><SheetsColumnHeader label="Day" type="locked" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Total Rooms" type="locked" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Occupied" type="editable" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Vacant Clean" type="editable" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Out of Order" type="editable" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Occupancy %" type="formula" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Room Rev (₹)" type="formula" align="right" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="ADR (₹)" type="formula" align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3287,15 +3288,16 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </span>
               </div>
 
+              <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', color: '#94a3b8' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Month</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Available Room Nights</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Occupied Room Nights</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Avg Occupancy %</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>RevPAR (₹)</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Total Room Revenue (₹)</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}><SheetsColumnHeader label="Month" type="locked" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Available Room Nights" type="locked" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Occupied Room Nights" type="editable" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Avg Occupancy %" type="formula" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="RevPAR (₹)" type="formula" align="right" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Total Room Revenue (₹)" type="formula" align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3354,15 +3356,16 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 </span>
               </div>
 
+              <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left', color: '#94a3b8' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Financial Year</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Available Room Nights</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Occupied Nights</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Average Occupancy %</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Average ADR (₹)</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Total Room Revenue (₹)</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}><SheetsColumnHeader label="Financial Year" type="locked" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Available Room Nights" type="locked" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Occupied Nights" type="editable" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Average Occupancy %" type="formula" align="center" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Average ADR (₹)" type="editable" align="right" /></th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Total Room Revenue (₹)" type="formula" align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -5828,18 +5831,19 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </button>
             </div>
 
+            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
             <div className="enterprise-data-table-container">
               <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '130px' }}>Ticket # / Date</th>
-                    <th style={{ width: '90px', textAlign: 'center' }}>Room</th>
-                    <th>Category &amp; Defect Issue</th>
-                    <th style={{ width: '150px' }}>Assigned Technician</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Target ETA</th>
-                    <th style={{ width: '90px', textAlign: 'center' }}>Priority</th>
-                    <th style={{ width: '90px', textAlign: 'center' }}>Status</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>Action</th>
+                    <th style={{ width: '130px' }}><SheetsColumnHeader label="Ticket # / Date" type="locked" /></th>
+                    <th style={{ width: '90px', textAlign: 'center' }}><SheetsColumnHeader label="Room" type="locked" align="center" /></th>
+                    <th><SheetsColumnHeader label="Category & Defect Issue" type="editable" /></th>
+                    <th style={{ width: '150px' }}><SheetsColumnHeader label="Assigned Technician" type="editable" /></th>
+                    <th style={{ width: '120px', textAlign: 'center' }}><SheetsColumnHeader label="Target ETA" type="editable" align="center" /></th>
+                    <th style={{ width: '90px', textAlign: 'center' }}><SheetsColumnHeader label="Priority" type="editable" align="center" /></th>
+                    <th style={{ width: '90px', textAlign: 'center' }}><SheetsColumnHeader label="Status" type="locked" align="center" /></th>
+                    <th style={{ width: '130px', textAlign: 'center' }}><SheetsColumnHeader label="Action" type="locked" align="center" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -6437,18 +6441,19 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             {/* Transfer Dispatch Table */}
+            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255, 255, 255, 0.04)', color: '#94a3b8', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Trip ID</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Guest / Room</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Service &amp; Train</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Scheduled Time</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Assigned Driver &amp; Car</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Fare &amp; Billing (SAC 996412)</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Dispatch Status</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'right' }}>Actions</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Trip ID" type="locked" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Guest / Room" type="locked" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Service & Train" type="editable" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Scheduled Time" type="editable" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Assigned Driver & Car" type="editable" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Fare & Billing (SAC 996412)" type="editable" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Dispatch Status" type="locked" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'right' }}><SheetsColumnHeader label="Actions" type="locked" align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -6892,16 +6897,17 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               Live Rate Parity Inspection &amp; Direct Price Guarantee
             </h4>
 
+            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(255, 255, 255, 0.04)', color: '#94a3b8', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Room Tier Category</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Direct Website Rate (SAC 996311)</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>MakeMyTrip / Goibibo</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Booking.com</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'left' }}>Parity Status</th>
-                    <th style={{ padding: '0.65rem', textAlign: 'right' }}>Direct Rate Advantage</th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Room Tier Category" type="locked" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Direct Website Rate (SAC 996311)" type="editable" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="MakeMyTrip / Goibibo" type="editable" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Booking.com" type="editable" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'left' }}><SheetsColumnHeader label="Parity Status" type="locked" /></th>
+                    <th style={{ padding: '0.65rem', textAlign: 'right' }}><SheetsColumnHeader label="Direct Rate Advantage" type="editable" align="right" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -7188,19 +7194,20 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
 
           {/* Work Orders Table */}
           <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+            <SheetsToolbarLegend isEditMode={true} style={{ marginBottom: '0.6rem' }} />
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>TICKET ID</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>CATEGORY</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>SEVERITY</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>ISSUE &amp; DEFECT DESCRIPTION</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>REPORTED BY</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>ASSIGNED TECHNICIAN</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>BLOCK TYPE</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>STATUS</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>ACTION</th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}><SheetsColumnHeader label="TICKET ID" type="locked" align="center" /></th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}><SheetsColumnHeader label="ROOM" type="locked" align="center" /></th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}><SheetsColumnHeader label="CATEGORY" type="editable" /></th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}><SheetsColumnHeader label="SEVERITY" type="editable" align="center" /></th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}><SheetsColumnHeader label="ISSUE & DEFECT DESCRIPTION" type="editable" /></th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}><SheetsColumnHeader label="REPORTED BY" type="locked" /></th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}><SheetsColumnHeader label="ASSIGNED TECHNICIAN" type="editable" /></th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}><SheetsColumnHeader label="BLOCK TYPE" type="editable" align="center" /></th>
+                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}><SheetsColumnHeader label="STATUS" type="locked" align="center" /></th>
+                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}><SheetsColumnHeader label="ACTION" type="locked" align="center" /></th>
                 </tr>
               </thead>
               <tbody>

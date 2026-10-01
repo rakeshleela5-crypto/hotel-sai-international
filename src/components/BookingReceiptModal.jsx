@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { DigitalKeycard } from '@/components/ui/digital-keycard';
-import { useUniversalInlineEdit, InlineEditorBanner } from './UniversalInlineEditor';
+import { useUniversalInlineEdit, InlineEditorBanner, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 // Indian Numbering System Converter for Statutory Tax Invoices
 function convertNumberToIndianWords(num) {
@@ -548,9 +548,10 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                   type="button"
                   onClick={() => setIsLiveEditMode(!isLiveEditMode)}
                   style={{
-                    background: isLiveEditMode ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.06)',
-                    border: isLiveEditMode ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.2)',
-                    color: isLiveEditMode ? '#38bdf8' : '#cbd5e1',
+                    background: isLiveEditMode ? '#10b981' : '#475569',
+                    border: 'none',
+                    color: '#ffffff',
+                    boxShadow: isLiveEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
                     borderRadius: '6px',
                     padding: '5px 10px',
                     fontSize: '0.74rem',
@@ -559,10 +560,12 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    textTransform: 'uppercase'
                   }}
+                  title="Toggle Live Spreadsheet Edit Mode for Receipt Lines"
                 >
-                  <Edit3 size={13} /> {isLiveEditMode ? '✏️ Live Edit: ON' : '👁️ Preview'}
+                  <span>✏️</span> Live Spreadsheet Edit: <strong>{isLiveEditMode ? 'ACTIVE' : 'OFF'}</strong>
                 </button>
               )}
 
@@ -1237,18 +1240,21 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
             </div>
 
             {/* Sheet 1: Explicit Taxable vs Non-Taxable Columns & Dynamic Line Item Editor */}
-            <table className="ledger-table">
+            <div className="no-print" style={{ margin: '0.4rem 0' }}>
+              <SheetsToolbarLegend isEditMode={isLiveEditMode} />
+            </div>
+            <table className="ledger-table sheets-grid-table">
               <thead>
                 <tr>
-                  <th style={{ width: '30px' }}>#</th>
-                  <th>Date &amp; Service Particulars</th>
-                  <th style={{ width: '65px', textAlign: 'center' }}>SAC</th>
-                  <th style={{ width: '50px', textAlign: 'center' }}>Qty</th>
-                  <th className="th-amount" style={{ width: '85px' }}>Rate (₹)</th>
-                  <th className="th-amount" style={{ width: '95px' }}>Taxable Val (₹)</th>
-                  <th className="th-amount" style={{ width: '105px' }}>Non-Taxable (₹)</th>
-                  <th className="th-amount" style={{ width: '95px' }}>Line Total (₹)</th>
-                  {isLiveEditMode && <th style={{ width: '30px' }} className="no-print">Act</th>}
+                  <th style={{ width: '30px' }}><SheetsColumnHeader label="#" type="locked" align="center" /></th>
+                  <th><SheetsColumnHeader label="Date & Service Particulars" type="editable" /></th>
+                  <th style={{ width: '65px', textAlign: 'center' }}><SheetsColumnHeader label="SAC" type="editable" align="center" /></th>
+                  <th style={{ width: '50px', textAlign: 'center' }}><SheetsColumnHeader label="Qty" type="editable" align="center" /></th>
+                  <th className="th-amount" style={{ width: '85px' }}><SheetsColumnHeader label="Rate (₹)" type="editable" align="right" /></th>
+                  <th className="th-amount" style={{ width: '95px' }}><SheetsColumnHeader label="Taxable Val (₹)" type="formula" align="right" /></th>
+                  <th className="th-amount" style={{ width: '105px' }}><SheetsColumnHeader label="Non-Taxable (₹)" type="editable" align="right" /></th>
+                  <th className="th-amount" style={{ width: '95px' }}><SheetsColumnHeader label="Line Total (₹)" type="formula" align="right" /></th>
+                  {isLiveEditMode && <th style={{ width: '30px' }} className="no-print"><SheetsColumnHeader label="Act" type="locked" align="center" /></th>}
                 </tr>
               </thead>
               <tbody>

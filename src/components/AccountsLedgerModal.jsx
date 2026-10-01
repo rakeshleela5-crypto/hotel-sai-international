@@ -75,11 +75,12 @@ export default function AccountsLedgerModal({
   // Authentic 2026-09-24 Item Wise Sales Report filters
   const [itemSalesCategoryFilter, setItemSalesCategoryFilter] = useState('ALL');
   const [itemSalesSearchQuery, setItemSalesSearchQuery] = useState('');
+  const [itemSalesList, setItemSalesList] = useState(ITEM_WISE_SALES_REPORT_2026_09_24);
 
   // Universal Accounts Search & Quick Edit Mode (Active across all 9 tabs)
   const [accountsSearchQuery, setAccountsSearchQuery] = useState('');
   const [accountsQuickFilter, setAccountsQuickFilter] = useState('ALL');
-  const [isAccountsEditActive, setIsAccountsEditActive] = useState(false);
+  const [isAccountsEditActive, setIsAccountsEditActive] = useState(true);
   const accountsSearchInputRef = React.useRef(null);
   const ledgerContainerRef = React.useRef(null);
 
@@ -1306,6 +1307,29 @@ export default function AccountsLedgerModal({
               <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid #34d399', fontWeight: 700 }}>
                 AUDITED FINANCIAL ENGINE
               </span>
+              <button
+                type="button"
+                onClick={() => setIsAccountsEditActive(prev => !prev)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '3px 9px',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: isAccountsEditActive ? '#10b981' : '#475569',
+                  color: '#ffffff',
+                  border: 'none',
+                  boxShadow: isAccountsEditActive ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'uppercase'
+                }}
+                title="Toggle Live Spreadsheet Edit Mode across Accounts & Financial Ledgers"
+              >
+                <span>✏️</span> Live Spreadsheet Edit: <strong>{isAccountsEditActive ? 'ACTIVE' : 'OFF'}</strong>
+              </button>
               <h2 style={{ fontSize: '1.35rem', color: '#fff', margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>
                 Accounts, Flash Reports & Corporate B2B Ledger
               </h2>
@@ -1959,15 +1983,17 @@ export default function AccountsLedgerModal({
                 <Scale size={18} color="var(--gold-glow)" /> Side-by-Side Operational Reconciliation Ledger (Date: 20/09/2026)
               </h4>
 
+              <SheetsToolbarLegend isEditMode={isAccountsEditActive} style={{ marginBottom: '0.75rem' }} />
+
               <div className="enterprise-data-table-container">
                 <table className="enterprise-data-table sheets-grid-table">
                   <thead>
                     <tr>
-                      <th style={{ padding: '0.75rem' }}>Accounting Stream</th>
-                      <th style={{ padding: '0.75rem' }}>Sub-Ledger Account</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Debit / Revenue (₹)</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Credit / Payment (₹)</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Verification State</th>
+                      <th style={{ padding: '0.75rem' }}><SheetsColumnHeader label="Accounting Stream" type="locked" /></th>
+                      <th style={{ padding: '0.75rem' }}><SheetsColumnHeader label="Sub-Ledger Account" type="locked" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Debit / Revenue (₹)" type="formula" align="right" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Credit / Payment (₹)" type="formula" align="right" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Verification State" type="locked" align="center" /></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2780,7 +2806,7 @@ export default function AccountsLedgerModal({
 
         {/* Tab 2.5: ITEM & CATEGORY SALES REPORT (AUTHENTIC HOTEL SAI INTERNATIONAL ITEM WISE REPORT 2026-09-24) */}
         {activeTab === 'item-sales' && (() => {
-          const filteredItems = ITEM_WISE_SALES_REPORT_2026_09_24.filter(item => {
+          const filteredItems = itemSalesList.filter(item => {
             const matchesCat = itemSalesCategoryFilter === 'ALL'
               ? true
               : itemSalesCategoryFilter === 'GAIL'
@@ -2985,61 +3011,89 @@ export default function AccountsLedgerModal({
               </div>
 
               {/* Itemized Table */}
+              <SheetsToolbarLegend isEditMode={isAccountsEditActive} style={{ marginBottom: '0.75rem' }} />
               <div className="enterprise-data-table-container" style={{ overflowX: 'auto', maxHeight: '55vh' }}>
                 <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.82rem' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgb(20, 24, 40)' }}>
                     <tr>
-                        <th style={{ padding: '0.75rem' }}>Item Code</th>
-                        <th style={{ padding: '0.75rem' }}>Dish / Beverage Name</th>
-                        <th style={{ padding: '0.75rem' }}>Section</th>
-                        <th style={{ padding: '0.75rem' }}>Category</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'center' }}>Total Qty</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Unit Rate</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Sales Amount (₹)</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Est Food Cost</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'center' }}>Kitchen Margin</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredItems.map((row, idx) => {
-                        const isMeat = row.category.includes('Chicken') || row.category.includes('Mutton') || row.category.includes('Seafood');
-                        const isGail = row.category.includes('GAIL');
-                        const costPct = row.section === 'BEVERAGE' ? '22%' : (isMeat ? '34%' : (isGail ? '28%' : '25%'));
-                        const marginPct = row.section === 'BEVERAGE' ? '78%' : (isMeat ? '66%' : (isGail ? '72%' : '75%'));
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: idx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
-                            <td style={{ padding: '0.65rem 0.75rem', fontFamily: 'monospace', color: 'var(--gold-glow)', fontWeight: 700 }}>
-                              #{row.itemCode}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600, color: '#fff' }}>
-                              <span style={{ marginRight: '0.4rem', fontSize: '0.72rem' }}>{row.isVeg ? '🟢' : '🔴'}</span>
-                              {row.itemName}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', color: row.section === 'BEVERAGE' ? '#c084fc' : '#38bdf8', fontWeight: 600 }}>
-                              {row.section}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', color: '#cbd5e1' }}>
-                              {row.category}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', fontWeight: 700, color: '#38bdf8' }}>
-                              {row.totalQty}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: '#cbd5e1' }}>
-                              ₹{row.rate.toFixed(2)}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#34d399' }}>
-                              ₹{row.salesAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: 'var(--text-muted)' }}>
-                              {costPct}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', color: 'var(--gold-champagne)', fontWeight: 600 }}>
-                              {marginPct}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
+                      <th style={{ padding: '0.75rem' }}><SheetsColumnHeader label="Item Code" type="locked" /></th>
+                      <th style={{ padding: '0.75rem' }}><SheetsColumnHeader label="Dish / Beverage Name" type="editable" /></th>
+                      <th style={{ padding: '0.75rem' }}><SheetsColumnHeader label="Section" type="editable" /></th>
+                      <th style={{ padding: '0.75rem' }}><SheetsColumnHeader label="Category" type="editable" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Total Qty" type="editable" align="center" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Unit Rate" type="editable" align="right" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Sales Amount (₹)" type="formula" align="right" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}><SheetsColumnHeader label="Est Food Cost" type="formula" align="right" /></th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center' }}><SheetsColumnHeader label="Kitchen Margin" type="formula" align="center" /></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.map((row, idx) => {
+                      const isMeat = row.category.includes('Chicken') || row.category.includes('Mutton') || row.category.includes('Seafood');
+                      const isGail = row.category.includes('GAIL');
+                      const costPct = row.section === 'BEVERAGE' ? '22%' : (isMeat ? '34%' : (isGail ? '28%' : '25%'));
+                      const marginPct = row.section === 'BEVERAGE' ? '78%' : (isMeat ? '66%' : (isGail ? '72%' : '75%'));
+                      const currentSalesAmt = row.totalQty * row.rate;
+                      return (
+                        <tr key={row.itemCode || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: idx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', fontFamily: 'monospace', color: 'var(--gold-glow)', fontWeight: 700 }}>
+                            #{row.itemCode}
+                          </td>
+                          <SheetsEditableCell
+                            value={row.itemName}
+                            type="text"
+                            cellStyle={{ padding: '0.65rem 0.75rem', fontWeight: 600, color: '#fff' }}
+                            onSave={(newVal) => setItemSalesList(prev => prev.map(item => item.itemCode === row.itemCode ? { ...item, itemName: newVal } : item))}
+                          />
+                          <SheetsEditableCell
+                            value={row.section}
+                            type="text"
+                            cellStyle={{ padding: '0.65rem 0.75rem', color: row.section === 'BEVERAGE' ? '#c084fc' : '#38bdf8', fontWeight: 600 }}
+                            onSave={(newVal) => setItemSalesList(prev => prev.map(item => item.itemCode === row.itemCode ? { ...item, section: newVal } : item))}
+                          />
+                          <SheetsEditableCell
+                            value={row.category}
+                            type="text"
+                            cellStyle={{ padding: '0.65rem 0.75rem', color: '#cbd5e1' }}
+                            onSave={(newVal) => setItemSalesList(prev => prev.map(item => item.itemCode === row.itemCode ? { ...item, category: newVal } : item))}
+                          />
+                          <SheetsEditableCell
+                            value={row.totalQty}
+                            type="number"
+                            cellStyle={{ padding: '0.65rem 0.75rem', textAlign: 'center', fontWeight: 700, color: '#38bdf8' }}
+                            onSave={(newVal) => setItemSalesList(prev => prev.map(item => {
+                              if (item.itemCode === row.itemCode) {
+                                const newQty = parseInt(newVal, 10) || 0;
+                                return { ...item, totalQty: newQty, salesAmount: newQty * item.rate };
+                              }
+                              return item;
+                            }))}
+                          />
+                          <SheetsEditableCell
+                            value={row.rate}
+                            type="number"
+                            cellStyle={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: '#cbd5e1' }}
+                            onSave={(newVal) => setItemSalesList(prev => prev.map(item => {
+                              if (item.itemCode === row.itemCode) {
+                                const newRate = parseFloat(newVal) || 0;
+                                return { ...item, rate: newRate, salesAmount: item.totalQty * newRate };
+                              }
+                              return item;
+                            }))}
+                          />
+                          <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#34d399' }}>
+                            ₹{currentSalesAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: 'var(--text-muted)' }}>
+                            {costPct}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', color: 'var(--gold-champagne)', fontWeight: 600 }}>
+                            {marginPct}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
                     <tfoot style={{ position: 'sticky', bottom: 0, zIndex: 5, background: 'rgb(25, 30, 50)' }}>
                       <tr style={{ borderTop: '2px solid rgba(212, 175, 55, 0.4)', fontWeight: 800 }}>
                         <td colSpan={4} style={{ padding: '0.85rem', color: 'var(--gold-glow)' }}>

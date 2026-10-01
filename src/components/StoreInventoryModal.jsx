@@ -118,6 +118,7 @@ export default function StoreInventoryModal({
     { id: 4, name: 'Pooja Grocery & Spices Wholesale', cat: 'Basmati Rice, Dal, Edible Oil, Spices', contact: 'Suresh Agarwal (+91 94370 22105)', supplies: 35900, paid: 20000 },
     { id: 5, name: 'Rayagada Commercial Gas Agency', cat: 'Commercial 19kg LPG Cylinders', contact: 'Delivery Desk (+91 06856 22214)', supplies: 12450, paid: 7400 }
   ]);
+  const [isStoreEditMode, setIsStoreEditMode] = useState(true);
 
   // Sync live D1 store purchases and kitchen requisitions on open
   useEffect(() => {
@@ -325,6 +326,29 @@ export default function StoreInventoryModal({
               <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: '1px solid #10b981' }}>
                 FOOD COST CONTROL
               </span>
+              <button
+                type="button"
+                onClick={() => setIsStoreEditMode(prev => !prev)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: isStoreEditMode ? '#10b981' : '#475569',
+                  color: '#ffffff',
+                  border: 'none',
+                  boxShadow: isStoreEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'uppercase'
+                }}
+                title="Toggle Live Spreadsheet Edit Mode for Store Inventory Grids"
+              >
+                <span>✏️</span> Live Spreadsheet Edit: <strong>{isStoreEditMode ? 'ACTIVE' : 'OFF'}</strong>
+              </button>
               <h2 style={{ fontSize: '1.3rem', color: '#fff', margin: 0, fontWeight: 700 }}>
                 Store Inventory &amp; Mandi Raw Material Purchases
               </h2>
@@ -740,16 +764,17 @@ export default function StoreInventoryModal({
                 Stock transferred from Main Store to Head Chef Jagabandhu Sahu to prevent raw material pilferage.
               </p>
 
+              <SheetsToolbarLegend isEditMode={isStoreEditMode} style={{ marginBottom: '0.6rem' }} />
               <div className="enterprise-data-table-container">
                 <table className="enterprise-data-table sheets-grid-table">
                   <thead>
                     <tr>
-                      <th style={{ padding: '0.75rem 1rem' }}>Requisition #</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Date</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Raw Material Item</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Quantity Issued</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Est. Cost (₹)</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Issued To</th>
+                      <th style={{ padding: '0.75rem 1rem' }}><SheetsColumnHeader label="Requisition #" type="locked" /></th>
+                      <th style={{ padding: '0.75rem 1rem' }}><SheetsColumnHeader label="Date" type="locked" /></th>
+                      <th style={{ padding: '0.75rem 1rem' }}><SheetsColumnHeader label="Raw Material Item" type="editable" /></th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}><SheetsColumnHeader label="Quantity Issued" type="editable" align="center" /></th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}><SheetsColumnHeader label="Est. Cost (₹)" type="editable" align="right" /></th>
+                      <th style={{ padding: '0.75rem 1rem' }}><SheetsColumnHeader label="Issued To" type="editable" /></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -757,14 +782,30 @@ export default function StoreInventoryModal({
                       <tr key={r.requisitionId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                         <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fbbf24' }}>{r.requisitionId}</td>
                         <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issueDate || r.date}</td>
-                        <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fff' }}>{r.itemName}</td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'center', color: '#38bdf8', fontWeight: 600 }}>
-                          {r.quantityIssued || r.quantity} {r.unit}
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>
-                          ₹{Number(r.approxCost || 0).toFixed(2)}
-                        </td>
-                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.issuedTo}</td>
+                        <SheetsEditableCell
+                          value={r.itemName}
+                          type="text"
+                          cellStyle={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#fff' }}
+                          onSave={(newVal) => setRequisitions(prev => prev.map(rec => rec.requisitionId === r.requisitionId ? { ...rec, itemName: newVal } : rec))}
+                        />
+                        <SheetsEditableCell
+                          value={r.quantityIssued || r.quantity}
+                          type="text"
+                          cellStyle={{ padding: '0.85rem 1rem', textAlign: 'center', color: '#38bdf8', fontWeight: 600 }}
+                          onSave={(newVal) => setRequisitions(prev => prev.map(rec => rec.requisitionId === r.requisitionId ? { ...rec, quantityIssued: newVal, quantity: newVal } : rec))}
+                        />
+                        <SheetsEditableCell
+                          value={Number(r.approxCost || 0)}
+                          type="number"
+                          cellStyle={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#34d399', fontWeight: 600 }}
+                          onSave={(newVal) => setRequisitions(prev => prev.map(rec => rec.requisitionId === r.requisitionId ? { ...rec, approxCost: parseFloat(newVal) || 0 } : rec))}
+                        />
+                        <SheetsEditableCell
+                          value={r.issuedTo}
+                          type="text"
+                          cellStyle={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}
+                          onSave={(newVal) => setRequisitions(prev => prev.map(rec => rec.requisitionId === r.requisitionId ? { ...rec, issuedTo: newVal } : rec))}
+                        />
                       </tr>
                     ))}
                   </tbody>

@@ -19,7 +19,7 @@ import {
 } from '../utils/g3RmsEngine';
 import { CORPORATE_PARTNERS } from '../data/hotelData';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
-import { SheetsEditableCell } from './UniversalInlineEditor';
+import { SheetsColumnHeader, SheetsToolbarLegend, SheetsEditableCell } from './UniversalInlineEditor';
 
 export default function RevenueManagementModal({
   isOpen,
@@ -127,8 +127,30 @@ export default function RevenueManagementModal({
   const [rfpHotelOcc, setRfpHotelOcc] = useState(78);
   const [rfpBanquetSpend, setRfpBanquetSpend] = useState(35000);
   const [rfpHallRental, setRfpHallRental] = useState(15000);
-  const [savedRfps, setSavedRfps] = useState([]);
+  const [savedRfps, setSavedRfps] = useState([
+    {
+      id: 'RFP-2026-0901',
+      companyName: 'Ashok Leyland Limited',
+      rooms: 12,
+      nights: 3,
+      offeredRate: 2150,
+      mar: 1980,
+      netGain: 6120,
+      verdict: 'RECOMMENDED ACCEPT'
+    },
+    {
+      id: 'RFP-2026-0902',
+      companyName: 'JK Paper Mills Ltd',
+      rooms: 16,
+      nights: 2,
+      offeredRate: 1800,
+      mar: 1920,
+      netGain: -3840,
+      verdict: 'REJECT / COUNTER-OFFER'
+    }
+  ]);
   const [compSetList, setCompSetList] = useState(RAYAGADA_COMP_SET);
+  const [isRmsEditMode, setIsRmsEditMode] = useState(true);
 
   // The Investigator State
   const [investigatorTier, setInvestigatorTier] = useState('standard-deluxe');
@@ -314,6 +336,29 @@ export default function RevenueManagementModal({
               }}>
                 TAJ & ACCOR STANDARD
               </span>
+              <button
+                type="button"
+                onClick={() => setIsRmsEditMode(prev => !prev)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: isRmsEditMode ? '#10b981' : '#475569',
+                  color: '#ffffff',
+                  border: 'none',
+                  boxShadow: isRmsEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'uppercase'
+                }}
+                title="Toggle Live Spreadsheet Edit Mode for RMS Grids"
+              >
+                <span>✏️</span> Live Spreadsheet Edit: <strong>{isRmsEditMode ? 'ACTIVE' : 'OFF'}</strong>
+              </button>
             </div>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
               Autonomous continuous dynamic micro-rate yielding, corporate RFP MAR solver, and unconstrained demand modeling for Hotel Sai International (40 Rooms).
@@ -1426,17 +1471,18 @@ export default function RevenueManagementModal({
                   <div style={{ fontWeight: 800, color: '#f8fafc', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
                     📋 Evaluated RFPs History (Audit Trail)
                   </div>
+                  <SheetsToolbarLegend isEditMode={isRmsEditMode} style={{ marginBottom: '0.6rem' }} />
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', textAlign: 'left' }}>
-                          <th style={{ padding: '0.5rem' }}>RFP ID</th>
-                          <th style={{ padding: '0.5rem' }}>Corporate Partner</th>
-                          <th style={{ padding: '0.5rem' }}>Rooms/Nights</th>
-                          <th style={{ padding: '0.5rem' }}>Offered Rate</th>
-                          <th style={{ padding: '0.5rem' }}>Breakeven MAR</th>
-                          <th style={{ padding: '0.5rem' }}>Net Impact</th>
-                          <th style={{ padding: '0.5rem' }}>Verdict</th>
+                          <th style={{ padding: '0.5rem' }}><SheetsColumnHeader label="RFP ID" type="locked" /></th>
+                          <th style={{ padding: '0.5rem' }}><SheetsColumnHeader label="Corporate Partner" type="locked" /></th>
+                          <th style={{ padding: '0.5rem' }}><SheetsColumnHeader label="Rooms/Nights" type="locked" /></th>
+                          <th style={{ padding: '0.5rem' }}><SheetsColumnHeader label="Offered Rate" type="editable" /></th>
+                          <th style={{ padding: '0.5rem' }}><SheetsColumnHeader label="Breakeven MAR" type="locked" /></th>
+                          <th style={{ padding: '0.5rem' }}><SheetsColumnHeader label="Net Impact" type="formula" /></th>
+                          <th style={{ padding: '0.5rem' }}><SheetsColumnHeader label="Verdict" type="locked" /></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1445,7 +1491,26 @@ export default function RevenueManagementModal({
                             <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: 'var(--gold-glow)' }}>{r.id}</td>
                             <td style={{ padding: '0.5rem', fontWeight: 700 }}>{r.companyName}</td>
                             <td style={{ padding: '0.5rem' }}>{r.rooms} rms × {r.nights} nts</td>
-                            <td style={{ padding: '0.5rem' }}>₹{r.offeredRate}</td>
+                            <SheetsEditableCell
+                              value={r.offeredRate}
+                              type="number"
+                              cellStyle={{ padding: '0.5rem' }}
+                              onSave={(newVal) => {
+                                const rateVal = parseFloat(newVal) || 0;
+                                setSavedRfps(prev => prev.map(rec => {
+                                  if (rec.id === r.id) {
+                                    const netGain = (rateVal - rec.mar) * rec.rooms * rec.nights;
+                                    return {
+                                      ...rec,
+                                      offeredRate: rateVal,
+                                      netGain,
+                                      verdict: rateVal >= rec.mar ? 'RECOMMENDED ACCEPT' : 'REJECT / COUNTER-OFFER'
+                                    };
+                                  }
+                                  return rec;
+                                }));
+                              }}
+                            />
                             <td style={{ padding: '0.5rem', fontWeight: 700, color: 'var(--gold-glow)' }}>₹{r.mar}</td>
                             <td style={{ padding: '0.5rem', color: r.netGain >= 0 ? '#34d399' : '#f87171', fontWeight: 700 }}>
                               {r.netGain >= 0 ? '+' : ''}₹{r.netGain}
@@ -1883,16 +1948,17 @@ export default function RevenueManagementModal({
                   </div>
                 </div>
 
+                <SheetsToolbarLegend isEditMode={isRmsEditMode} style={{ marginBottom: '0.6rem' }} />
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', textAlign: 'left' }}>
-                        <th style={{ padding: '0.65rem' }}>Property Name</th>
-                        <th style={{ padding: '0.65rem' }}>Standard Rate</th>
-                        <th style={{ padding: '0.65rem' }}>Executive Rate</th>
-                        <th style={{ padding: '0.65rem' }}>Est. Occupancy</th>
-                        <th style={{ padding: '0.65rem' }}>Comp Weight</th>
-                        <th style={{ padding: '0.65rem' }}>HSI Spread Target</th>
+                        <th style={{ padding: '0.65rem' }}><SheetsColumnHeader label="Property Name" type="locked" /></th>
+                        <th style={{ padding: '0.65rem', textAlign: 'right' }}><SheetsColumnHeader label="Standard Rate" type="editable" align="right" /></th>
+                        <th style={{ padding: '0.65rem', textAlign: 'right' }}><SheetsColumnHeader label="Executive Rate" type="editable" align="right" /></th>
+                        <th style={{ padding: '0.65rem', textAlign: 'center' }}><SheetsColumnHeader label="Est. Occupancy" type="editable" align="center" /></th>
+                        <th style={{ padding: '0.65rem' }}><SheetsColumnHeader label="Comp Weight" type="locked" /></th>
+                        <th style={{ padding: '0.65rem' }}><SheetsColumnHeader label="HSI Spread Target" type="formula" /></th>
                       </tr>
                     </thead>
                     <tbody>

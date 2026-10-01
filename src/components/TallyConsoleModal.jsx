@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
-import { SheetsEditableCell } from './UniversalInlineEditor';
+import { SheetsColumnHeader, SheetsToolbarLegend, SheetsEditableCell } from './UniversalInlineEditor';
 
 export const DEFAULT_CHART_OF_ACCOUNTS = [
   // Cash & Bank
@@ -127,6 +127,7 @@ export default function TallyConsoleModal({
   const [ledgers, setLedgers] = useState(DEFAULT_CHART_OF_ACCOUNTS);
   const [vouchers, setVouchers] = useState(INITIAL_DAYBOOK_VOUCHERS);
   const [selectedVoucherForView, setSelectedVoucherForView] = useState(null);
+  const [isTallyEditMode, setIsTallyEditMode] = useState(true);
 
   const parseDateToIso = (dStr) => {
     if (!dStr || typeof dStr !== 'string') return null;
@@ -535,6 +536,29 @@ export default function TallyConsoleModal({
           <span style={{ backgroundColor: '#f59e0b', color: '#000', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 900 }}>
             TALLY PRIME CONSOLE
           </span>
+          <button
+            type="button"
+            onClick={() => setIsTallyEditMode(prev => !prev)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              background: isTallyEditMode ? '#10b981' : '#475569',
+              color: '#ffffff',
+              border: 'none',
+              boxShadow: isTallyEditMode ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+              transition: 'all 0.2s ease',
+              textTransform: 'uppercase'
+            }}
+            title="Toggle Live Spreadsheet Edit Mode for Tally Grids"
+          >
+            <span>✏️</span> Live Spreadsheet Edit: <strong>{isTallyEditMode ? 'ACTIVE' : 'OFF'}</strong>
+          </button>
           <span>Gateway of Tally • {HOTEL_CONFIG.legalName} • FY 2026-2027</span>
         </div>
 
@@ -1017,14 +1041,15 @@ export default function TallyConsoleModal({
                 backgroundColor: '#07162c',
                 overflowY: 'auto'
               }}>
+                <SheetsToolbarLegend isEditMode={isTallyEditMode} style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#0c2240', borderBottom: '2px solid #0284c7', color: '#38bdf8' }}>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 80 }}>By / To</th>
-                      <th style={{ padding: '0.6rem 0.8rem' }}>Particulars (Account / Ledger)</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 140, textAlign: 'right' }}>Debit (₹)</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 140, textAlign: 'right' }}>Credit (₹)</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 60, textAlign: 'center' }}>Act</th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 90 }}><SheetsColumnHeader label="By / To" type="locked" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}><SheetsColumnHeader label="Particulars (Account / Ledger)" type="editable" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 140, textAlign: 'right' }}><SheetsColumnHeader label="Debit (₹)" type="editable" align="right" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 140, textAlign: 'right' }}><SheetsColumnHeader label="Credit (₹)" type="editable" align="right" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 70, textAlign: 'center' }}><SheetsColumnHeader label="Act" type="locked" align="center" /></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1385,14 +1410,15 @@ export default function TallyConsoleModal({
                 backgroundColor: '#07162c',
                 overflowY: 'auto'
               }}>
+                <SheetsToolbarLegend isEditMode={isTallyEditMode} style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#0c2240', borderBottom: '2px solid #0284c7', color: '#38bdf8' }}>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 100 }}>Date</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 160 }}>Voucher No</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 90 }}>Type</th>
-                      <th style={{ padding: '0.6rem 0.8rem' }}>Particulars / Ledger Breakdown</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 120, textAlign: 'right' }}>Total (₹)</th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 110 }}><SheetsColumnHeader label="Date" type="editable" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 160 }}><SheetsColumnHeader label="Voucher No" type="locked" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 90 }}><SheetsColumnHeader label="Type" type="locked" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}><SheetsColumnHeader label="Particulars / Ledger Breakdown" type="locked" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 120, textAlign: 'right' }}><SheetsColumnHeader label="Total (₹)" type="formula" align="right" /></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1497,36 +1523,57 @@ export default function TallyConsoleModal({
                 backgroundColor: '#07162c',
                 overflowY: 'auto'
               }}>
+                <SheetsToolbarLegend isEditMode={isTallyEditMode} style={{ margin: '0.4rem 0.6rem 0.6rem 0.6rem' }} />
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#0c2240', borderBottom: '2px solid #0284c7', color: '#38bdf8' }}>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 90 }}>Code</th>
-                      <th style={{ padding: '0.6rem 0.8rem' }}>Ledger Account Name</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 180 }}>Parent Group</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 130, textAlign: 'right' }}>Closing Balance</th>
-                      <th style={{ padding: '0.6rem 0.8rem', width: 70, textAlign: 'center' }}>Dr/Cr</th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 90 }}><SheetsColumnHeader label="Code" type="locked" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}><SheetsColumnHeader label="Ledger Account Name" type="editable" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 180 }}><SheetsColumnHeader label="Parent Group" type="editable" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 140, textAlign: 'right' }}><SheetsColumnHeader label="Closing Balance" type="editable" align="right" /></th>
+                      <th style={{ padding: '0.6rem 0.8rem', width: 80, textAlign: 'center' }}><SheetsColumnHeader label="Dr/Cr" type="editable" align="center" /></th>
                     </tr>
                   </thead>
                   <tbody>
                     {ledgers.map(l => (
                       <tr key={l.id} style={{ borderBottom: '1px solid #1e293b' }}>
                         <td style={{ padding: '0.5rem 0.8rem', color: '#94a3b8' }}>{l.id}</td>
-                        <td style={{ padding: '0.5rem 0.8rem', color: '#fff', fontWeight: 700 }}>{l.name}</td>
-                        <td style={{ padding: '0.5rem 0.8rem', color: '#f59e0b' }}>{l.group}</td>
-                        <td style={{ padding: '0.5rem 0.8rem', textAlign: 'right', fontWeight: 700, color: '#f8fafc' }}>
-                          ₹{l.balance.toFixed(2)}
-                        </td>
+                        <SheetsEditableCell
+                          value={l.name}
+                          type="text"
+                          cellStyle={{ padding: '0.5rem 0.8rem', color: '#fff', fontWeight: 700 }}
+                          onSave={(newVal) => setLedgers(prev => prev.map(rec => rec.id === l.id ? { ...rec, name: newVal } : rec))}
+                        />
+                        <SheetsEditableCell
+                          value={l.group}
+                          type="text"
+                          cellStyle={{ padding: '0.5rem 0.8rem', color: '#f59e0b' }}
+                          onSave={(newVal) => setLedgers(prev => prev.map(rec => rec.id === l.id ? { ...rec, group: newVal } : rec))}
+                        />
+                        <SheetsEditableCell
+                          value={l.balance}
+                          type="number"
+                          cellStyle={{ padding: '0.5rem 0.8rem', textAlign: 'right', fontWeight: 700, color: '#f8fafc' }}
+                          onSave={(newVal) => setLedgers(prev => prev.map(rec => rec.id === l.id ? { ...rec, balance: parseFloat(newVal) || 0 } : rec))}
+                        />
                         <td style={{ padding: '0.5rem 0.8rem', textAlign: 'center' }}>
-                          <span style={{
-                            backgroundColor: l.type === 'Dr' ? '#1e3a8a' : '#14532d',
-                            color: '#fff',
-                            padding: '0.1rem 0.4rem',
-                            borderRadius: 3,
-                            fontSize: '0.72rem',
-                            fontWeight: 700
-                          }}>
+                          <button
+                            type="button"
+                            onClick={() => setLedgers(prev => prev.map(rec => rec.id === l.id ? { ...rec, type: rec.type === 'Dr' ? 'Cr' : 'Dr' } : rec))}
+                            style={{
+                              backgroundColor: l.type === 'Dr' ? '#1e3a8a' : '#14532d',
+                              color: '#fff',
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: 3,
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              border: 'none',
+                              cursor: 'pointer'
+                            }}
+                            title="Click to toggle Dr / Cr"
+                          >
                             {l.type}
-                          </span>
+                          </button>
                         </td>
                       </tr>
                     ))}
