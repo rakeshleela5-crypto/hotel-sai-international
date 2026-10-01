@@ -454,7 +454,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
     <div className="official-invoice-overlay" onClick={onClose}>
       <div 
         ref={receiptContainerRef} 
-        className={'official-invoice-modal-content no-inline-edit'} 
+        className={'official-invoice-modal-content'} 
         style={{ maxWidth: 1040, width: '100%', position: 'relative' }} 
         onClick={(e) => e.stopPropagation()}
       >
