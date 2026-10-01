@@ -1168,6 +1168,56 @@ button:focus-visible, .btn:focus-visible {
   border: 1px solid #d1d5db;
 }
 
+/* ==========================================================================
+   INVOICE GRID LIGHT MODE (Overrides global dark mode sheets-grid-table)
+   ========================================================================== */
+.tax-invoice-sheet .sheets-grid-table thead tr {
+  background: #f1f5f9 !important;
+  border-bottom: 2px solid #000 !important;
+  box-shadow: none !important;
+}
+
+.tax-invoice-sheet .sheets-grid-table th {
+  background: #f1f5f9 !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-bottom: 2px solid #000 !important;
+}
+
+.tax-invoice-sheet .sheets-grid-table th:hover {
+  background: #e2e8f0 !important;
+}
+
+.tax-invoice-sheet .sheets-grid-table td {
+  border: 1px solid #000 !important;
+  color: #000 !important;
+}
+
+.tax-invoice-sheet .sheets-grid-table tbody tr:nth-child(odd) td,
+.tax-invoice-sheet .sheets-grid-table tbody tr:nth-child(even) td {
+  background: #fff !important;
+}
+
+.tax-invoice-sheet .sheets-grid-table tbody tr:hover td {
+  background: #fff !important; /* disable tr hover in invoice */
+}
+
+/* Make toolbar legend blend into the white invoice document */
+.tax-invoice-sheet .sheets-toolbar-legend {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-bottom: none !important;
+  color: #334155 !important;
+}
+
+.tax-invoice-sheet .sheets-toolbar-legend strong {
+  color: #0f172a !important;
+}
+
+.tax-invoice-sheet .sheets-toolbar-legend span[style*="color:'#fff'"] {
+  color: #0f172a !important;
+}
+
 .sheet-header {
   display: flex;
   justify-content: space-between;
@@ -1865,6 +1915,12 @@ td:not(.sheets-editable-cell):not(.no-inline-edit):not([data-no-edit]):hover {
   transition: background-color 0.12s ease, outline 0.12s ease;
 }
 
+/* Explicitly disable hover glow for ANY cell inside a locked container */
+.no-inline-edit td:hover {
+  background-color: inherit !important;
+  cursor: auto !important;
+  outline: none !important;
+}
 /*
  * Active editing state — injected by engine when cell is contentEditable.
  */
