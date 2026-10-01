@@ -1720,19 +1720,45 @@ export default function AccountsLedgerModal({
             fromDate={fomFromDate}
             toDate={fomToDate}
             moduleType={
-              activeTab === 'gst-fom-report' ? 'gst' :
+              activeTab === 'gst-fom-report' || activeTab === 'corp-gst' ? 'gst' :
               activeTab === 'day-book' ? 'daybook' :
               activeTab === 'corp-ledger' ? 'corporate' :
               activeTab === 'tally-erp' ? 'tally' :
-              'accounts'
+              activeTab === 'outstanding' ? 'outstanding' :
+              'daybook'
             }
             auditItems={
-              activeTab === 'gst-fom-report' ? filteredGstRecords :
+              activeTab === 'gst-fom-report' || activeTab === 'corp-gst' ? filteredGstRecords :
               activeTab === 'day-book' ? filteredPettyCashEntries :
               activeTab === 'corp-ledger' ? (corporateLedger[selectedCorporate] || []) :
               activeTab === 'tally-erp' ? (tallyDayBook || []) :
-              []
+              activeTab === 'outstanding' ? [
+                { client: 'Ashok Leyland Rayagada Unit', debit: 214500, credit: 150000, balanceDue: 64500, aging30: 45000, aging60: 19500, status: 'Active' },
+                { client: 'JK Paper Mills Ltd', debit: 185000, credit: 185000, balanceDue: 0, aging30: 0, aging60: 0, status: 'Settled' },
+                { client: 'Utkal Alumina International', debit: 92400, credit: 60000, balanceDue: 32400, aging30: 32400, aging60: 0, status: 'Active' },
+                { client: 'Linde India Industrial Gases', debit: 78900, credit: 40000, balanceDue: 38900, aging30: 18900, aging60: 20000, status: 'Active' }
+              ] :
+              filteredPettyCashEntries
             }
+            onUpdateItem={(item, field, newVal) => {
+              if (activeTab === 'gst-fom-report' || activeTab === 'corp-gst') {
+                setGstFomRecords(prev => prev.map(r => (r.billNo === item.billNo || r.id === item.id || r.invoiceNo === item.invoiceNo) ? { ...r, [field]: newVal } : r));
+              } else if (activeTab === 'day-book') {
+                setPettyCashEntries(prev => prev.map(e => (e.voucher === item.voucher || e.id === item.id) ? { ...e, [field]: newVal } : e));
+              } else if (activeTab === 'corp-ledger') {
+                setCorporateLedger(prev => {
+                  if (Array.isArray(prev)) {
+                    return prev.map(c => c.id === item.id ? { ...c, [field]: newVal } : c);
+                  } else if (prev && prev[selectedCorporate]) {
+                    return {
+                      ...prev,
+                      [selectedCorporate]: prev[selectedCorporate].map(c => c.id === item.id ? { ...c, [field]: newVal } : c)
+                    };
+                  }
+                  return prev;
+                });
+              }
+            }}
             onDateChange={(from, to) => {
               setFomFromDate(from);
               setFomToDate(to);

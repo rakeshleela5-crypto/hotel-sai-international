@@ -29,7 +29,8 @@ export default function UniversalDateFilterBar({
   moduleType = null,
   columns = null,
   kpis = null,
-  subtitle = ""
+  subtitle = "",
+  onUpdateItem = null
 }) {
   const [internalFrom, setInternalFrom] = useState(fromDate || new Date().toISOString().slice(0, 10));
   const [internalTo, setInternalTo] = useState(toDate || new Date().toISOString().slice(0, 10));
@@ -447,6 +448,7 @@ export default function UniversalDateFilterBar({
         onExportCSV={onExportCSV}
         onExportExcel={onExportExcel}
         onPrint={onPrint}
+        onUpdateItem={onUpdateItem}
       />
     </div>
   );

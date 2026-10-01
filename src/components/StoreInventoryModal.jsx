@@ -445,8 +445,61 @@ export default function StoreInventoryModal({
           <UniversalDateFilterBar
             fromDate={filterFromDate}
             toDate={filterToDate}
-            moduleType="store"
-            auditItems={activeTab === 'purchases' ? filteredPurchases : filteredRequisitions}
+            moduleType={
+              activeTab === 'purchases' ? 'store' :
+              activeTab === 'requisitions' ? 'store-requisitions' :
+              activeTab === 'vendor-payables' ? 'store-vendors' :
+              activeTab === 'recipe-bom' ? 'store-bom' :
+              'store'
+            }
+            auditItems={
+              activeTab === 'purchases' ? filteredPurchases :
+              activeTab === 'requisitions' ? filteredRequisitions :
+              activeTab === 'vendor-payables' ? vendorBalances.map(v => ({
+                id: v.id,
+                vendor: v.vendor,
+                vendorName: v.vendor,
+                category: v.category || 'General Supplies',
+                terms: 'Net 15 Days',
+                totalInvoiced: v.supplies || 0,
+                amountPaid: v.paid || 0,
+                balanceDue: (v.supplies || 0) - (v.paid || 0),
+                status: ((v.supplies || 0) - (v.paid || 0)) > 0 ? 'Pending' : 'Settled'
+              })) :
+              activeTab === 'recipe-bom' ? recipeBom.map(b => ({
+                id: b.id,
+                dishName: b.dishName || b.dish,
+                itemName: b.dishName || b.dish,
+                category: b.category || 'Kitchen F&B',
+                portionYield: b.portionYield || '1 Portion',
+                rawIngredients: b.ingredientsSummary || b.rawIngredients || (b.ingredients || []).map(i => i.name).join(', '),
+                baseCost: b.cost || b.baseCost || 0,
+                sellingPrice: b.price || b.sellingPrice || 0,
+                status: 'Active'
+              })) :
+              filteredPurchases
+            }
+            onUpdateItem={(item, field, newVal) => {
+              if (activeTab === 'purchases') {
+                setPurchases(prev => prev.map(p => (p.purchaseId === item.purchaseId || p.id === item.id) ? { ...p, [field]: newVal } : p));
+              } else if (activeTab === 'requisitions') {
+                setRequisitions(prev => prev.map(r => (r.requisitionId === item.requisitionId || r.id === item.id) ? { ...r, [field]: newVal } : r));
+              } else if (activeTab === 'vendor-payables') {
+                setVendorBalances(prev => prev.map(v => (v.id === item.id || v.vendor === item.vendor) ? {
+                  ...v,
+                  [field]: field === 'amountPaid' || field === 'totalInvoiced' || field === 'balanceDue' ? Number(newVal) : newVal,
+                  paid: field === 'amountPaid' ? Number(newVal) : v.paid,
+                  supplies: field === 'totalInvoiced' ? Number(newVal) : v.supplies
+                } : v));
+              } else if (activeTab === 'recipe-bom') {
+                setRecipeBom(prev => prev.map(b => (b.id === item.id || b.dishName === item.dishName) ? {
+                  ...b,
+                  [field]: field === 'baseCost' || field === 'sellingPrice' ? Number(newVal) : newVal,
+                  cost: field === 'baseCost' ? Number(newVal) : b.cost,
+                  price: field === 'sellingPrice' ? Number(newVal) : b.price
+                } : b));
+              }
+            }}
             onDateChange={(from, to) => {
               setFilterFromDate(from);
               setFilterToDate(to);
@@ -457,8 +510,18 @@ export default function StoreInventoryModal({
               setIsDateFilterActive(true);
             }}
             title={`STORE INVENTORY & PURCHASING (${activeTab.toUpperCase()})`}
-            totalCount={activeTab === 'purchases' ? filteredPurchases.length : filteredRequisitions.length}
-            totalAmount={activeTab === 'purchases' ? filteredPurchases.reduce((s, p) => s + p.totalAmount, 0) : filteredRequisitions.reduce((s, r) => s + (r.approxCost || 0), 0)}
+            totalCount={
+              activeTab === 'purchases' ? filteredPurchases.length :
+              activeTab === 'requisitions' ? filteredRequisitions.length :
+              activeTab === 'vendor-payables' ? vendorBalances.length :
+              recipeBom.length
+            }
+            totalAmount={
+              activeTab === 'purchases' ? filteredPurchases.reduce((s, p) => s + p.totalAmount, 0) :
+              activeTab === 'requisitions' ? filteredRequisitions.reduce((s, r) => s + (r.approxCost || 0), 0) :
+              activeTab === 'vendor-payables' ? vendorBalances.reduce((s, v) => s + ((v.supplies || 0) - (v.paid || 0)), 0) :
+              recipeBom.reduce((s, b) => s + (b.cost || 0), 0)
+            }
             onExportCSV={() => {
               let csv = "";
               if (activeTab === 'purchases') {

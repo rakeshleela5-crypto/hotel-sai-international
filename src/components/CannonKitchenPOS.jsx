@@ -1191,6 +1191,9 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                     setIsSalesDateFilterActive(true);
                   }}
                   title="CANNON KITCHEN ORDER TRACKER &amp; KDS REGISTER"
+                  onUpdateItem={(item, field, newVal) => {
+                    setCurrentOrders(prev => prev.map(o => (o.id === item.id || o.orderId === item.orderId) ? { ...o, [field]: newVal } : o));
+                  }}
                   totalCount={currentOrders.length}
                   totalAmount={currentOrders.reduce((sum, o) => sum + (o.items?.reduce((s, it) => s + (it.price * it.quantity), 0) || 0), 0)}
                   onExportCSV={() => window.print()}
@@ -4250,6 +4253,9 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   setIsSalesDateFilterActive(true);
                 }}
                 title="KITCHEN ITEM CONSUMPTION & SALES REGISTER"
+                onUpdateItem={(item, field, newVal) => {
+                  setDailySalesItems(prev => prev.map(it => it.code === item.code ? { ...it, [field]: newVal } : it));
+                }}
                 totalCount={446}
                 totalAmount={70015}
                 onExportCSV={handleDownloadDailySalesCSV}

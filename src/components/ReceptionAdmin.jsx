@@ -2668,6 +2668,12 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         ))}
       </div>
 
+      {/* Universal Two-Way Item Update Handler for Pop-Up Modal */}
+      {(() => {
+        // Define inline handler for this component scope
+        return null;
+      })()}
+
       {/* AUTHENTIC MYSOFT DATE SELECTION COMMAND BAR (Universal across audit tabs, embedded directly inside Master Tabular Ledger for Tape Chart) */}
       {activeTab !== 'tape-chart' && (
         <UniversalDateFilterBar
@@ -2679,7 +2685,12 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             activeTab === 'lost-and-found' ? 'lost-found' :
             activeTab === 'maintenance-ooo' ? 'maintenance' :
             activeTab === 'transit-dayuse' ? 'transit' :
-            null
+            activeTab === 'shift-logbook' ? 'shift-logbook' :
+            activeTab === 'housekeeping' ? 'housekeeping' :
+            activeTab === 'visualize-bookings' ? 'bookings' :
+            activeTab === 'occupancy-report' ? 'occupancy' :
+            activeTab === 'dpdp' ? 'dpdp' :
+            'rooms'
           }
           auditItems={
             activeTab === 'police-register' ? filteredBookings :
@@ -2687,9 +2698,89 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             activeTab === 'lost-and-found' ? filteredLostAndFound :
             activeTab === 'maintenance-ooo' ? filteredMaintenance :
             activeTab === 'transit-dayuse' ? filteredTransitStays :
-            null
+            activeTab === 'shift-logbook' ? [
+              { id: 'shift-morning', shift: 'Morning Shift', shiftLead: shiftLogbook?.morning?.shiftLead || 'Sudhakar Reddy', openingCash: shiftLogbook?.morning?.openingCash || 33500, shiftCashCollected: shiftLogbook?.morning?.shiftCashCollected || 4866, shiftUpiCollected: shiftLogbook?.morning?.shiftUpiCollected || 20790, handoverSigned: shiftLogbook?.morning?.handoverSigned ? 'Signed' : 'Pending', signedAt: shiftLogbook?.morning?.signedAt || '03:00 PM' },
+              { id: 'shift-evening', shift: 'Evening Shift', shiftLead: shiftLogbook?.evening?.shiftLead || 'Koti Rao', openingCash: shiftLogbook?.evening?.openingCash || 38366, shiftCashCollected: shiftLogbook?.evening?.shiftCashCollected || 3200, shiftUpiCollected: shiftLogbook?.evening?.shiftUpiCollected || 14500, handoverSigned: shiftLogbook?.evening?.handoverSigned ? 'Signed' : 'Pending', signedAt: shiftLogbook?.evening?.signedAt || '11:00 PM' },
+              { id: 'shift-night', shift: 'Night Shift', shiftLead: shiftLogbook?.night?.shiftLead || 'Deepak Kumar', openingCash: shiftLogbook?.night?.openingCash || 41566, shiftCashCollected: shiftLogbook?.night?.shiftCashCollected || 0, shiftUpiCollected: shiftLogbook?.night?.shiftUpiCollected || 0, handoverSigned: shiftLogbook?.night?.handoverSigned ? 'Signed' : 'Pending', signedAt: shiftLogbook?.night?.signedAt || '06:00 AM' }
+            ] :
+            activeTab === 'housekeeping' ? rooms.map(r => ({
+              id: `hk-${r.roomNumber}`,
+              roomNumber: r.roomNumber,
+              floor: r.floor,
+              tier: r.tier,
+              status: r.effectiveStatus || r.status,
+              attendant: r.assignedAttendant || (r.floor === 1 ? 'Laxmi Gouda' : r.floor === 2 ? 'Kailash Sabar' : 'Suresh Majhi'),
+              inspectionStatus: (r.effectiveStatus || r.status) === 'Available' ? 'Inspected' : 'Pending',
+              linenStatus: 'Par Replaced'
+            })) :
+            activeTab === 'visualize-bookings' ? filteredBookings :
+            activeTab === 'occupancy-report' ? (filteredRooms.length > 0 ? filteredRooms : projectedRooms) :
+            activeTab === 'dpdp' ? filteredBookings.map(b => ({
+              id: b.id || b.bookingId,
+              guestName: b.guestName || b.guest_name,
+              phone: b.guestPhone || b.guest_phone,
+              idProofMasked: b.idProofMasked || b.id_proof_masked || 'XXXX-XXXX-1234',
+              consentStatus: 'Explicit Granted'
+            })) :
+            (filteredRooms.length > 0 ? filteredRooms : projectedRooms)
           }
-          auditRooms={activeTab === 'tape-chart' ? projectedRooms : []}
+          auditRooms={filteredRooms.length > 0 ? filteredRooms : projectedRooms}
+          onUpdateItem={(item, field, newVal) => {
+            // 1. Room Ledger / Status updates
+            if (item.roomNumber && onUpdateRoomStatus) {
+              if (field === 'status' || field === 'effectiveStatus') {
+                onUpdateRoomStatus(item.roomNumber, newVal, item.effectiveGuestName || item.guestName);
+              } else if (field === 'guestName' || field === 'effectiveGuestName') {
+                onUpdateRoomStatus(item.roomNumber, item.effectiveStatus || item.status || 'Occupied', newVal);
+              }
+            }
+            // 2. Bookings updates
+            if (activeTab === 'police-register' || activeTab === 'visualize-bookings' || activeTab === 'dpdp') {
+              if (onUpdateBooking && (item.id || item.bookingId)) {
+                onUpdateBooking({ ...item, [field]: newVal });
+              }
+            }
+            // 3. Cashier settlements updates
+            if (activeTab === 'cashier-audit') {
+              setRecentSettlements(prev => prev.map(s => {
+                if ((s.billNo && s.billNo === item.billNo) || (s.id && s.id === item.id) || (s.roomNumber && s.roomNumber === item.roomNumber)) {
+                  const updated = { ...s, [field]: newVal };
+                  if (['cash', 'upi', 'card', 'cashTender', 'upiTender', 'cardTender'].includes(field)) {
+                    const c = Number(field === 'cash' || field === 'cashTender' ? newVal : (s.tenders?.cash || s.cashTender || 0));
+                    const u = Number(field === 'upi' || field === 'upiTender' ? newVal : (s.tenders?.upi || s.upiTender || 0));
+                    const cd = Number(field === 'card' || field === 'cardTender' ? newVal : (s.tenders?.card || s.cardTender || 0));
+                    updated.totalAmount = c + u + cd;
+                  }
+                  return updated;
+                }
+                return s;
+              }));
+            }
+            // 4. Transit stays
+            if (activeTab === 'transit-dayuse') {
+              setTransitStays(prev => prev.map(t => (t.id === item.id || t.roomNumber === item.roomNumber) ? { ...t, [field]: newVal } : t));
+            }
+            // 5. Lost & Found
+            if (activeTab === 'lost-and-found') {
+              setLostAndFoundItems(prev => prev.map(l => l.id === item.id ? { ...l, [field]: newVal } : l));
+            }
+            // 6. Maintenance
+            if (activeTab === 'maintenance-ooo') {
+              setMaintenanceTickets(prev => prev.map(m => (m.id === item.id || m.ticketId === item.ticketId) ? { ...m, [field]: newVal } : m));
+            }
+            // 7. Shift logbook
+            if (activeTab === 'shift-logbook') {
+              setShiftLogbook(prev => {
+                const shiftKey = (item.shift || '').toLowerCase().includes('morning') ? 'morning' :
+                                 (item.shift || '').toLowerCase().includes('evening') ? 'evening' : 'night';
+                if (prev[shiftKey]) {
+                  return { ...prev, [shiftKey]: { ...prev[shiftKey], [field]: newVal } };
+                }
+                return prev;
+              });
+            }
+            setFeedbackToast(`✏️ Updated ${field} to "${newVal}" in ${activeTab.replace(/-/g, ' ')}`);
+          }}
           onDateChange={(from, to) => {
             setFilterFromDate(from);
             setFilterToDate(to);
@@ -2707,13 +2798,16 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             activeTab === 'lost-and-found' ? filteredLostAndFound.length :
             activeTab === 'maintenance-ooo' ? filteredMaintenance.length :
             activeTab === 'transit-dayuse' ? filteredTransitStays.length :
-            null
+            activeTab === 'shift-logbook' ? 3 :
+            activeTab === 'housekeeping' ? rooms.length :
+            activeTab === 'visualize-bookings' ? filteredBookings.length :
+            filteredRooms.length
           }
           totalAmount={
             activeTab === 'cashier-audit' ? filteredSettlements.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0) :
             activeTab === 'transit-dayuse' ? filteredTransitStays.reduce((sum, t) => sum + (t.tariff || 0), 0) :
             activeTab === 'police-register' ? filteredBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.tariff || 0)), 0) :
-            null
+            filteredRooms.reduce((sum, r) => sum + (r.effectiveStatus?.includes('Occupied') ? (r.effectiveTariff || 0) : 0), 0)
           }
           onExportCSV={() => {
             const link = document.createElement("a");
@@ -3511,6 +3605,16 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                     setFeedbackToast(`📋 Master Tabular Room Ledger: Filtered for ${from} to ${to}`);
                   }}
                   title="MASTER TABULAR ROOM LEDGER"
+                  onUpdateItem={(item, field, newVal) => {
+                    if (item.roomNumber && onUpdateRoomStatus) {
+                      if (field === 'status' || field === 'effectiveStatus') {
+                        onUpdateRoomStatus(item.roomNumber, newVal, item.effectiveGuestName || item.guestName);
+                      } else if (field === 'guestName' || field === 'effectiveGuestName') {
+                        onUpdateRoomStatus(item.roomNumber, item.effectiveStatus || item.status || 'Occupied', newVal);
+                      }
+                    }
+                    setFeedbackToast(`✏️ Updated Room ${item.roomNumber} ${field} to "${newVal}"`);
+                  }}
                   totalCount={filteredRooms.length}
                   totalAmount={filteredRooms.reduce((sum, r) => sum + (r.effectiveStatus?.includes('Occupied') ? (r.effectiveTariff || 0) : 0), 0)}
                   extraStats={

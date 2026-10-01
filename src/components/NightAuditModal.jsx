@@ -340,7 +340,8 @@ export default function NightAuditModal({
             toDate={auditToDate}
             moduleType="rooms"
             rooms={rooms}
-            auditItems={transactions}
+            auditRooms={rooms}
+            auditItems={rooms}
             onDateChange={(from, to) => {
               setAuditFromDate(from);
               setAuditToDate(to);
