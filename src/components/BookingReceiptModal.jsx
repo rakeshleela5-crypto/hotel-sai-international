@@ -454,7 +454,7 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
     <div className="official-invoice-overlay" onClick={onClose}>
       <div 
         ref={receiptContainerRef} 
-        className={'official-invoice-modal-content hsi-live-edit-active'} 
+        className={'official-invoice-modal-content no-inline-edit'} 
         style={{ maxWidth: 1040, width: '100%', position: 'relative' }} 
         onClick={(e) => e.stopPropagation()}
       >
@@ -1216,21 +1216,25 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
             </div>
 
             {/* Sheet 1: Explicit Taxable vs Non-Taxable Columns & Dynamic Line Item Editor */}
-            <div className="no-print" style={{ margin: '0.4rem 0' }}>
-              <SheetsToolbarLegend />
+            {/* SheetsToolbarLegend: screen-only, never prints on the statutory invoice */}
+            <div className="no-print" style={{ margin: '0.4rem 0 0.2rem 0' }}>
+              <SheetsToolbarLegend
+                tableName="Consolidated Tax Invoice — Line Items"
+                subtitle="Rule 46 of CGST/OGST Rules, 2017 · Editable line items only"
+              />
             </div>
             <table className="ledger-table sheets-grid-table">
               <thead>
                 <tr>
-                  <th style={{ width: '30px' }}><SheetsColumnHeader label="#" type="locked" align="center" /></th>
-                  <th><SheetsColumnHeader label="Date & Service Particulars" type="editable" /></th>
-                  <th style={{ width: '65px', textAlign: 'center' }}><SheetsColumnHeader label="SAC" type="editable" align="center" /></th>
-                  <th style={{ width: '50px', textAlign: 'center' }}><SheetsColumnHeader label="Qty" type="editable" align="center" /></th>
-                  <th className="th-amount" style={{ width: '85px' }}><SheetsColumnHeader label="Rate (₹)" type="editable" align="right" /></th>
-                  <th className="th-amount" style={{ width: '95px' }}><SheetsColumnHeader label="Taxable Val (₹)" type="formula" align="right" /></th>
-                  <th className="th-amount" style={{ width: '105px' }}><SheetsColumnHeader label="Non-Taxable (₹)" type="editable" align="right" /></th>
-                  <th className="th-amount" style={{ width: '95px' }}><SheetsColumnHeader label="Line Total (₹)" type="formula" align="right" /></th>
-                  {<th style={{ width: '30px' }} className="no-print"><SheetsColumnHeader label="Act" type="locked" align="center" /></th>}
+                  <SheetsColumnHeader title="#" badge="locked" align="center" width="30px" />
+                  <SheetsColumnHeader title="Date & Service Particulars" badge="editable" />
+                  <SheetsColumnHeader title="SAC" badge="editable" align="center" width="65px" />
+                  <SheetsColumnHeader title="Qty" badge="editable" align="center" width="50px" />
+                  <SheetsColumnHeader title="Rate (₹)" badge="editable" align="right" className="th-amount" width="85px" />
+                  <SheetsColumnHeader title="Taxable Val (₹)" badge="formula" align="right" className="th-amount" width="95px" />
+                  <SheetsColumnHeader title="Non-Taxable (₹)" badge="editable" align="right" className="th-amount" width="105px" />
+                  <SheetsColumnHeader title="Line Total (₹)" badge="formula" align="right" className="th-amount" width="95px" />
+                  <SheetsColumnHeader title="Act" badge="locked" align="center" width="30px" className="no-print" />
                 </tr>
               </thead>
               <tbody>
