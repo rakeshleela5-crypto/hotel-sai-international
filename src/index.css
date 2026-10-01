@@ -1157,8 +1157,8 @@ button:focus-visible, .btn:focus-visible {
 }
 
 .tax-invoice-sheet {
-  background: #ffffff;
-  color: #000000;
+  background: #ffffff !important;
+  color: #0f172a !important;
   padding: 24px 28px;
   border-radius: 4px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
@@ -1166,6 +1166,20 @@ button:focus-visible, .btn:focus-visible {
   font-size: 11px;
   line-height: 1.35;
   border: 1px solid #d1d5db;
+}
+
+/* Ensure inputs inherit dark text on the white invoice */
+.tax-invoice-sheet input,
+.tax-invoice-sheet textarea,
+.tax-invoice-sheet select,
+.tax-invoice-sheet [contenteditable="true"] {
+  background: transparent;
+  color: #0f172a !important;
+}
+
+.tax-invoice-sheet select option {
+  background: #ffffff !important;
+  color: #0f172a !important;
 }
 
 /* ==========================================================================
