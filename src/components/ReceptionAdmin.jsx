@@ -2918,24 +2918,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
 
         {/* Operational Modals Shortcuts */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {/* Inline Edit Mode badge — always on, no toggle */}
-          <span
-            style={{
-              background: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              borderRadius: '6px',
-              padding: '5px 12px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              userSelect: 'none'
-            }}
-          >
-            <Edit3 size={13} /> ✏️ Click any cell to edit
-          </span>
+
           <button
             type="button"
             onClick={() => {
