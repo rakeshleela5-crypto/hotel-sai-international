@@ -1199,6 +1199,11 @@ button:focus-visible, .btn:focus-visible {
   white-space: normal !important; /* Allow wrapping to prevent A4 overflow */
 }
 
+/* Force the inner div (which has inline white-space: nowrap) to also wrap */
+.tax-invoice-sheet .sheets-grid-table th > div {
+  white-space: normal !important;
+}
+
 .tax-invoice-sheet .sheets-grid-table th:hover {
   background: #e2e8f0 !important;
 }

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
 import { DigitalKeycard } from '@/components/ui/digital-keycard';
-import { useUniversalInlineEdit, InlineEditorBanner, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
+import { SheetsEditableCell, useUniversalInlineEdit, InlineEditorBanner, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 // Indian Numbering System Converter for Statutory Tax Invoices
 function convertNumberToIndianWords(num) {
@@ -1245,66 +1245,47 @@ ${window.location.origin}/?bill=${billNo}&room=${editHeader.roomNumber || bookin
                     <tr key={item.id || idx}>
                       <td>{idx + 1}</td>
                       <td>
-                        {isLiveEditMode ? (
-                          <div>
-                            <input
-                              type="text"
-                              value={item.desc}
-                              onChange={(e) => handleUpdateLineItem(item.id, 'desc', e.target.value)}
-                              style={{ width: '100%', border: '1px dashed #94a3b8', padding: '2px 4px', fontSize: '10.5px', fontWeight: 'bold' }}
-                            />
-                            <input
-                              type="text"
-                              value={item.subDesc || ''}
-                              onChange={(e) => handleUpdateLineItem(item.id, 'subDesc', e.target.value)}
-                              placeholder="Sub notes / stay details"
-                              style={{ width: '100%', border: '1px dashed #cbd5e1', padding: '1px 4px', fontSize: '9px', color: '#64748b', marginTop: '2px' }}
-                            />
-                          </div>
-                        ) : (
-                          <div>
-                            <strong>{item.desc}</strong>
-                            {item.subDesc && <div style={{ fontSize: '9px', color: '#444' }}>{item.subDesc}</div>}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {isLiveEditMode ? (
-                          <input
-                            type="text"
-                            value={item.sac}
-                            onChange={(e) => handleUpdateLineItem(item.id, 'sac', e.target.value)}
-                            style={{ width: '55px', border: '1px dashed #94a3b8', textAlign: 'center', fontSize: '10px' }}
+                        <SheetsEditableCell
+                          tag="div"
+                          value={item.desc}
+                          onSave={(val) => handleUpdateLineItem(item.id, 'desc', val)}
+                          disabled={!isLiveEditMode}
+                          style={{ width: '100%', fontSize: '10.5px', fontWeight: 'bold' }}
+                        />
+                        {(item.subDesc || isLiveEditMode) && (
+                          <SheetsEditableCell
+                            tag="div"
+                            value={item.subDesc || ''}
+                            onSave={(val) => handleUpdateLineItem(item.id, 'subDesc', val)}
+                            disabled={!isLiveEditMode}
+                            placeholder="Sub notes / stay details"
+                            style={{ width: '100%', fontSize: '9px', color: '#64748b', marginTop: '2px' }}
                           />
-                        ) : (
-                          item.sac
                         )}
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {isLiveEditMode ? (
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.qty}
-                            onChange={(e) => handleUpdateLineItem(item.id, 'qty', e.target.value)}
-                            style={{ width: '45px', border: '1px dashed #94a3b8', textAlign: 'center', fontSize: '10px' }}
-                          />
-                        ) : (
-                          item.qty
-                        )}
-                      </td>
-                      <td className="text-right">
-                        {isLiveEditMode ? (
-                          <input
-                            type="number"
-                            value={item.rate}
-                            onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)}
-                            style={{ width: '75px', border: '1px dashed #94a3b8', textAlign: 'right', fontSize: '10px' }}
-                          />
-                        ) : (
-                          `₹${Number(item.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-                        )}
-                      </td>
+                      <SheetsEditableCell
+                        value={item.sac}
+                        onSave={(val) => handleUpdateLineItem(item.id, 'sac', val)}
+                        disabled={!isLiveEditMode}
+                        align="center"
+                        style={{ fontSize: '10px' }}
+                      />
+                      <SheetsEditableCell
+                        type="number"
+                        value={item.qty}
+                        onSave={(val) => handleUpdateLineItem(item.id, 'qty', val)}
+                        disabled={!isLiveEditMode}
+                        align="center"
+                        style={{ fontSize: '10px' }}
+                      />
+                      <SheetsEditableCell
+                        type="currency"
+                        value={item.rate}
+                        onSave={(val) => handleUpdateLineItem(item.id, 'rate', val)}
+                        disabled={!isLiveEditMode}
+                        align="right"
+                        style={{ fontSize: '10px' }}
+                      />
                       <td className="text-right">
                         {isItemTaxable ? `₹${lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}
                       </td>
