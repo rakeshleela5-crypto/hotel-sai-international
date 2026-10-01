@@ -3,6 +3,7 @@ import {
   Layers, Package, ShieldCheck, RefreshCw, AlertTriangle, 
   CheckCircle2, Plus, ArrowUpRight, ArrowDownLeft, Trash2, Printer
 } from 'lucide-react';
+import { SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 const INITIAL_LINEN = [
   { id: 'L-01', item: 'King Bed Sheets (300 TC)', parStock: 160, inRooms: 78, inStore: 45, atDhobi: 32, damaged: 5 },
@@ -198,26 +199,62 @@ export default function LinenRoomAssetsSection({
             🧺 Linen Par Stock &amp; Circulation Matrix (40 Rooms)
           </div>
           <div style={{ overflowX: 'auto' }}>
+            <SheetsToolbarLegend tableName="Linen Par Stock & Circulation Matrix" subtitle="Housekeeping 40-Room Stock Control" />
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.04)', color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '8px 10px' }}>Linen Item</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Par Stock</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>In Rooms</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Fresh Store</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>At Dhobi</th>
-                  <th style={{ padding: '8px', textAlign: 'center' }}>Damaged</th>
+                  <SheetsColumnHeader title="Linen Item" badge="locked" style={{ padding: '8px 10px' }} />
+                  <SheetsColumnHeader title="Par Stock" badge="editable" align="center" style={{ padding: '8px' }} />
+                  <SheetsColumnHeader title="In Rooms" badge="editable" align="center" style={{ padding: '8px' }} />
+                  <SheetsColumnHeader title="Fresh Store" badge="editable" align="center" style={{ padding: '8px' }} />
+                  <SheetsColumnHeader title="At Dhobi" badge="editable" align="center" style={{ padding: '8px' }} />
+                  <SheetsColumnHeader title="Damaged" badge="editable" align="center" style={{ padding: '8px' }} />
                 </tr>
               </thead>
               <tbody>
                 {linenData.map(l => (
                   <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e2e8f0' }}>
                     <td style={{ padding: '8px 10px', fontWeight: 600 }}>{l.item}</td>
-                    <td style={{ padding: '8px', textAlign: 'center', color: 'var(--gold-glow)', fontWeight: 700 }}>{l.parStock}</td>
-                    <td style={{ padding: '8px', textAlign: 'center' }}>{l.inRooms}</td>
-                    <td style={{ padding: '8px', textAlign: 'center', color: '#34d399', fontWeight: 700 }}>{l.inStore}</td>
-                    <td style={{ padding: '8px', textAlign: 'center', color: '#f59e0b', fontWeight: 700 }}>{l.atDhobi}</td>
-                    <td style={{ padding: '8px', textAlign: 'center', color: '#ef4444' }}>{l.damaged}</td>
+                    <SheetsEditableCell
+                      value={l.parStock}
+                      type="number"
+                      align="center"
+                      min={0}
+                      cellStyle={{ padding: '8px', color: 'var(--gold-glow)', fontWeight: 700 }}
+                      onSave={(newVal) => setLinenData(prev => prev.map(item => item.id === l.id ? { ...item, parStock: Number(newVal) } : item))}
+                    />
+                    <SheetsEditableCell
+                      value={l.inRooms}
+                      type="number"
+                      align="center"
+                      min={0}
+                      cellStyle={{ padding: '8px', color: '#e2e8f0' }}
+                      onSave={(newVal) => setLinenData(prev => prev.map(item => item.id === l.id ? { ...item, inRooms: Number(newVal) } : item))}
+                    />
+                    <SheetsEditableCell
+                      value={l.inStore}
+                      type="number"
+                      align="center"
+                      min={0}
+                      cellStyle={{ padding: '8px', color: '#34d399', fontWeight: 700 }}
+                      onSave={(newVal) => setLinenData(prev => prev.map(item => item.id === l.id ? { ...item, inStore: Number(newVal) } : item))}
+                    />
+                    <SheetsEditableCell
+                      value={l.atDhobi}
+                      type="number"
+                      align="center"
+                      min={0}
+                      cellStyle={{ padding: '8px', color: '#f59e0b', fontWeight: 700 }}
+                      onSave={(newVal) => setLinenData(prev => prev.map(item => item.id === l.id ? { ...item, atDhobi: Number(newVal) } : item))}
+                    />
+                    <SheetsEditableCell
+                      value={l.damaged}
+                      type="number"
+                      align="center"
+                      min={0}
+                      cellStyle={{ padding: '8px', color: '#ef4444', fontWeight: 600 }}
+                      onSave={(newVal) => setLinenData(prev => prev.map(item => item.id === l.id ? { ...item, damaged: Number(newVal) } : item))}
+                    />
                   </tr>
                 ))}
               </tbody>

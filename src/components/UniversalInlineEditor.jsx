@@ -728,10 +728,8 @@ export function SheetsEditableCell({
             <span
               className="sheets-cell-pencil"
               style={{
-                opacity: 0,
                 fontSize: '0.65rem',
                 color: '#38bdf8',
-                transition: 'opacity 0.15s ease',
                 pointerEvents: 'none'
               }}
             >
@@ -741,6 +739,139 @@ export function SheetsEditableCell({
         </div>
       )}
     </CustomTag>
+  );
+}
+
+/**
+ * SheetsColumnHeader: Standardized Google Sheets / Excel table header cell with badge.
+ * Props:
+ * - title: string | ReactNode
+ * - badge: 'editable' | 'formula' | 'locked' | null
+ * - badgeLabel: custom label override
+ * - align: 'left' | 'center' | 'right'
+ * - width: string
+ * - style: object
+ * - className: string
+ */
+export function SheetsColumnHeader({
+  title,
+  badge = null,
+  badgeLabel = null,
+  align = 'left',
+  width,
+  style = {},
+  className = '',
+  children
+}) {
+  const getBadgeConfig = () => {
+    if (badge === 'editable') {
+      return {
+        text: badgeLabel || 'EDIT ✏️',
+        className: 'sheets-hdr-badge sheets-hdr-editable',
+        title: 'Click any cell in this column to edit directly'
+      };
+    }
+    if (badge === 'formula') {
+      return {
+        text: badgeLabel || 'FX ⚡',
+        className: 'sheets-hdr-badge sheets-hdr-formula',
+        title: 'Auto-calculated formula (updates dynamically when input cells change)'
+      };
+    }
+    if (badge === 'locked') {
+      return {
+        text: badgeLabel || 'LOCK 🔒',
+        className: 'sheets-hdr-badge sheets-hdr-locked',
+        title: 'System record / Read-only field'
+      };
+    }
+    return null;
+  };
+
+  const badgeConfig = getBadgeConfig();
+
+  return (
+    <th
+      className={`sheets-grid-th ${className}`}
+      style={{
+        width,
+        textAlign: align,
+        padding: '0.65rem 0.75rem',
+        verticalAlign: 'middle',
+        ...style
+      }}
+    >
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start',
+        gap: '6px',
+        width: '100%',
+        whiteSpace: 'nowrap'
+      }}>
+        <span>{title || children}</span>
+        {badgeConfig && (
+          <span className={badgeConfig.className} title={badgeConfig.title}>
+            {badgeConfig.text}
+          </span>
+        )}
+      </div>
+    </th>
+  );
+}
+
+/**
+ * SheetsToolbarLegend: Compact, elegant spreadsheet status banner above grid tables.
+ */
+export function SheetsToolbarLegend({
+  tableName = 'Live Spreadsheet Matrix',
+  subtitle = 'Interactive Google Sheets Mode',
+  style = {}
+}) {
+  return (
+    <div
+      className="sheets-toolbar-legend no-print"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.5rem',
+        padding: '0.45rem 0.85rem',
+        background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85))',
+        border: '1px solid rgba(56, 189, 248, 0.25)',
+        borderRadius: '8px 8px 0 0',
+        fontSize: '0.74rem',
+        color: '#e2e8f0',
+        ...style
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{
+          width: '7px',
+          height: '7px',
+          borderRadius: '50%',
+          background: '#10b981',
+          boxShadow: '0 0 6px #10b981'
+        }} />
+        <strong style={{ color: '#fff', fontSize: '0.78rem' }}>{tableName}</strong>
+        <span style={{ color: 'var(--text-muted, #94a3b8)', borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: '8px' }}>
+          {subtitle}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.68rem' }}>
+          <span className="sheets-hdr-badge sheets-hdr-editable">EDIT ✏️ Direct Edit</span>
+          <span className="sheets-hdr-badge sheets-hdr-formula">FX ⚡ Auto Formula</span>
+          <span className="sheets-hdr-badge sheets-hdr-locked">LOCK 🔒 System Protected</span>
+        </div>
+        <span style={{ color: '#64748b', fontSize: '0.7rem' }}>
+          <kbd style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 4px', borderRadius: '3px', color: '#cbd5e1' }}>Enter</kbd> Save • 
+          <kbd style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 4px', borderRadius: '3px', color: '#cbd5e1', marginLeft: '3px' }}>Esc</kbd> Cancel
+        </span>
+      </div>
+    </div>
   );
 }
 

@@ -4,7 +4,7 @@ import {
   AlertCircle, Download, Printer, Plus, RefreshCw, UserCheck, ShieldCheck
 } from 'lucide-react';
 import { HOTEL_CONFIG } from '../data/hotelData';
-import { SheetsEditableCell } from './UniversalInlineEditor';
+import { SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 const DEFAULT_STAFF = [
   { id: 'STF-01', name: 'Ramesh Mohanty', role: 'Front Desk Lead / Receptionist', shift: 'Morning (07:00 - 15:00)', baseSalary: 18000, daysPresent: 28, advances: 2000, phone: '9861012345' },
@@ -375,15 +375,16 @@ export default function StaffPayrollSection({
         <div>
           {/* Payroll & Advances Table */}
           <div style={{ overflowX: 'auto' }}>
+            <SheetsToolbarLegend tableName="HR Staff Attendance & Monthly Payroll Matrix" subtitle="Direct Keystroke Calculation Ledger" />
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.04)', color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '10px 12px' }}>Staff Member</th>
-                  <th style={{ padding: '10px', textAlign: 'right' }}>Base Pay</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>Days Present</th>
-                  <th style={{ padding: '10px', textAlign: 'right' }}>Advances Taken</th>
-                  <th style={{ padding: '10px', textAlign: 'right' }}>Net Payable</th>
-                  <th style={{ padding: '10px', textAlign: 'center' }}>Actions</th>
+                  <SheetsColumnHeader title="Staff Member" badge="editable" style={{ padding: '10px 12px' }} />
+                  <SheetsColumnHeader title="Base Pay" badge="editable" align="right" style={{ padding: '10px' }} />
+                  <SheetsColumnHeader title="Days Present" badge="editable" align="center" style={{ padding: '10px' }} />
+                  <SheetsColumnHeader title="Advances Taken" badge="editable" align="right" style={{ padding: '10px' }} />
+                  <SheetsColumnHeader title="Net Payable" badge="formula" align="right" style={{ padding: '10px' }} />
+                  <SheetsColumnHeader title="Actions" badge="locked" align="center" style={{ padding: '10px' }} />
                 </tr>
               </thead>
               <tbody>
@@ -391,10 +392,18 @@ export default function StaffPayrollSection({
                   const { perDayWage, earnedGross, netPayable } = calculateSalary(stf);
                   return (
                     <tr key={stf.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e2e8f0' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>
-                        <div style={{ color: '#fff' }}>{stf.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stf.role}</div>
-                      </td>
+                      <SheetsEditableCell
+                        value={stf.name}
+                        type="text"
+                        cellStyle={{ padding: '10px 12px', fontWeight: 700, color: '#fff' }}
+                        formatDisplay={(val) => (
+                          <div>
+                            <div style={{ color: '#fff' }}>{val}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stf.role}</div>
+                          </div>
+                        )}
+                        onSave={(newVal) => setStaffList(prev => prev.map(s => s.id === stf.id ? { ...s, name: newVal } : s))}
+                      />
                       <SheetsEditableCell
                         value={stf.baseSalary}
                         type="currency"

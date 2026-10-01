@@ -6,6 +6,7 @@ import {
   ShoppingBag, Wrench, FileText, Database, Layers, TrendingUp, CreditCard,
   Check, Filter
 } from 'lucide-react';
+import { SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 /**
  * DateAuditSnapshotModal (Universal Context-Aware Pop View)
@@ -657,64 +658,66 @@ export default function DateAuditSnapshotModal({
               </p>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
-              <thead>
-                <tr style={{ background: '#0b162c', color: '#94a3b8', borderBottom: '1px solid rgba(56, 189, 248, 0.2)', position: 'sticky', top: 0, zIndex: 10 }}>
-                  {effectiveModule === 'rooms' && (
-                    <>
-                      <th style={{ padding: '10px 14px', width: '80px' }}>ROOM #</th>
-                      <th style={{ padding: '10px 14px', width: '80px' }}>FLOOR</th>
-                      <th style={{ padding: '10px 14px' }}>CATEGORY</th>
-                      <th style={{ padding: '10px 14px' }}>STATUS</th>
-                      <th style={{ padding: '10px 14px' }}>IN-HOUSE GUEST</th>
-                      <th style={{ padding: '10px 14px' }}>PHONE</th>
-                      <th style={{ padding: '10px 14px' }}>STAY PERIOD</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>TARIFF</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>BALANCE DUE</th>
-                    </>
-                  )}
+            <div>
+              <SheetsToolbarLegend tableName={`${effectiveModule.toUpperCase()} Audit Snapshot Matrix`} subtitle={`Window: ${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}`} />
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ background: '#0b162c', color: '#94a3b8', borderBottom: '1px solid rgba(56, 189, 248, 0.2)', position: 'sticky', top: 0, zIndex: 10 }}>
+                    {effectiveModule === 'rooms' && (
+                      <>
+                        <SheetsColumnHeader title="ROOM #" badge="locked" style={{ padding: '10px 14px', width: '80px' }} />
+                        <SheetsColumnHeader title="FLOOR" badge="locked" style={{ padding: '10px 14px', width: '80px' }} />
+                        <SheetsColumnHeader title="CATEGORY" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="STATUS" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="IN-HOUSE GUEST" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="PHONE" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="STAY PERIOD" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="TARIFF" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="BALANCE DUE" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                      </>
+                    )}
 
-                  {effectiveModule === 'police' && (
-                    <>
-                      <th style={{ padding: '10px 14px', width: '80px' }}>ROOM #</th>
-                      <th style={{ padding: '10px 14px' }}>GUEST FULL NAME</th>
-                      <th style={{ padding: '10px 14px' }}>MOBILE</th>
-                      <th style={{ padding: '10px 14px' }}>ID PROOF / AADHAAR</th>
-                      <th style={{ padding: '10px 14px' }}>STATE OF ORIGIN</th>
-                      <th style={{ padding: '10px 14px' }}>INTERSTATE?</th>
-                      <th style={{ padding: '10px 14px' }}>CHECK-IN</th>
-                      <th style={{ padding: '10px 14px' }}>CHECK-OUT</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>FOLIO VALUE</th>
-                    </>
-                  )}
+                    {effectiveModule === 'police' && (
+                      <>
+                        <SheetsColumnHeader title="ROOM #" badge="locked" style={{ padding: '10px 14px', width: '80px' }} />
+                        <SheetsColumnHeader title="GUEST FULL NAME" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="MOBILE" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="ID PROOF / AADHAAR" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="STATE OF ORIGIN" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="INTERSTATE?" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="CHECK-IN" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="CHECK-OUT" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="FOLIO VALUE" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                      </>
+                    )}
 
-                  {effectiveModule === 'cashier' && (
-                    <>
-                      <th style={{ padding: '10px 14px' }}>BILL / FOLIO #</th>
-                      <th style={{ padding: '10px 14px' }}>DATE / TIME</th>
-                      <th style={{ padding: '10px 14px', width: '80px' }}>ROOM</th>
-                      <th style={{ padding: '10px 14px' }}>GUEST NAME</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>CASH</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>UPI / DIGITAL</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>CARD / OTHER</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>TOTAL AMOUNT</th>
-                      <th style={{ padding: '10px 14px' }}>CASHIER</th>
-                    </>
-                  )}
+                    {effectiveModule === 'cashier' && (
+                      <>
+                        <SheetsColumnHeader title="BILL / FOLIO #" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="DATE / TIME" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="ROOM" badge="locked" style={{ padding: '10px 14px', width: '80px' }} />
+                        <SheetsColumnHeader title="GUEST NAME" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="CASH" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="UPI / DIGITAL" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="CARD / OTHER" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="TOTAL AMOUNT" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="CASHIER" badge="locked" style={{ padding: '10px 14px' }} />
+                      </>
+                    )}
 
-                  {effectiveModule === 'gst' && (
-                    <>
-                      <th style={{ padding: '10px 14px' }}>INVOICE #</th>
-                      <th style={{ padding: '10px 14px' }}>DATE</th>
-                      <th style={{ padding: '10px 14px', width: '80px' }}>ROOM</th>
-                      <th style={{ padding: '10px 14px' }}>GUEST / CORPORATE ENTITY</th>
-                      <th style={{ padding: '10px 14px' }}>GSTIN</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>TAXABLE BASE</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>CGST (2.5%)</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>SGST (2.5%)</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>GROSS INVOICED</th>
-                    </>
-                  )}
+                    {effectiveModule === 'gst' && (
+                      <>
+                        <SheetsColumnHeader title="INVOICE #" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="DATE" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="ROOM" badge="locked" style={{ padding: '10px 14px', width: '80px' }} />
+                        <SheetsColumnHeader title="GUEST / CORPORATE ENTITY" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="GSTIN" badge="locked" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="TAXABLE BASE" badge="locked" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="CGST (2.5%)" badge="formula" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="SGST (2.5%)" badge="formula" align="right" style={{ padding: '10px 14px' }} />
+                        <SheetsColumnHeader title="GROSS INVOICED" badge="formula" align="right" style={{ padding: '10px 14px' }} />
+                      </>
+                    )}
 
                   {effectiveModule === 'daybook' && (
                     <>
@@ -1005,8 +1008,9 @@ export default function DateAuditSnapshotModal({
                 })}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
         {/* MODAL FOOTER */}
         <div 

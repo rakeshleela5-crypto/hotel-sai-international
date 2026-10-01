@@ -11,7 +11,7 @@ import { HOTEL_CONFIG, CORPORATE_PARTNERS, INITIAL_CORPORATE_LEDGER, ITEM_WISE_S
 import BookingReceiptModal from './BookingReceiptModal';
 import TallyConsoleModal from './TallyConsoleModal';
 import { generateOfficialGstr1Json, reconcileGstr2bWithPurchases, validateGstin } from '../utils/gstGovExport';
-import { useUniversalInlineEdit, InlineEditorBanner, SheetsEditableCell } from './UniversalInlineEditor';
+import { useUniversalInlineEdit, InlineEditorBanner, SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
 
 export default function AccountsLedgerModal({
@@ -2265,25 +2265,26 @@ export default function AccountsLedgerModal({
               marginBottom: '1.5rem'
             }}>
               <div className="enterprise-data-table-container" style={{ overflowX: 'auto', maxHeight: '55vh' }}>
+                <SheetsToolbarLegend tableName="Official GST FOM Statutory Register" subtitle="Interactive Spreadsheet Matrix (SAC 996311 & SAC 996331)" />
                 <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0a0f1d' }}>
                     <tr>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>SL</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'left' }}>BILL NO</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>DATE</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'left' }}>REF NO</th>
-                      <th style={{ padding: '0.65rem 0.7rem', textAlign: 'left' }}>GUEST NAME</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>ROOM</th>
-                      <th style={{ padding: '0.65rem 0.7rem', textAlign: 'left' }}>COMPANY</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'left' }}>GSTIN</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>CLASSIFICATION</th>
-                      <th style={{ padding: '0.65rem 0.7rem', textAlign: 'right', color: '#38bdf8' }}>ROOM TARIFF (0% NON-GST)</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'right', color: '#f87171' }}>FOOD TAXABLE (5%)</th>
-                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>SGST 2.5%</th>
-                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#fca5a5' }}>CGST 2.5%</th>
-                      <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>TOTAL (₹)</th>
-                      <th style={{ padding: '0.65rem 0.6rem', textAlign: 'center' }}>SETTLEMENT</th>
-                      <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>STATUTORY ACTIONS</th>
+                      <SheetsColumnHeader title="SL" badge="locked" align="center" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="BILL NO" badge="locked" align="left" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="DATE" badge="locked" align="center" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="REF NO" badge="locked" align="left" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="GUEST NAME" badge="editable" align="left" style={{ padding: '0.65rem 0.7rem' }} />
+                      <SheetsColumnHeader title="ROOM" badge="editable" align="center" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="COMPANY" badge="editable" align="left" style={{ padding: '0.65rem 0.7rem' }} />
+                      <SheetsColumnHeader title="GSTIN" badge="editable" align="left" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="CLASSIFICATION" badge="locked" align="center" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="ROOM TARIFF (0%)" badge="editable" align="right" style={{ padding: '0.65rem 0.7rem', color: '#38bdf8' }} />
+                      <SheetsColumnHeader title="FOOD TAXABLE (5%)" badge="editable" align="right" style={{ padding: '0.65rem 0.6rem', color: '#f87171' }} />
+                      <SheetsColumnHeader title="SGST 2.5%" badge="formula" align="right" style={{ padding: '0.65rem 0.5rem', color: '#fca5a5' }} />
+                      <SheetsColumnHeader title="CGST 2.5%" badge="formula" align="right" style={{ padding: '0.65rem 0.5rem', color: '#fca5a5' }} />
+                      <SheetsColumnHeader title="TOTAL (₹)" badge="formula" align="right" style={{ padding: '0.65rem 0.75rem', fontWeight: 800, color: 'var(--gold-glow)' }} />
+                      <SheetsColumnHeader title="SETTLEMENT" badge="editable" align="center" style={{ padding: '0.65rem 0.6rem' }} />
+                      <SheetsColumnHeader title="STATUTORY ACTIONS" badge="locked" align="center" style={{ padding: '0.65rem 0.75rem' }} />
                     </tr>
                   </thead>
                   <tbody>
@@ -3206,13 +3207,14 @@ export default function AccountsLedgerModal({
               </div>
 
               <div className="enterprise-data-table-container">
+                <SheetsToolbarLegend tableName="Petty Cash & Expense Register" subtitle="Front Desk Cash Imprest Vouchers" />
                 <table className="enterprise-data-table sheets-grid-table">
                   <thead>
                     <tr>
-                      <th style={{ padding: '0.75rem 1rem' }}>Voucher ID</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Head of Account / Purpose</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Authorized By</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Amount Paid (₹)</th>
+                      <SheetsColumnHeader title="Voucher ID" badge="locked" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Head of Account / Purpose" badge="editable" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Authorized By" badge="editable" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Amount Paid (₹)" badge="editable" align="right" style={{ padding: '0.75rem 1rem' }} />
                     </tr>
                   </thead>
                 <tbody>
@@ -3408,15 +3410,16 @@ export default function AccountsLedgerModal({
 
             {/* Dr/Cr Ledger Table */}
             <div className="enterprise-data-table-container">
+              <SheetsToolbarLegend tableName="Corporate Debtor / Creditor Statement" subtitle="B2B Bill-To-Company (BTC) Account Ledger" />
               <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
-                    <th style={{ padding: '0.75rem 1rem' }}>Date / Ref</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Transaction Type & Description</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Debit (Stays)</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Credit (Receipts)</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>TDS Deducted</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Running Balance</th>
+                    <SheetsColumnHeader title="Date / Ref" badge="locked" style={{ padding: '0.75rem 1rem' }} />
+                    <SheetsColumnHeader title="Transaction Type & Description" badge="editable" style={{ padding: '0.75rem 1rem' }} />
+                    <SheetsColumnHeader title="Debit (Stays)" badge="editable" align="right" style={{ padding: '0.75rem 1rem' }} />
+                    <SheetsColumnHeader title="Credit (Receipts)" badge="editable" align="right" style={{ padding: '0.75rem 1rem' }} />
+                    <SheetsColumnHeader title="TDS Deducted" badge="locked" align="center" style={{ padding: '0.75rem 1rem' }} />
+                    <SheetsColumnHeader title="Running Balance" badge="formula" align="right" style={{ padding: '0.75rem 1rem' }} />
                   </tr>
                 </thead>
               <tbody>

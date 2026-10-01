@@ -28,7 +28,7 @@ import OperationsSettingsTab from './OperationsSettingsTab';
 import D1LiveDatabaseExplorer from './D1LiveDatabaseExplorer';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
 import DateRangeSelectionModal from './DateRangeSelectionModal';
-import { useUniversalInlineEdit, InlineEditorBanner, InlineText, SheetsEditableCell } from './UniversalInlineEditor';
+import { useUniversalInlineEdit, InlineEditorBanner, InlineText, SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 // Frequent VIP & Corporate Guests for instant Walk-in auto-fill
 const FREQUENT_VIP_GUESTS = [
@@ -3539,21 +3539,22 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 />
               </div>
 
+              <SheetsToolbarLegend tableName="Master Tabular Room Ledger" subtitle="Live 40-Room Direct Interactive Google Sheets Grid" />
               <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Room #</th>
-                    <th style={{ width: '65px', textAlign: 'center' }}>Floor</th>
-                    <th style={{ width: '135px' }}>Category / Tier</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Current Status</th>
-                    <th>In-House Guest Name</th>
-                    <th style={{ width: '125px' }}>Contact Phone</th>
-                    <th style={{ width: '135px' }}>Corporate / Company</th>
-                    <th style={{ width: '110px' }}>Stay Period</th>
-                    <th style={{ width: '100px', textAlign: 'right' }}>Tariff (₹)</th>
-                    <th style={{ width: '110px', textAlign: 'right' }}>Balance Due (₹)</th>
-                    <th style={{ width: '95px', textAlign: 'center' }}>Key / HK</th>
-                    <th style={{ width: '240px', textAlign: 'center' }}>Operational Actions</th>
+                    <SheetsColumnHeader title="Room #" badge="locked" align="center" style={{ width: '80px' }} />
+                    <SheetsColumnHeader title="Floor" badge="locked" align="center" style={{ width: '65px' }} />
+                    <SheetsColumnHeader title="Category / Tier" badge="locked" style={{ width: '135px' }} />
+                    <SheetsColumnHeader title="Current Status" badge="editable" align="center" style={{ width: '120px' }} />
+                    <SheetsColumnHeader title="In-House Guest Name" badge="editable" />
+                    <SheetsColumnHeader title="Contact Phone" badge="editable" style={{ width: '125px' }} />
+                    <SheetsColumnHeader title="Corporate / Company" badge="editable" style={{ width: '135px' }} />
+                    <SheetsColumnHeader title="Stay Period" badge="locked" style={{ width: '110px' }} />
+                    <SheetsColumnHeader title="Tariff (₹)" badge="editable" align="right" style={{ width: '100px' }} />
+                    <SheetsColumnHeader title="Balance Due (₹)" badge="editable" align="right" style={{ width: '110px' }} />
+                    <SheetsColumnHeader title="Key / HK" badge="locked" align="center" style={{ width: '95px' }} />
+                    <SheetsColumnHeader title="Operational Actions" badge="locked" align="center" style={{ width: '240px' }} />
                   </tr>
                 </thead>
                 <tbody>
@@ -5078,16 +5079,17 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             <div className="enterprise-data-table-container">
+              <SheetsToolbarLegend tableName="Audited Checkout Settlements Ledger" subtitle="Front Desk Cashier Payment Audit" />
               <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '80px' }}>Time</th>
-                    <th style={{ width: '90px' }}>Room</th>
-                    <th>Guest Name</th>
-                    <th style={{ width: '130px' }}>Bill #</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>Total Settled</th>
-                    <th>Split Payment Breakdown</th>
-                    <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
+                    <SheetsColumnHeader title="Time" badge="locked" style={{ width: '80px' }} />
+                    <SheetsColumnHeader title="Room" badge="locked" style={{ width: '90px' }} />
+                    <SheetsColumnHeader title="Guest Name" badge="editable" />
+                    <SheetsColumnHeader title="Bill #" badge="locked" style={{ width: '130px' }} />
+                    <SheetsColumnHeader title="Total Settled" badge="editable" align="right" style={{ width: '130px' }} />
+                    <SheetsColumnHeader title="Split Payment Breakdown" badge="locked" />
+                    <SheetsColumnHeader title="Actions" badge="locked" align="center" style={{ width: '100px' }} />
                   </tr>
                 </thead>
                 <tbody>
@@ -5173,53 +5175,99 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               <ClipboardList size={18} color="var(--gold-glow)" /> Shift Handover Audit Trail &amp; Safe Drop Register
             </h4>
             <div className="enterprise-data-table-container">
+              <SheetsToolbarLegend tableName="Shift Handover Audit Trail & Safe Drop Register" subtitle="Front Desk Cashier Float & Physical Reconciliation" />
               <table className="enterprise-data-table sheets-grid-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '130px' }}>Shift ID / Date</th>
-                    <th style={{ width: '140px' }}>Cashier &amp; Shift</th>
-                    <th style={{ width: '100px', textAlign: 'right' }}>Float (₹)</th>
-                    <th style={{ width: '110px', textAlign: 'right' }}>Receipts (₹)</th>
-                    <th style={{ width: '110px', textAlign: 'right' }}>Petty Cash (₹)</th>
-                    <th style={{ width: '110px', textAlign: 'right' }}>Expected (₹)</th>
-                    <th style={{ width: '110px', textAlign: 'right' }}>Physical (₹)</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Variance Status</th>
-                    <th>Verification Notes</th>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Voucher</th>
+                    <SheetsColumnHeader title="Shift ID / Date" badge="locked" style={{ width: '130px' }} />
+                    <SheetsColumnHeader title="Cashier & Shift" badge="locked" style={{ width: '140px' }} />
+                    <SheetsColumnHeader title="Float (₹)" badge="editable" align="right" style={{ width: '100px' }} />
+                    <SheetsColumnHeader title="Receipts (₹)" badge="locked" align="right" style={{ width: '110px' }} />
+                    <SheetsColumnHeader title="Petty Cash (₹)" badge="locked" align="right" style={{ width: '110px' }} />
+                    <SheetsColumnHeader title="Expected (₹)" badge="formula" align="right" style={{ width: '110px' }} />
+                    <SheetsColumnHeader title="Physical (₹)" badge="editable" align="right" style={{ width: '110px' }} />
+                    <SheetsColumnHeader title="Variance Status" badge="formula" align="center" style={{ width: '120px' }} />
+                    <SheetsColumnHeader title="Verification Notes" badge="editable" />
+                    <SheetsColumnHeader title="Voucher" badge="locked" align="center" style={{ width: '80px' }} />
                   </tr>
                 </thead>
                 <tbody>
-                  {handoverLogs.map(log => (
-                    <tr key={log.shiftId}>
-                      <td>
-                        <div style={{ fontWeight: 700, color: '#fff' }}>{log.shiftId}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{log.date}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600, color: 'var(--gold-glow)' }}>{log.cashier}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{log.shift}</div>
-                      </td>
-                      <td className="cell-num">₹{log.openingFloat.toLocaleString()}</td>
-                      <td className="cell-num" style={{ color: '#10b981' }}>+₹{log.cashCollected.toLocaleString()}</td>
-                      <td className="cell-num" style={{ color: '#f87171' }}>-₹{log.pettyCash.toLocaleString()}</td>
-                      <td className="cell-num" style={{ color: '#fff' }}>₹{log.expected.toLocaleString()}</td>
-                      <td className="cell-num" style={{ color: 'var(--gold-glow)' }}>₹{log.actual.toLocaleString()}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          background: log.variance === 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-                          color: log.variance === 0 ? '#34d399' : '#f87171',
-                          border: log.variance === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(239,68,68,0.4)'
-                        }}>
-                          {log.status} {log.variance !== 0 && `(₹${log.variance})`}
-                        </span>
-                      </td>
-                      <td style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>
-                        {log.notes}
-                      </td>
+                  {handoverLogs.map(log => {
+                    const expectedVal = Number(log.openingFloat || 0) + Number(log.cashCollected || 0) - Number(log.pettyCash || 0);
+                    const actualVal = Number(log.actual || 0);
+                    const varianceVal = actualVal - expectedVal;
+                    const statusStr = varianceVal === 0 ? 'Balanced' : varianceVal > 0 ? 'Surplus' : 'Deficit';
+
+                    return (
+                      <tr key={log.shiftId}>
+                        <td>
+                          <div style={{ fontWeight: 700, color: '#fff' }}>{log.shiftId}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{log.date}</div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--gold-glow)' }}>{log.cashier}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{log.shift}</div>
+                        </td>
+                        <SheetsEditableCell
+                          value={log.openingFloat}
+                          type="currency"
+                          align="right"
+                          className="cell-num"
+                          min={0}
+                          cellStyle={{ color: '#fff', fontWeight: 600 }}
+                          onSave={(newVal) => {
+                            const newFloat = Number(newVal);
+                            const newExp = newFloat + Number(log.cashCollected || 0) - Number(log.pettyCash || 0);
+                            const newVar = Number(log.actual || 0) - newExp;
+                            setHandoverLogs(prev => prev.map(l => l.shiftId === log.shiftId ? {
+                              ...l,
+                              openingFloat: newFloat,
+                              expected: newExp,
+                              variance: newVar,
+                              status: newVar === 0 ? 'Balanced' : newVar > 0 ? 'Surplus' : 'Deficit'
+                            } : l));
+                          }}
+                        />
+                        <td className="cell-num" style={{ color: '#10b981' }}>+₹{Number(log.cashCollected || 0).toLocaleString()}</td>
+                        <td className="cell-num" style={{ color: '#f87171' }}>-₹{Number(log.pettyCash || 0).toLocaleString()}</td>
+                        <td className="cell-num" style={{ color: '#fff', fontWeight: 700 }}>₹{expectedVal.toLocaleString()}</td>
+                        <SheetsEditableCell
+                          value={log.actual}
+                          type="currency"
+                          align="right"
+                          className="cell-num"
+                          min={0}
+                          cellStyle={{ color: 'var(--gold-glow)', fontWeight: 700 }}
+                          onSave={(newVal) => {
+                            const newActual = Number(newVal);
+                            const newVar = newActual - expectedVal;
+                            setHandoverLogs(prev => prev.map(l => l.shiftId === log.shiftId ? {
+                              ...l,
+                              actual: newActual,
+                              variance: newVar,
+                              status: newVar === 0 ? 'Balanced' : newVar > 0 ? 'Surplus' : 'Deficit'
+                            } : l));
+                          }}
+                        />
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            background: varianceVal === 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+                            color: varianceVal === 0 ? '#34d399' : '#f87171',
+                            border: varianceVal === 0 ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(239,68,68,0.4)'
+                          }}>
+                            {statusStr} {varianceVal !== 0 && `(₹${varianceVal})`}
+                          </span>
+                        </td>
+                        <SheetsEditableCell
+                          value={log.notes}
+                          type="text"
+                          cellStyle={{ color: '#cbd5e1', fontSize: '0.78rem' }}
+                          onSave={(newVal) => setHandoverLogs(prev => prev.map(l => l.shiftId === log.shiftId ? { ...l, notes: newVal } : l))}
+                        />
                       <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
@@ -5240,7 +5288,8 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>
@@ -5833,16 +5882,17 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
 
           {/* Guest Table - High-Density Enterprise Spreadsheet Format */}
           <div className="enterprise-data-table-container">
+            <SheetsToolbarLegend tableName="Sarai Act Daily Police Register" subtitle="Official Statutory Guest Dispatch Matrix" />
             <table className="enterprise-data-table sheets-grid-table">
               <thead>
                 <tr>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Room #</th>
-                  <th>Guest Name</th>
-                  <th style={{ width: '130px' }}>Contact Phone</th>
-                  <th style={{ width: '150px' }}>Govt ID Proof (Masked)</th>
-                  <th style={{ width: '130px' }}>State of Origin</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>State Status</th>
-                  <th style={{ width: '180px' }}>Stay Duration</th>
+                  <SheetsColumnHeader title="Room #" badge="locked" align="center" style={{ width: '100px' }} />
+                  <SheetsColumnHeader title="Guest Name" badge="editable" />
+                  <SheetsColumnHeader title="Contact Phone" badge="editable" style={{ width: '130px' }} />
+                  <SheetsColumnHeader title="Govt ID Proof" badge="editable" style={{ width: '150px' }} />
+                  <SheetsColumnHeader title="State of Origin" badge="editable" style={{ width: '130px' }} />
+                  <SheetsColumnHeader title="State Status" badge="locked" align="center" style={{ width: '120px' }} />
+                  <SheetsColumnHeader title="Stay Duration" badge="locked" style={{ width: '180px' }} />
                 </tr>
               </thead>
               <tbody>
@@ -5851,20 +5901,48 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                     <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--gold-glow)' }}>
                       Room {b.room_number || b.roomNumber}
                     </td>
-                    <td style={{ fontWeight: 700, color: '#ffffff' }}>
-                      {b.guest_name || b.guestName}
-                    </td>
-                    <td style={{ color: '#cbd5e1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                      {b.guest_phone || b.guestPhone}
-                    </td>
-                    <td>
-                      <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', color: '#38bdf8' }}>
-                        {b.id_proof_masked || b.idProofMasked || 'XXXX-XXXX-1234'}
-                      </code>
-                    </td>
-                    <td style={{ color: '#f1f5f9' }}>
-                      {b.state_of_origin || b.stateOfOrigin || 'Odisha'}
-                    </td>
+                    <SheetsEditableCell
+                      value={b.guest_name || b.guestName}
+                      type="text"
+                      cellStyle={{ fontWeight: 700, color: '#ffffff' }}
+                      onSave={(newVal) => {
+                        b.guest_name = newVal;
+                        b.guestName = newVal;
+                        setBookings([...bookings]);
+                      }}
+                    />
+                    <SheetsEditableCell
+                      value={b.guest_phone || b.guestPhone}
+                      type="text"
+                      cellStyle={{ color: '#cbd5e1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                      onSave={(newVal) => {
+                        b.guest_phone = newVal;
+                        b.guestPhone = newVal;
+                        setBookings([...bookings]);
+                      }}
+                    />
+                    <SheetsEditableCell
+                      value={b.id_proof_masked || b.idProofMasked || 'XXXX-XXXX-1234'}
+                      type="text"
+                      cellStyle={{ color: '#38bdf8', fontFamily: 'monospace' }}
+                      onSave={(newVal) => {
+                        b.id_proof_masked = newVal;
+                        b.idProofMasked = newVal;
+                        setBookings([...bookings]);
+                      }}
+                    />
+                    <SheetsEditableCell
+                      value={b.state_of_origin || b.stateOfOrigin || 'Odisha'}
+                      type="text"
+                      cellStyle={{ color: '#f1f5f9' }}
+                      onSave={(newVal) => {
+                        b.state_of_origin = newVal;
+                        b.stateOfOrigin = newVal;
+                        b.is_interstate = newVal.toLowerCase() !== 'odisha';
+                        b.isInterstate = newVal.toLowerCase() !== 'odisha';
+                        setBookings([...bookings]);
+                      }}
+                    />
                     <td style={{ textAlign: 'center' }}>
                       {(b.is_interstate || b.isInterstate) ? (
                         <span style={{
@@ -6058,19 +6136,20 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
 
             <div className="enterprise-data-table-container">
+              <SheetsToolbarLegend tableName="24-Hour Micro-Stay & Transit Passenger Matrix" subtitle="Daytime Fresh-Up Room Allocations & Hourly Tariffs" />
               <table className="enterprise-data-table sheets-grid-table" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
-                    <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>GUEST NAME &amp; PHONE</th>
-                    <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>TRAIN / ORIGIN &amp; PURPOSE</th>
-                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>SLOT</th>
-                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CHECK-IN</th>
-                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>EXPECTED OUT</th>
-                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'right' }}>TARIFF (₹)</th>
-                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>MODE</th>
-                    <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>STATUS</th>
-                    <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>OPERATIONAL ACTIONS</th>
+                    <SheetsColumnHeader title="ROOM" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                    <SheetsColumnHeader title="GUEST NAME & PHONE" badge="editable" style={{ padding: '0.7rem 0.8rem' }} />
+                    <SheetsColumnHeader title="TRAIN / ORIGIN & PURPOSE" badge="editable" style={{ padding: '0.7rem 0.8rem' }} />
+                    <SheetsColumnHeader title="SLOT" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                    <SheetsColumnHeader title="CHECK-IN" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                    <SheetsColumnHeader title="EXPECTED OUT" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                    <SheetsColumnHeader title="TARIFF (₹)" badge="editable" align="right" style={{ padding: '0.7rem 0.6rem' }} />
+                    <SheetsColumnHeader title="MODE" badge="editable" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                    <SheetsColumnHeader title="STATUS" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                    <SheetsColumnHeader title="OPERATIONAL ACTIONS" badge="locked" align="center" style={{ padding: '0.7rem 0.8rem' }} />
                   </tr>
                 </thead>
               <tbody>
@@ -6081,14 +6160,30 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                         Room {stay.roomNumber}
                       </span>
                     </td>
-                    <td style={{ padding: '0.65rem 0.8rem' }}>
-                      <div style={{ fontWeight: 700, color: '#fff' }}>{stay.guestName}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{stay.phone}</div>
-                    </td>
-                    <td style={{ padding: '0.65rem 0.8rem' }}>
-                      <div style={{ color: '#cbd5e1' }}>{stay.origin}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--gold-glow)' }}>{stay.purpose}</div>
-                    </td>
+                    <SheetsEditableCell
+                      value={stay.guestName}
+                      type="text"
+                      cellStyle={{ padding: '0.65rem 0.8rem', fontWeight: 700, color: '#fff' }}
+                      formatDisplay={(val) => (
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#fff' }}>{val}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{stay.phone}</div>
+                        </div>
+                      )}
+                      onSave={(newVal) => setTransitStays(prev => prev.map(t => t.id === stay.id ? { ...t, guestName: newVal } : t))}
+                    />
+                    <SheetsEditableCell
+                      value={stay.origin}
+                      type="text"
+                      cellStyle={{ padding: '0.65rem 0.8rem', color: '#cbd5e1' }}
+                      formatDisplay={(val) => (
+                        <div>
+                          <div style={{ color: '#cbd5e1' }}>{val}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--gold-glow)' }}>{stay.purpose}</div>
+                        </div>
+                      )}
+                      onSave={(newVal) => setTransitStays(prev => prev.map(t => t.id === stay.id ? { ...t, origin: newVal } : t))}
+                    />
                     <td style={{ padding: '0.65rem', textAlign: 'center', fontWeight: 600, color: '#fbbf24' }}>
                       {stay.slotType}
                     </td>
@@ -6098,12 +6193,23 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                     <td style={{ padding: '0.65rem', textAlign: 'center', color: '#34d399', fontWeight: 700 }}>
                       {stay.expectedCheckoutTime}
                     </td>
-                    <td style={{ padding: '0.65rem', textAlign: 'right', fontWeight: 800, color: 'var(--gold-glow)' }}>
-                      ₹{stay.tariff.toFixed(2)}
-                    </td>
-                    <td style={{ padding: '0.65rem', textAlign: 'center', fontSize: '0.74rem', color: '#94a3b8' }}>
-                      {stay.paymentMode}
-                    </td>
+                    <SheetsEditableCell
+                      value={stay.tariff}
+                      type="currency"
+                      align="right"
+                      className="cell-num"
+                      min={0}
+                      cellStyle={{ padding: '0.65rem', fontWeight: 800, color: 'var(--gold-glow)' }}
+                      onSave={(newVal) => setTransitStays(prev => prev.map(t => t.id === stay.id ? { ...t, tariff: Number(newVal) } : t))}
+                    />
+                    <SheetsEditableCell
+                      value={stay.paymentMode || 'UPI'}
+                      type="select"
+                      align="center"
+                      options={['UPI', 'Cash', 'Card']}
+                      cellStyle={{ padding: '0.65rem', fontSize: '0.74rem', color: '#94a3b8' }}
+                      onSave={(newVal) => setTransitStays(prev => prev.map(t => t.id === stay.id ? { ...t, paymentMode: newVal } : t))}
+                    />
                     <td style={{ padding: '0.65rem', textAlign: 'center' }}>
                       <span style={{
                         padding: '2px 8px',
@@ -6802,19 +6908,20 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
 
           {/* Lost & Found Register Table */}
           <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+            <SheetsToolbarLegend tableName="Lost & Found Vault Register" subtitle="Housekeeping Asset Recovery & Custody Ledger" />
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>LOG ID</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>DATE</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>ROOM</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>ARTICLE DESCRIPTION</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CATEGORY</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>RECOVERED BY (STAFF)</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>VAULT LOCKER</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'left' }}>GUEST NAME &amp; PHONE</th>
-                  <th style={{ padding: '0.7rem 0.6rem', textAlign: 'center' }}>CUSTODY STATUS</th>
-                  <th style={{ padding: '0.7rem 0.8rem', textAlign: 'center' }}>ACTION</th>
+                  <SheetsColumnHeader title="LOG ID" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                  <SheetsColumnHeader title="DATE" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                  <SheetsColumnHeader title="ROOM" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                  <SheetsColumnHeader title="ARTICLE DESCRIPTION" badge="editable" style={{ padding: '0.7rem 0.8rem' }} />
+                  <SheetsColumnHeader title="CATEGORY" badge="locked" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                  <SheetsColumnHeader title="RECOVERED BY (STAFF)" badge="editable" style={{ padding: '0.7rem 0.8rem' }} />
+                  <SheetsColumnHeader title="VAULT LOCKER" badge="editable" style={{ padding: '0.7rem 0.8rem' }} />
+                  <SheetsColumnHeader title="GUEST NAME & PHONE" badge="editable" style={{ padding: '0.7rem 0.8rem' }} />
+                  <SheetsColumnHeader title="CUSTODY STATUS" badge="editable" align="center" style={{ padding: '0.7rem 0.6rem' }} />
+                  <SheetsColumnHeader title="ACTION" badge="locked" align="center" style={{ padding: '0.7rem 0.8rem' }} />
                 </tr>
               </thead>
               <tbody>
@@ -6831,35 +6938,49 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                         Room {item.roomNumber}
                       </span>
                     </td>
-                    <td style={{ padding: '0.65rem 0.8rem', fontWeight: 600, color: '#fff', whiteSpace: 'normal', maxWidth: 280 }}>
-                      {item.itemDescription}
-                    </td>
+                    <SheetsEditableCell
+                      value={item.itemDescription}
+                      type="text"
+                      cellStyle={{ padding: '0.65rem 0.8rem', fontWeight: 600, color: '#fff', whiteSpace: 'normal', maxWidth: 280 }}
+                      onSave={(newVal) => setLostAndFoundItems(prev => prev.map(i => i.id === item.id ? { ...i, itemDescription: newVal } : i))}
+                    />
                     <td style={{ padding: '0.65rem', textAlign: 'center', color: '#fbbf24', fontSize: '0.72rem' }}>
                       {item.category}
                     </td>
-                    <td style={{ padding: '0.65rem 0.8rem', color: '#38bdf8' }}>
-                      {item.foundByStaff}
-                    </td>
-                    <td style={{ padding: '0.65rem 0.8rem', color: 'var(--gold-glow)', fontWeight: 700 }}>
-                      {item.lockerNumber}
-                    </td>
-                    <td style={{ padding: '0.65rem 0.8rem' }}>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>{item.guestName}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{item.guestPhone}</div>
-                    </td>
-                    <td style={{ padding: '0.65rem', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        background: item.status === 'In Custody' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(52, 211, 153, 0.15)',
-                        color: item.status === 'In Custody' ? '#fbbf24' : '#34d399',
-                        border: `1px solid ${item.status === 'In Custody' ? 'rgba(251, 191, 36, 0.3)' : 'rgba(52, 211, 153, 0.3)'}`
-                      }}>
-                        {item.status === 'In Custody' ? '🟡 In Custody Vault' : '🟢 Handed Over'}
-                      </span>
-                    </td>
+                    <SheetsEditableCell
+                      value={item.foundByStaff}
+                      type="text"
+                      cellStyle={{ padding: '0.65rem 0.8rem', color: '#38bdf8' }}
+                      onSave={(newVal) => setLostAndFoundItems(prev => prev.map(i => i.id === item.id ? { ...i, foundByStaff: newVal } : i))}
+                    />
+                    <SheetsEditableCell
+                      value={item.lockerNumber}
+                      type="text"
+                      cellStyle={{ padding: '0.65rem 0.8rem', color: 'var(--gold-glow)', fontWeight: 700 }}
+                      onSave={(newVal) => setLostAndFoundItems(prev => prev.map(i => i.id === item.id ? { ...i, lockerNumber: newVal } : i))}
+                    />
+                    <SheetsEditableCell
+                      value={item.guestName}
+                      type="text"
+                      cellStyle={{ padding: '0.65rem 0.8rem' }}
+                      formatDisplay={(val) => (
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#fff' }}>{val}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{item.guestPhone}</div>
+                        </div>
+                      )}
+                      onSave={(newVal) => setLostAndFoundItems(prev => prev.map(i => i.id === item.id ? { ...i, guestName: newVal } : i))}
+                    />
+                    <SheetsEditableCell
+                      value={item.status}
+                      type="select"
+                      align="center"
+                      options={[
+                        { value: 'In Custody', label: '🟡 In Custody Vault', badgeStyle: { background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24' } },
+                        { value: 'Handed Over', label: '🟢 Handed Over', badgeStyle: { background: 'rgba(52, 211, 153, 0.2)', color: '#34d399' } }
+                      ]}
+                      onSave={(newVal) => setLostAndFoundItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newVal } : i))}
+                    />
                     <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center' }}>
                       {item.status === 'In Custody' ? (
                         <button

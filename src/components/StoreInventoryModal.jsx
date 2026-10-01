@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_STORE_PURCHASES, INITIAL_KITCHEN_REQUISITIONS } from '../data/hotelData';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
-import { SheetsEditableCell } from './UniversalInlineEditor';
+import { SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 // Kitchen Recipe Bill of Materials (BOM) & Food Costing Data (Inspired by InvenTree & ERPNext)
 const KITCHEN_RECIPE_BOM = [
@@ -111,6 +111,13 @@ export default function StoreInventoryModal({
   const [depletionSimulated, setDepletionSimulated] = useState(false);
   const [voucherGenerated, setVoucherGenerated] = useState(false);
   const [recipeBom, setRecipeBom] = useState(KITCHEN_RECIPE_BOM);
+  const [vendorBalances, setVendorBalances] = useState([
+    { id: 1, name: 'Maa Majhighariani Daily Sabzi Mandi', cat: 'Fresh Vegetables & Herbs', contact: 'Kishore Sahu (+91 94371 88201)', supplies: 24800, paid: 18000 },
+    { id: 2, name: 'Rayagada Broiler & Mutton Center', cat: 'Poultry, Chicken & Mutton Cuts', contact: 'M. Ramesh (+91 98612 44902)', supplies: 46500, paid: 32000 },
+    { id: 3, name: 'Om Sai Dairy & Milk Cooperative', cat: 'Pure Milk, Paneer, Curd, Butter', contact: 'G. Patnaik (+91 82490 33811)', supplies: 18400, paid: 12000 },
+    { id: 4, name: 'Pooja Grocery & Spices Wholesale', cat: 'Basmati Rice, Dal, Edible Oil, Spices', contact: 'Suresh Agarwal (+91 94370 22105)', supplies: 35900, paid: 20000 },
+    { id: 5, name: 'Rayagada Commercial Gas Agency', cat: 'Commercial 19kg LPG Cylinders', contact: 'Delivery Desk (+91 06856 22214)', supplies: 12450, paid: 7400 }
+  ]);
 
   // Sync live D1 store purchases and kitchen requisitions on open
   useEffect(() => {
@@ -497,15 +504,16 @@ export default function StoreInventoryModal({
 
               {/* Table */}
               <div className="enterprise-data-table-container">
+                <SheetsToolbarLegend tableName="Store Inward Purchases & Mandi Ledger" subtitle="Daily Raw Material Procurement Register" />
                 <table className="enterprise-data-table sheets-grid-table">
                   <thead>
                     <tr>
-                      <th style={{ padding: '0.75rem 1rem' }}>Date / Purchase ID</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Vendor Name</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Category</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Items Summary</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total (₹)</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Payment Mode</th>
+                      <SheetsColumnHeader title="Date / Purchase ID" badge="locked" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Vendor Name" badge="editable" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Category" badge="locked" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Items Summary" badge="editable" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Total (₹)" badge="editable" align="right" style={{ padding: '0.75rem 1rem' }} />
+                      <SheetsColumnHeader title="Payment Mode" badge="editable" align="center" style={{ padding: '0.75rem 1rem' }} />
                     </tr>
                   </thead>
                 <tbody>
@@ -583,51 +591,76 @@ export default function StoreInventoryModal({
               </div>
 
               <div className="enterprise-data-table-container">
+                <SheetsToolbarLegend tableName="Vendor Outstandings & Mandi Sabzi Payables" subtitle="Creditor Accounts & Procurement Ledger" />
                 <table className="enterprise-data-table sheets-grid-table">
                   <thead>
                     <tr>
-                      <th style={{ padding: '0.7rem 0.75rem' }}>Supplier / Mandi Dealer</th>
-                      <th style={{ padding: '0.7rem 0.75rem' }}>Supplies Category</th>
-                      <th style={{ padding: '0.7rem 0.75rem' }}>Key Contact</th>
-                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'right' }}>Total Supplies (₹)</th>
-                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'right' }}>Paid (₹)</th>
-                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'right' }}>Balance Due (₹)</th>
-                      <th style={{ padding: '0.7rem 0.75rem', textAlign: 'center' }}>Action</th>
+                      <SheetsColumnHeader title="Supplier / Mandi Dealer" badge="locked" style={{ padding: '0.7rem 0.75rem' }} />
+                      <SheetsColumnHeader title="Supplies Category" badge="locked" style={{ padding: '0.7rem 0.75rem' }} />
+                      <SheetsColumnHeader title="Key Contact" badge="editable" style={{ padding: '0.7rem 0.75rem' }} />
+                      <SheetsColumnHeader title="Total Supplies (₹)" badge="editable" align="right" style={{ padding: '0.7rem 0.75rem' }} />
+                      <SheetsColumnHeader title="Paid (₹)" badge="editable" align="right" style={{ padding: '0.7rem 0.75rem' }} />
+                      <SheetsColumnHeader title="Balance Due (₹)" badge="formula" align="right" style={{ padding: '0.7rem 0.75rem' }} />
+                      <SheetsColumnHeader title="Action" badge="locked" align="center" style={{ padding: '0.7rem 0.75rem' }} />
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { name: 'Maa Majhighariani Daily Sabzi Mandi', cat: 'Fresh Vegetables & Herbs', contact: 'Kishore Sahu (+91 94371 88201)', supplies: 24800, paid: 18000, due: 6800 },
-                      { name: 'Rayagada Broiler & Mutton Center', cat: 'Poultry, Chicken & Mutton Cuts', contact: 'M. Ramesh (+91 98612 44902)', supplies: 46500, paid: 32000, due: 14500 },
-                      { name: 'Om Sai Dairy & Milk Cooperative', cat: 'Pure Milk, Paneer, Curd, Butter', contact: 'G. Patnaik (+91 82490 33811)', supplies: 18400, paid: 12000, due: 6400 },
-                      { name: 'Pooja Grocery & Spices Wholesale', cat: 'Basmati Rice, Dal, Edible Oil, Spices', contact: 'Suresh Agarwal (+91 94370 22105)', supplies: 35900, paid: 20000, due: 15900 },
-                      { name: 'Rayagada Commercial Gas Agency', cat: 'Commercial 19kg LPG Cylinders', contact: 'Delivery Desk (+91 06856 22214)', supplies: 12450, paid: 7400, due: 5050 }
-                    ].map((v, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <td style={{ padding: '0.7rem 0.75rem', fontWeight: 600, color: '#fff' }}>{v.name}</td>
-                        <td style={{ padding: '0.7rem 0.75rem', color: '#cbd5e1' }}>{v.cat}</td>
-                        <td style={{ padding: '0.7rem 0.75rem', color: 'var(--text-muted)' }}>{v.contact}</td>
-                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'right', color: '#38bdf8' }}>₹{v.supplies.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'right', color: '#34d399' }}>₹{v.paid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'right', fontWeight: 700, color: '#f87171' }}>₹{v.due.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td style={{ padding: '0.7rem 0.75rem', textAlign: 'center' }}>
-                          <button
-                            onClick={() => alert(`Recording Cash/Cheque Payment Voucher for ${v.name}`)}
-                            className="btn-outline-gold"
-                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-                          >
-                            Pay Voucher
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {vendorBalances.map((v) => {
+                      const balanceDue = (v.supplies || 0) - (v.paid || 0);
+                      return (
+                        <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '0.7rem 0.75rem', fontWeight: 600, color: '#fff' }}>{v.name}</td>
+                          <td style={{ padding: '0.7rem 0.75rem', color: '#cbd5e1' }}>{v.cat}</td>
+                          <SheetsEditableCell
+                            value={v.contact}
+                            type="text"
+                            cellStyle={{ padding: '0.7rem 0.75rem', color: 'var(--text-muted)' }}
+                            onSave={(newVal) => setVendorBalances(prev => prev.map(rec => rec.id === v.id ? { ...rec, contact: newVal } : rec))}
+                          />
+                          <SheetsEditableCell
+                            value={v.supplies}
+                            type="currency"
+                            align="right"
+                            className="cell-num"
+                            cellStyle={{ padding: '0.7rem 0.75rem', color: '#38bdf8', fontWeight: 600 }}
+                            onSave={(newVal) => setVendorBalances(prev => prev.map(rec => rec.id === v.id ? { ...rec, supplies: Number(newVal) } : rec))}
+                          />
+                          <SheetsEditableCell
+                            value={v.paid}
+                            type="currency"
+                            align="right"
+                            className="cell-num"
+                            cellStyle={{ padding: '0.7rem 0.75rem', color: '#34d399', fontWeight: 600 }}
+                            onSave={(newVal) => setVendorBalances(prev => prev.map(rec => rec.id === v.id ? { ...rec, paid: Number(newVal) } : rec))}
+                          />
+                          <td style={{ padding: '0.7rem 0.75rem', textAlign: 'right', fontWeight: 700, color: balanceDue > 0 ? '#f87171' : '#34d399' }}>
+                            ₹{balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td style={{ padding: '0.7rem 0.75rem', textAlign: 'center' }}>
+                            <button
+                              onClick={() => alert(`Recording Cash/Cheque Payment Voucher for ${v.name}`)}
+                              className="btn-outline-gold"
+                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                            >
+                              Pay Voucher
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr style={{ background: 'rgba(255,255,255,0.05)', fontWeight: 800 }}>
                       <td colSpan={3} style={{ padding: '0.75rem', color: 'var(--gold-glow)' }}>TOTAL VENDOR OUTSTANDING</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#38bdf8' }}>₹1,38,050.00</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#34d399' }}>₹89,400.00</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171' }}>₹48,650.00</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#38bdf8' }}>
+                        ₹{vendorBalances.reduce((s, v) => s + (v.supplies || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#34d399' }}>
+                        ₹{vendorBalances.reduce((s, v) => s + (v.paid || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#f87171' }}>
+                        ₹{vendorBalances.reduce((s, v) => s + ((v.supplies || 0) - (v.paid || 0)), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -720,14 +753,15 @@ export default function StoreInventoryModal({
                   </div>
 
                   <div className="enterprise-data-table-container" style={{ margin: 0 }}>
+                    <SheetsToolbarLegend tableName="Recipe BOM Costing Matrix" subtitle="Direct Kitchen Yield Margin Ledger" />
                     <table className="enterprise-data-table sheets-grid-table">
                       <thead>
                         <tr>
-                          <th style={{ padding: '0.65rem 0.75rem' }}>Dish &amp; Code</th>
-                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Menu Price</th>
-                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Raw Cost</th>
-                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Food Cost %</th>
-                          <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>Stock Capacity</th>
+                          <SheetsColumnHeader title="Dish & Code" badge="locked" style={{ padding: '0.65rem 0.75rem' }} />
+                          <SheetsColumnHeader title="Menu Price" badge="editable" align="right" style={{ padding: '0.65rem 0.75rem' }} />
+                          <SheetsColumnHeader title="Raw Cost" badge="editable" align="right" style={{ padding: '0.65rem 0.75rem' }} />
+                          <SheetsColumnHeader title="Food Cost %" badge="formula" align="center" style={{ padding: '0.65rem 0.75rem' }} />
+                          <SheetsColumnHeader title="Stock Capacity" badge="locked" align="center" style={{ padding: '0.65rem 0.75rem' }} />
                         </tr>
                       </thead>
                     <tbody>

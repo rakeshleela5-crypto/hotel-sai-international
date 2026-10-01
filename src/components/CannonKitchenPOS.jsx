@@ -9,7 +9,7 @@ import {
 import { RESTAURANT_MENU, HOTEL_CONFIG, MYPOS_CANNON_KITCHEN_LAYOUT } from '../data/hotelData';
 import { playOrderAlert, playSuccessChime } from '../utils/soundAlert';
 import UniversalDateFilterBar from './UniversalDateFilterBar';
-import { SheetsEditableCell } from './UniversalInlineEditor';
+import { SheetsEditableCell, SheetsColumnHeader, SheetsToolbarLegend } from './UniversalInlineEditor';
 
 export default function CannonKitchenPOS({
   isOpen,
@@ -4314,15 +4314,16 @@ Thank you for dining at Cannon Kitchen! 🙏`;
 
               {/* Scrollable Items Table */}
               <div style={{ flex: 1, overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }}>
+                <SheetsToolbarLegend tableName="Cannon Kitchen Daily Sales & Revenue Register" subtitle="Point of Sale Food & Beverage Menu Matrix" />
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      <th style={{ padding: '0.65rem 0.85rem' }}>Code</th>
-                      <th style={{ padding: '0.65rem 0.85rem' }}>Dish / Beverage Description (వివరణ)</th>
-                      <th style={{ padding: '0.65rem 0.85rem' }}>Category</th>
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'center', color: '#38bdf8' }}>Units Sold (Total Qty)</th>
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>Dine-In Rate</th>
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right', color: 'var(--gold-glow)' }}>Total Sales</th>
+                      <SheetsColumnHeader title="Code" badge="locked" style={{ padding: '0.65rem 0.85rem' }} />
+                      <SheetsColumnHeader title="Dish / Beverage Description (వివరణ)" badge="editable" style={{ padding: '0.65rem 0.85rem' }} />
+                      <SheetsColumnHeader title="Category" badge="editable" style={{ padding: '0.65rem 0.85rem' }} />
+                      <SheetsColumnHeader title="Units Sold (Total Qty)" badge="editable" align="center" style={{ padding: '0.65rem 0.85rem', color: '#38bdf8' }} />
+                      <SheetsColumnHeader title="Dine-In Rate" badge="editable" align="right" style={{ padding: '0.65rem 0.85rem' }} />
+                      <SheetsColumnHeader title="Total Sales" badge="formula" align="right" style={{ padding: '0.65rem 0.85rem', color: 'var(--gold-glow)' }} />
                     </tr>
                   </thead>
                   <tbody>
