@@ -166,7 +166,7 @@ export default function StaffPayrollSection({
             <div class="signatures">
               <div class="sig-line">Employee Signature<br/>(${staff.name})</div>
               <div class="sig-line">Cashier / Accounts Signature</div>
-              <div class="sig-line">Managing Director Approval<br/>(Eswara)</div>
+              <div class="sig-line">Managing Director Approval<br/>(Director Board)</div>
             </div>
           </div>
           <script>

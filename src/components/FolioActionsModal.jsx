@@ -578,7 +578,7 @@ ${cGstin ? `Corporate GSTIN: ${cGstin}\n` : ''}Date: ${new Date().toLocaleDateSt
           id: `WAIVE-${Date.now().toString().slice(-4)}`,
           date: new Date().toLocaleDateString('en-IN'),
           type: 'REVERSAL',
-          desc: `↩️ REMOVE TARIFF: Courtesy Tariff Waiver for Regular / VIP Guest [Authorized by Eswara MD]`,
+          desc: `↩️ REMOVE TARIFF: Courtesy Tariff Waiver for Regular / VIP Guest [Authorized by Managing Director]`,
           sac: anyTariff.sac || '996311',
           debit: 0,
           credit: anyTariff.debit,

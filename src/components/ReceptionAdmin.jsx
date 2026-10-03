@@ -63,7 +63,7 @@ export default function ReceptionAdmin({
   initialTab
 }) {
   // The 3 Authorized Roles & 5 Department Console (Owner Video 2 Requirement)
-  const [activeRole, setActiveRole] = useState('owner'); // 'owner' (Eswara MD), 'receptionist' (Front Desk), 'accounts' (Accounts Lead)
+  const [activeRole, setActiveRole] = useState('owner'); // 'owner' (Managing Director), 'receptionist' (Front Desk), 'accounts' (Accounts Lead)
   const [activeDepartment, setActiveDepartment] = useState('reception'); // 'reception', 'restaurant', 'accounts', 'store', 'housekeeping'
   const [activeTab, setActiveTab] = useState(initialTab || 'tape-chart'); // 'tape-chart', 'd1-database-explorer', 'cashier-audit', etc.
 
@@ -1234,7 +1234,7 @@ export default function ReceptionAdmin({
       date: '21-Sep-2026',
       shift: 'Morning (07:00 - 15:00)',
       cashier: 'E. Ramesh',
-      supervisor: 'Eswara (MD)',
+      supervisor: 'Managing Director',
       openingFloat: 5000,
       cashCollected: 24200,
       pettyCash: 850,
@@ -2207,7 +2207,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               </span>
               <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
                 Active Operator Profile: <strong style={{ color: activeRole === 'owner' ? '#fbbf24' : activeRole === 'receptionist' ? '#38bdf8' : '#34d399' }}>
-                  {activeRole === 'owner' ? '👑 Eswara (Managing Director / Owner)' : activeRole === 'receptionist' ? '👤 Front Desk Reception Lead' : '💼 Chief Accountant & Cashier Lead'}
+                  {activeRole === 'owner' ? '👑 Managing Director' : activeRole === 'receptionist' ? '👤 Front Desk Reception Lead' : '💼 Chief Accountant & Cashier Lead'}
                 </strong>
               </span>
             </div>
@@ -2217,7 +2217,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '0.4rem', background: 'rgba(0,0,0,0.4)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
               {[
-                { id: 'owner', label: '👑 Owner / MD (Eswara)', color: '#fbbf24' },
+                { id: 'owner', label: '👑 Managing Director', color: '#fbbf24' },
                 { id: 'receptionist', label: '👤 Receptionist', color: '#38bdf8' },
                 { id: 'accounts', label: '💼 Accounts Lead', color: '#34d399' }
               ].map(r => (
@@ -2402,7 +2402,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
               label: '5. Housekeeping & Turnover', 
               icon: Layers, 
               color: '#facc15', 
-              desc: '39-Room Vacant Dirty Turnover',
+              desc: '40-Room Vacant Dirty Turnover',
               badge: roomServicesList.filter(r => r.status === 'Pending').length > 0 ? `${roomServicesList.filter(r => r.status === 'Pending').length} Pending` : null,
               badgeColor: '#f59e0b',
               onClick: () => {
@@ -2484,7 +2484,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--gold-glow)', fontSize: '0.8rem', fontWeight: 600 }}>
             <ShieldCheck size={16} /> Central PMS Operations • {HOTEL_CONFIG.legalName}
           </div>
-          <h2 style={{ fontSize: '2rem', margin: '0.2rem 0' }}>Front Desk &amp; 39-Room Operations Console</h2>
+          <h2 style={{ fontSize: '2rem', margin: '0.2rem 0' }}>Front Desk &amp; 40-Room Operations Console</h2>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             GSTIN: <strong style={{ color: '#fbbf24' }}>{HOTEL_CONFIG.gstin}</strong> • Rayagada, Odisha • Sarai Act 1867 &amp; Rule 46 Compliant
           </div>
@@ -2632,7 +2632,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         border: '1px solid rgba(255, 255, 255, 0.08)'
       }}>
         {[
-          { id: 'tape-chart', label: '📊 39-Room Tape Chart Matrix' },
+          { id: 'tape-chart', label: '📊 40-Room Tape Chart Matrix' },
           { id: 'd1-database-explorer', label: '🗄️ D1 Live DB Explorer (Master Hub - All 68 Tables)', isHub: true },
           { id: 'operations-settings', label: '⚙️ Operations & Policy Settings' },
           { id: 'transit-dayuse', label: '🚆 Transit & Station Transfer' },
@@ -5114,7 +5114,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
                 marginBottom: '1.5rem'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Total 39-Room Capacity:</span>
+                  <span>Total 40-Room Capacity:</span>
                   <strong>39 Keys</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -5521,11 +5521,11 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
             </div>
           </div>
 
-          {/* Interactive 39-Room Cleaning Matrix */}
+          {/* Interactive 40-Room Cleaning Matrix */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <h4 style={{ color: 'var(--gold-glow)', margin: 0, fontSize: '1.05rem' }}>
-                Interactive 39-Room Status &amp; Cleaning Dispatch:
+                Interactive 40-Room Status &amp; Cleaning Dispatch:
               </h4>
               <button
                 onClick={() => {
@@ -8958,7 +8958,7 @@ Enjoy your stay! For 24/7 front desk support or housekeeping, dial 0 or message 
         </div>
       )}
 
-      {/* OPERATIONAL QUICK MODALS (Sri Sai Vasudev Residency Parity) */}
+      {/* OPERATIONAL QUICK MODALS */}
       <RoomQrModal
         isOpen={roomQrOpen}
         onClose={() => setRoomQrOpen(false)}

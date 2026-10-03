@@ -81,7 +81,7 @@ SECTIONS_METADATA = [
         "filename": "11_pos_table_settlement_dynamic_upi.png",
         "part": "PART 2: CANNON KITCHEN POS & MULTI-OUTLET F&B ENGINE",
         "title": "Cannon Kitchen POS - Direct Table Settlement & Dynamic SBI UPI QR",
-        "desc": "Standalone table settlement modal generating dynamic UPI QR codes (eswara.hotel@sbi) with exact transaction amounts, split-tender modes (Cash + UPI), and official Retail Tax Invoice generation."
+        "desc": "Standalone table settlement modal generating dynamic UPI QR codes (hotelsaiinternational@sbi) with exact transaction amounts, split-tender modes (Cash + UPI), and official Retail Tax Invoice generation."
     },
     {
         "filename": "12_pos_live_kds_kitchen_queue.png",
@@ -96,11 +96,11 @@ SECTIONS_METADATA = [
         "desc": "Official daily item sales audit register (Sale ఆ వివరణ) itemizing sold quantities, category contributions, and gross revenues matching the authentic ₹67,846 day book."
     },
 
-    # Part 3: Front Desk & 39-Room Property Management System
+    # Part 3: Front Desk & 40-Room Property Management System
     {
         "filename": "14_pms_reception_tape_chart.png",
         "part": "PART 3: FRONT DESK & 39-ROOM PROPERTY MANAGEMENT SYSTEM",
-        "title": "Front Desk PMS - 39-Room Authentic MySoft Tape Chart Matrix",
+        "title": "Front Desk PMS - 40-Room Authentic Tape Chart Matrix",
         "desc": "Comprehensive room inventory grid displaying all 39 physical rooms categorized across 5 operational lifecycle stages: Vacant Clean, Vacant Dirty, Occupied Clean, Occupied Dirty, and Maintenance OOO."
     },
     {
@@ -195,7 +195,7 @@ SECTIONS_METADATA = [
         "filename": "29_director_executive_command_portal.png",
         "part": "PART 5: ENTERPRISE CONTROL, INVENTORY & IN-ROOM COMPANION",
         "title": "Executive Director Command Portal - Remote Operational Oversight",
-        "desc": "Managing Director Eswara's mobile executive dashboard monitoring real-time occupancy rates, RevPAR, gross revenue trends, departmental expense ratios, and direct RMS tariff overrides."
+        "desc": "Managing Director's mobile executive dashboard monitoring real-time occupancy rates, RevPAR, gross revenue trends, departmental expense ratios, and direct RMS tariff overrides."
     },
     {
         "filename": "30_mandi_store_inventory_management.png",
@@ -278,7 +278,7 @@ class NumberedCanvas(canvas.Canvas):
         
         self.setFont("Helvetica", 8)
         self.setFillColor(colors.HexColor("#64748B"))
-        self.drawString(40, 22, "GSTIN: 21AEKPP8689J1ZS  |  Sai Priya Nagar, Rayagada, Odisha - 765001  |  Confidential & Proprietary")
+        self.drawString(40, 22, "GSTIN: 21AABCH7663L1ZG  |  Sai Priya Nagar, Rayagada, Odisha - 765001  |  Confidential & Proprietary")
         page_str = f"Page {self._pageNumber} of {page_count}"
         self.drawRightString(800, 22, page_str)
         self.restoreState()
@@ -367,8 +367,8 @@ def build_pdf():
     cover_details = """
     <b>Document Class:</b> Production Deployment & Executive System Walkthrough<br/>
     <b>Property Address:</b> Sai Priya Nagar, Rayagada, Odisha - 765001 (1.5 km to Station | 2.0 km to Maa Majhighariani Temple)<br/>
-    <b>Managing Director / Owner:</b> Paidisetty Manmadha Rao (Eswara)<br/>
-    <b>Statutory Identity:</b> GSTIN: 21AEKPP8689J1ZS | Sarai Act 1867 Compliant | DPDP Act 2023 Digital Vault<br/>
+    <b>Managing Director / Owner:</b> Hotel Sai International Pvt Ltd<br/>
+    <b>Statutory Identity:</b> GSTIN: 21AABCH7663L1ZG | Sarai Act 1867 Compliant | DPDP Act 2023 Digital Vault<br/>
     <b>Live Cloud Production Portal:</b> https://hotel-sai-international.pages.dev<br/>
     <b>Total Inventory & Outlets:</b> 40 Luxury Rooms | 18 Dining Tables | Drop In Bar | Central Mandi Storeroom<br/>
     <b>System Scope:</b> 35 High-Fidelity Verified Production Subsystems & Modals
@@ -381,7 +381,7 @@ def build_pdf():
         [
             Paragraph("<b>Part 1: Guest Experience</b><br/>• Luxury Booking Hero<br/>• 40-Room Catalog<br/>• Satvik Pure Veg Dining<br/>• 3D Multi-Floor Explorer<br/>• Darshan & AI Concierge<br/>• Autonomous Bot Fleet", cover_meta_style),
             Paragraph("<b>Part 2: Cannon Kitchen POS</b><br/>• 18 Dining Tables Grid<br/>• 85-Item Menu Catalog<br/>• Fast Code Punch (54*3)<br/>• Dynamic SBI UPI QR<br/>• Live Kitchen KDS Queue<br/>• Daily Item Sales Register", cover_meta_style),
-            Paragraph("<b>Part 3: Front Desk PMS</b><br/>• 39-Room Tape Chart<br/>• Booking Visualizer<br/>• Multi-Tier Occupancy<br/>• Cashier Shift Handover<br/>• Housekeeping Turnover<br/>• Sarai Act Police Register", cover_meta_style),
+            Paragraph("<b>Part 3: Front Desk PMS</b><br/>• 40-Room Tape Chart<br/>• Booking Visualizer<br/>• Multi-Tier Occupancy<br/>• Cashier Shift Handover<br/>• Housekeeping Turnover<br/>• Sarai Act Police Register", cover_meta_style),
             Paragraph("<b>Part 4: Central Accounts</b><br/>• Zero-Variance Audit<br/>• 85-Item ₹67,846 Report<br/>• Daily Day Book<br/>• Ashok Leyland B2B Ledger<br/>• Monthly GSTR-1 Tax<br/>• In-House Balances", cover_meta_style),
             Paragraph("<b>Part 5: Enterprise Control</b><br/>• 12 AM Night Audit Lock<br/>• Director Mobile Portal<br/>• Mandi Store Inventory<br/>• Master Folio ₹13,588<br/>• IDeaS G3 RMS Console<br/>• In-Room QR Companion", cover_meta_style)
         ]

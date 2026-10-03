@@ -123,7 +123,7 @@ async function main() {
     // ---------------------------------------------------------------
     // 3. Reception PMS Duty Manager Authentication & Tape Chart
     // ---------------------------------------------------------------
-    await runStep('PMS Duty Manager Quick Unlock & 39-Room Matrix Ledger Verification', async () => {
+    await runStep('PMS Duty Manager Quick Unlock & 40-Room Matrix Ledger Verification', async () => {
       // Click PMS portal link
       await page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('button, a'));
@@ -149,11 +149,11 @@ async function main() {
       // Wait for PMS dashboard to render
       await waitForPredicate(page, () => {
         const text = document.body.innerText;
-        return text.includes('Tape Chart') || text.includes('39-Room') || text.includes('Rooms Available');
+        return text.includes('Tape Chart') || text.includes('40-Room') || text.includes('Rooms Available');
       });
 
       const pmsContent = await page.evaluate(() => document.body.innerText);
-      assert.ok(pmsContent.includes('39-Room') || pmsContent.includes('Rooms'), 'Tape chart inventory must load');
+      assert.ok(pmsContent.includes('40-Room') || pmsContent.includes('Rooms'), 'Tape chart inventory must load');
     });
 
     // ---------------------------------------------------------------

@@ -120,7 +120,7 @@ export default function RoomServicesCareModal({
                 )}
               </div>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                39-Room Guest Care, Housekeeping Requests, Extra Linen &amp; Turnaround Tickets
+                40-Room Guest Care, Housekeeping Requests, Extra Linen &amp; Turnaround Tickets
               </p>
             </div>
           </div>

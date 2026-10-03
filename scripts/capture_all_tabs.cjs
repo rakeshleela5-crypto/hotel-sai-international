@@ -218,9 +218,9 @@ async function capture() {
     await sleep(800);
   }
 
-  // 14. 39-Room Tape Chart Matrix
+  // 14. 40-Room Tape Chart Matrix
   await clickReceptionTab('Tape Chart Matrix');
-  await snap('14_pms_reception_tape_chart.png', 'Front Desk PMS - 39-Room Tape Chart Matrix');
+  await snap('14_pms_reception_tape_chart.png', 'Front Desk PMS - 40-Room Tape Chart Matrix');
 
   // 15. Booking Visualizer & Timeline Calendar
   await clickReceptionTab('Booking Visualizer');

@@ -30,7 +30,7 @@
 - **Interactive Stay Calendar**: Integrated shadcn `v-calendar-15` for visual check-in/check-out selection.
 
 ### 2. Comprehensive Reception Admin & PMS
-- **39-Room Interactive Tape Chart Matrix**: Visual grid of all 40 rooms categorized by status (Available, Occupied, Cleaning, Maintenance, VIP).
+- **40-Room Interactive Tape Chart Matrix**: Visual grid of all 40 rooms categorized by status (Available, Occupied, Cleaning, Maintenance, VIP).
 - **Interactive Convention & Booking Visualizer**: Powered by Framer Motion and Tailwind CSS for multi-day banquet, corporate account, and room folio management.
 - **Master Folio & Split-Billing Engine**: Official A4 Tax Invoices and 80mm thermal slips conforming to Rule 46 of CGST/OGST Rules 2017 & statutory DPDP Act 2023.
 - **3D Holographic RFID Keycard**: Interactive 3D tilt keycard with real-time foil glare reflection for digital guest check-in.

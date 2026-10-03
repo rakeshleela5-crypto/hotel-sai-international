@@ -161,7 +161,7 @@ export default function CannonKitchenPOS({
   const [discountValue, setDiscountValue] = useState(10);
   const [discountReason, setDiscountReason] = useState('Managing Director Courtesy');
   const [isNonCommercial, setIsNonCommercial] = useState(false);
-  const [ncReason, setNcReason] = useState('Managing Director Eswara VIP Dining');
+  const [ncReason, setNcReason] = useState('Managing Director / Board VIP Dining');
 
   const [kotSentSuccess, setKotSentSuccess] = useState(false);
   const [lastOrderDetails, setLastOrderDetails] = useState(null);
@@ -430,7 +430,7 @@ GST @ 5% (SAC 996331): ₹${gst.toFixed(2)}
 *TOTAL PAYABLE: ₹${isNonCommercial ? '0.00 (NC Comp Approved)' : netTotal.toFixed(2)}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Payment Options: Cash / SBI UPI QR / Bill to Room
-UPI Payee VPA: eswara.hotel@sbi
+UPI Payee VPA: ${HOTEL_CONFIG.upiId || 'hotelsaiinternational@sbi'}
 Thank you for dining at Cannon Kitchen! 🙏`;
 
     const encoded = encodeURIComponent(text);
@@ -2248,7 +2248,10 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                     🛎️ Direct Room Service Transfer Keys (Bill to Folio)
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: '0.65rem' }}>
-                    {['201', '202', '206', '207', '208', '301', '304', '305', '308', '402', '408', '409', '410', '411', '412', '413', '415', '416'].map(rNum => {
+                    {((rooms && rooms.length > 0)
+                      ? rooms.filter(r => r.status === 'Occupied').map(r => r.roomNumber)
+                      : ['102', '104', '106', '108', '201', '202', '206', '207', '208', '301', '303', '304', '306', '310', '402', '404', '405', '406', '407', '408', '409', '410']
+                    ).map(rNum => {
                       const isSelected = targetRoom === rNum && orderType === 'room';
                       return (
                         <button
@@ -2688,8 +2691,8 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                       onClick={() => {
                         if (!isNonCommercial) {
                           setIsNonCommercial(true);
-                          setNcReason('MD Paidisetty Manmadha Rao (Eswara) VIP Courtesy');
-                          showPosToast('👑 MD Eswara VIP Courtesy applied (100% Complimentary NC)!');
+                          setNcReason('MD / Board VIP Courtesy');
+                          showPosToast('👑 Board VIP Courtesy applied (100% Complimentary NC)!');
                           playSuccessChime();
                         } else {
                           setIsNonCommercial(false);
@@ -2707,7 +2710,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                         border: isNonCommercial ? '1px solid #ef4444' : '1px solid var(--gold-glow)'
                       }}
                     >
-                      👑 {isNonCommercial ? '✓ 100% NC Active (MD Courtesy)' : 'MD Eswara VIP Courtesy (100% NC)'}
+                      👑 {isNonCommercial ? '✓ 100% NC Active (MD Courtesy)' : 'MD / Board VIP Courtesy (100% NC)'}
                     </button>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer', color: isNonCommercial ? '#f87171' : '#cbd5e1' }}>
                       <input
@@ -3358,13 +3361,13 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                   </div>
                   <div style={{ display: 'inline-block', padding: '8px', background: '#fff', borderRadius: '8px', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`upi://pay?pa=eswara.hotel@sbi&pn=Hotel%20Sai%20International&am=${netTotal.toFixed(2)}&cu=INR&tn=Table%20${tableNumber}%20Food%20Bill`)}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`upi://pay?pa=hotelsaiinternational@sbi&pn=Hotel%20Sai%20International&am=${netTotal.toFixed(2)}&cu=INR&tn=Table%20${tableNumber}%20Food%20Bill`)}`}
                       alt="SBI UPI QR Code"
                       style={{ width: 160, height: 160, display: 'block' }}
                     />
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem' }}>
-                    Payee VPA: <strong style={{ color: '#fff' }}>eswara.hotel@sbi</strong> • Amount: <strong style={{ color: '#fbbf24' }}>₹{netTotal.toFixed(2)}</strong>
+                    Payee VPA: <strong style={{ color: '#fff' }}>hotelsaiinternational@sbi</strong> • Amount: <strong style={{ color: '#fbbf24' }}>₹{netTotal.toFixed(2)}</strong>
                   </div>
                 </div>
               )}
@@ -3394,7 +3397,7 @@ Thank you for dining at Cannon Kitchen! 🙏`;
                       <span style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>Scan UPI QR for remaining balance:</span>
                       <div style={{ display: 'inline-block', padding: '6px', background: '#fff', borderRadius: '6px', marginTop: '4px' }}>
                         <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=eswara.hotel@sbi&pn=Hotel%20Sai%20International&am=${Math.max(0, netTotal - (parseFloat(splitCashAmount) || 0)).toFixed(2)}&cu=INR&tn=Table%20${tableNumber}%20Split%20UPI`)}`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=hotelsaiinternational@sbi&pn=Hotel%20Sai%20International&am=${Math.max(0, netTotal - (parseFloat(splitCashAmount) || 0)).toFixed(2)}&cu=INR&tn=Table%20${tableNumber}%20Split%20UPI`)}`}
                           alt="Split UPI QR"
                           style={{ width: 120, height: 120, display: 'block' }}
                         />

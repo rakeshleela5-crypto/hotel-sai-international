@@ -390,7 +390,7 @@ export default function DateAuditSnapshotModal({
       const clean = filteredItems.filter(r => (r.status || '').toLowerCase().includes('clean') || (r.status || '').toLowerCase().includes('available')).length;
       const dirty = filteredItems.filter(r => (r.status || '').toLowerCase().includes('dirty') || (r.status || '').toLowerCase().includes('cleaning')).length;
       return [
-        { label: 'Tracked Rooms', value: count, sub: '39-Room Property Keys', color: '#38bdf8', icon: <Bed size={16} /> },
+        { label: 'Tracked Rooms', value: count, sub: '40-Room Property Keys', color: '#38bdf8', icon: <Bed size={16} /> },
         { label: 'Clean & Inspected', value: clean, sub: 'Ready for Guest Check-in', color: '#10b981', icon: <CheckCircle2 size={16} /> },
         { label: 'Dirty / Turnaround', value: dirty, sub: 'Attendant Work Order Scope', color: '#ef4444', icon: <AlertTriangle size={16} /> }
       ];

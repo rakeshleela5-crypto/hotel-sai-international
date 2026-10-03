@@ -644,7 +644,7 @@ export default function StoreInventoryModal({
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
-                    onClick={() => alert('Printing Consolidated Vendor Payment Sheet for Managing Director Eswara')}
+                    onClick={() => alert('Printing Consolidated Vendor Payment Sheet for Managing Director')}
                     className="btn-outline"
                     style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                   >
